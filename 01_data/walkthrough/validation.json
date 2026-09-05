@@ -1,0 +1,5 @@
+{
+  "accepted": true,
+  "report": "Rebuilt the demo warehouse from frozen inputs with the candidate patch applied. Row counts unchanged; mart_daily for 2026-01-14 now reports 297.00 against an independently recomputed 297.00.",
+  "checks_run": ["pipeline_rebuilds", "row_counts_preserved", "independent_recomputation"]
+}

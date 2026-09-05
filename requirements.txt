@@ -1,0 +1,21 @@
+# Everything needed to run and test ADII.
+#
+#   python3 -m venv .venv
+#   source .venv/bin/activate        # Windows: .venv\Scripts\activate
+#   pip install -r requirements.txt
+#
+# The first line installs this repository itself, so `import adii` and
+# `python -m adii.demo` work from anywhere. The rest are the test and lint tools.
+# The system has no third-party runtime dependencies: it is Python's standard
+# library, on purpose. Anything added here has to earn its place in review.
+
+-e .
+
+# Pinned for the same reason as ruff: the clean-clone path and CI both consume this
+# file, so an open major on the test runner means the same commit can go red tomorrow
+# with nothing in the repository having changed. 9.1.1 is what two clean clones qualified.
+pytest==9.1.1
+
+# Pinned, not floated. CI gates on lint, and an unpinned linter turns a new ruff
+# release into a red build nobody caused. Bump it deliberately, in its own PR.
+ruff==0.16.6

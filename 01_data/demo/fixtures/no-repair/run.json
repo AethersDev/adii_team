@@ -1,0 +1,233 @@
+{
+  "schema": "contracts/demo/v0",
+  "fixture": true,
+  "provenance": "hand-authored, derived from the frozen evaluation catalogue; temporary until demo/world exists and can generate these",
+  "candidate_repair": null,
+  "validation": null,
+  "run_id": "r-2b90de",
+  "slug": "no-repair",
+  "incident": {
+    "incident_id": "incident-real-business-decline-001",
+    "title": "Revenue down 45% and finance suspects the pipeline",
+    "alert": "The executive revenue dashboard shows daily revenue down roughly 45% since 2026-07-01 and it has not recovered. Finance suspects a pipeline fault.",
+    "as_of": "2026-07-16T06:00:00Z"
+  },
+  "posture": {
+    "label": "Bounded \u00b7 40 tool calls \u00b7 Evidence-gated",
+    "max_tool_calls": 40,
+    "evidence_gated": true
+  },
+  "trace": [
+    {
+      "n": 1,
+      "id": "E1",
+      "tool": "run_sql",
+      "status": "OK",
+      "request": {
+        "query": "SELECT order_date, revenue_usd FROM mart_daily_revenue WHERE order_date >= '2026-06-27' ORDER BY order_date LIMIT 6"
+      },
+      "observation": {
+        "rows": [
+          [
+            "2026-06-28",
+            3011.44
+          ],
+          [
+            "2026-06-29",
+            2984.1
+          ],
+          [
+            "2026-06-30",
+            3042.88
+          ],
+          [
+            "2026-07-01",
+            1663.2
+          ],
+          [
+            "2026-07-02",
+            1621.95
+          ],
+          [
+            "2026-07-03",
+            1702.34
+          ]
+        ]
+      },
+      "plain": "Looked at the revenue report \u2014 it halves on July 1st."
+    },
+    {
+      "n": 2,
+      "id": "E2",
+      "tool": "run_sql",
+      "status": "OK",
+      "request": {
+        "query": "SELECT order_date, COUNT(*) n, ROUND(SUM(amount)/100.0,2) src FROM raw_orders WHERE order_date >= '2026-06-27' GROUP BY order_date ORDER BY order_date LIMIT 6"
+      },
+      "observation": {
+        "note": "the decline is present in the source extract itself",
+        "rows": [
+          [
+            "2026-06-28",
+            99,
+            3011.44
+          ],
+          [
+            "2026-06-30",
+            101,
+            3042.88
+          ],
+          [
+            "2026-07-01",
+            55,
+            1663.2
+          ],
+          [
+            "2026-07-02",
+            54,
+            1621.95
+          ]
+        ]
+      },
+      "plain": "Checked the raw source data \u2014 the same drop is already there."
+    },
+    {
+      "n": 3,
+      "id": "E3",
+      "tool": "read_log",
+      "status": "OK",
+      "request": {
+        "log_id": "upstream_feed",
+        "offset": 0,
+        "limit": 200
+      },
+      "observation": {
+        "lines": [
+          "2026-07-01  window=2026-07-01 delivered_rows=55 source_rows=55 checksum_ok=true",
+          "2026-07-02  window=2026-07-02 delivered_rows=54 source_rows=54 checksum_ok=true"
+        ]
+      },
+      "plain": "Read the delivery logs \u2014 every batch arrived complete."
+    },
+    {
+      "n": 4,
+      "id": "E4",
+      "tool": "list_recent_changes",
+      "status": "OK",
+      "request": {},
+      "observation": {
+        "changes": [],
+        "note": "no transform changed in or before the anomaly window"
+      },
+      "plain": "Checked the change history \u2014 nobody changed the pipeline."
+    },
+    {
+      "n": 5,
+      "id": "E5",
+      "tool": "get_schema",
+      "status": "OK",
+      "request": {
+        "table": "raw_orders"
+      },
+      "observation": {
+        "declared_schema": {
+          "version": "v2",
+          "fields": {
+            "amount": {
+              "unit": "cents"
+            }
+          }
+        },
+        "note": "unchanged since 2026-05"
+      },
+      "plain": "Checked the data format \u2014 unchanged since May."
+    },
+    {
+      "n": 6,
+      "id": "E6",
+      "tool": "check_freshness",
+      "status": "OK",
+      "request": {
+        "table": "raw_orders"
+      },
+      "observation": {
+        "date_columns": {
+          "order_date": {
+            "latest": "2026-07-15",
+            "lag_days_vs_as_of": 1
+          }
+        }
+      },
+      "plain": "Checked how fresh the data is \u2014 one day old, as expected."
+    },
+    {
+      "n": 7,
+      "id": "E7",
+      "tool": "run_structural_validations",
+      "status": "OK",
+      "request": {},
+      "observation": {
+        "ok": true,
+        "output": "12 checks passed"
+      },
+      "plain": "Ran the built-in consistency checks \u2014 all passed."
+    },
+    {
+      "n": 8,
+      "id": "E8",
+      "tool": "read_log",
+      "status": "OK",
+      "request": {
+        "log_id": "vendor_notices"
+      },
+      "observation": {
+        "lines": [
+          "2026-06-29  Two regional distributors ended their contracts effective 2026-07-01."
+        ]
+      },
+      "plain": "Read the business notices \u2014 two distributors ended their contracts on July 1st."
+    }
+  ],
+  "decision": {
+    "disposition": "NO_REPAIR",
+    "root_cause_id": "HEALTHY_PIPELINE_REAL_REVENUE_DECLINE",
+    "claim": "The pipeline is sound and the movement is real. Daily order counts fall by the same proportion in the raw source extract, every delivery window reconciles, no transform changed, and the drop is independently explained by two distributor contracts ending on the same date.",
+    "evidence": [
+      "E2",
+      "E3",
+      "E4",
+      "E7"
+    ],
+    "missing_evidence": null
+  },
+  "usage": {
+    "tool_calls": 8,
+    "model_turns": 10,
+    "input_tokens": 33240,
+    "output_tokens": 2410,
+    "api_cost_usd": 0.1029,
+    "latency_ms": 27890
+  },
+  "evaluation": {
+    "available_to_investigator": false,
+    "expected_disposition": "NO_REPAIR",
+    "observed_disposition": "NO_REPAIR",
+    "root_cause": "CORRECT",
+    "repair": "NOT APPLICABLE",
+    "full_incident_success": "PASS",
+    "note": "Proposing no change was the correct action. Restraint is a result, not an absence of one."
+  },
+  "intro": {
+    "alert": "Revenue dropped 45% and hasn't recovered.",
+    "question": "Did the pipeline break, or did the business change?",
+    "checks": [
+      2,
+      3,
+      4,
+      8
+    ],
+    "decision": "The drop is already in the source data. Two distributors left.",
+    "fix": null,
+    "takeaway": "The data is correct. Fixing it would have created an error."
+  }
+}

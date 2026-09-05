@@ -1,0 +1,6 @@
+{
+  "incident_id": "demo-learning-001",
+  "alert": "The demo dashboard shows about 3 orders per day where it used to show about 300. Nothing else changed that anyone noticed.",
+  "as_of": "2026-01-15T00:00:00Z",
+  "permitted_write_paths": ["transforms/stg_orders.sql"]
+}

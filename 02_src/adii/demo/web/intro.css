@@ -1,0 +1,134 @@
+/* The beginner layer. Different job from the inspector, so a different density:
+   one idea per screen, large type, no identifiers, no hashes, no jargon.
+   Same tokens, same palette — so the step up to the inspector feels continuous. */
+
+.linkbtn{color:var(--muted); text-decoration:none; font:600 .7rem/1 var(--mono);
+  letter-spacing:.06em; border:1px solid var(--line); border-radius:2px; padding:.42rem .68rem}
+.linkbtn:hover{color:var(--parchment); border-color:var(--muted)}
+
+main.learn{display:grid; grid-template-columns:15rem 1fr; gap:2.5rem;
+  max-width:74rem; margin:0 auto; padding:2.4rem 2rem 5rem}
+@media (max-width:860px){main.learn{grid-template-columns:1fr; gap:1.2rem; padding:1.4rem}}
+
+#rail{display:flex; flex-direction:column; gap:.1rem; position:sticky; top:5rem; align-self:start}
+@media (max-width:860px){#rail{position:static; flex-direction:row; overflow-x:auto}}
+#rail button{background:transparent; border:0; text-align:left; cursor:pointer;
+  color:var(--muted); font:.78rem/1.35 var(--sans); padding:.5rem .6rem; border-radius:2px;
+  display:flex; gap:.6rem; white-space:nowrap}
+#rail button:hover{color:var(--parchment)}
+#rail button[aria-current="true"]{background:var(--ink-2); color:var(--parchment); font-weight:600}
+#rail .num{font-family:var(--mono); font-size:.7rem; color:var(--muted)}
+
+#stage{min-height:24rem}
+#stage h1{font:600 2.05rem/1.22 var(--serif); margin:0 0 .9rem; letter-spacing:.01em;
+  max-width:20ch; text-wrap:balance}
+#stage .say{font:1.12rem/1.68 var(--sans); color:var(--parchment-2); max-width:56ch; margin:0 0 1.6rem}
+#stage .say b{color:var(--parchment); font-weight:600}
+#stage .kicker{font:1.24rem/1.5 var(--serif); color:var(--parchment); max-width:52ch; margin:0 0 1.5rem}
+
+/* three dispositions, side by side, equal in every dimension */
+.three{display:grid; grid-template-columns:repeat(auto-fit,minmax(11rem,1fr)); gap:.85rem;
+  margin:1.6rem 0}
+.three > div{border:1.5px solid; border-radius:3px; padding:1.05rem 1.1rem;
+  display:flex; flex-direction:column; gap:.4rem}
+.three .name{font:700 1.02rem/1 var(--mono); letter-spacing:.08em}
+.three .what{font-size:.88rem; color:var(--parchment-2)}
+
+.alertbox{border-left:2px solid var(--muted); padding:.15rem 0 .15rem 1.1rem; margin:0 0 1.5rem}
+.alertbox .eyebrow{margin-bottom:.3rem}
+.alertbox .text{font:1.16rem/1.5 var(--serif)}
+
+.checks{list-style:none; margin:0 0 1.6rem; padding:0;
+  display:flex; flex-direction:column; gap:.05rem; max-width:56ch}
+.checks li{display:flex; gap:.85rem; align-items:baseline; padding:.62rem 0;
+  border-bottom:1px solid var(--line-2); font-size:.98rem}
+.checks .tick{color:var(--norepair); flex:none; font-size:.9rem}
+.outcome{border:1.5px solid; border-radius:3px; padding:1.05rem 1.25rem; max-width:46rem}
+.outcome .name{font:700 1.22rem/1 var(--mono); letter-spacing:.09em; display:block;
+  margin-bottom:.5rem}
+.outcome .why{font-size:.98rem; color:var(--parchment-2)}
+.fixline{margin-top:.85rem; font-family:var(--mono); font-size:.84rem; color:var(--parchment)}
+.fixline .k{color:var(--muted)}
+
+.takeaway{margin-top:1.6rem; font:1.08rem/1.6 var(--serif); color:var(--parchment);
+  border-top:1px solid var(--line-2); padding-top:1.1rem; max-width:52ch}
+
+/* Two authorities. The teaching is the BAND, not the arrow: everything above the
+   handover belongs to the investigator, everything below belongs to someone else.
+   Each stage shows the question it answers, so "candidate test" cannot be mistaken for
+   a first draft of the check that follows. */
+.authority-chain{max-width:44rem; margin:0 0 1.6rem}
+.band{border:1px solid var(--line); border-radius:3px; overflow:hidden}
+.band.validator{border-color:var(--muted)}
+.band .owner{font:600 .64rem/1 var(--mono); letter-spacing:.15em; text-transform:uppercase;
+  color:var(--muted); padding:.62rem .95rem; background:var(--ink-2);
+  border-bottom:1px solid var(--line-2)}
+.band.validator .owner{color:var(--parchment)}
+.stage{padding:.72rem .95rem; border-bottom:1px solid var(--line-2)}
+.stage:last-child{border-bottom:0}
+.stage .what{font:600 .68rem/1 var(--mono); letter-spacing:.1em; color:var(--parchment)}
+.stage .q{font-size:.88rem; color:var(--muted); margin-top:.3rem; font-style:italic}
+.stage .ans{margin-top:.45rem; font-size:.96rem; color:var(--parchment)}
+.handover{text-align:center; color:var(--muted); font:.66rem/1 var(--mono);
+  letter-spacing:.16em; text-transform:uppercase; padding:.85rem 0}
+.verdictname{font:700 1.04rem/1 var(--mono); letter-spacing:.08em}
+.v-ok{color:var(--correct)} .v-no{color:var(--incorrect)}
+
+/* the three arms: identical rows so the only visible difference is the score */
+.arms{display:flex; flex-direction:column; gap:.5rem; max-width:44rem; margin:0 0 1.5rem}
+.arm{display:grid; grid-template-columns:1fr auto auto; gap:1rem; align-items:baseline;
+  border:1px solid var(--line); border-radius:3px; padding:.8rem 1rem}
+.arm.win{border-color:var(--norepair)}
+.armwhat{font-size:.96rem}
+.armhow{font:.76rem/1 var(--mono); color:var(--muted)}
+.armscore{font:700 1.05rem/1 var(--mono); color:var(--muted); min-width:4.4rem; text-align:right}
+.arm.win .armscore{color:var(--norepair)}
+
+/* the agent exchange */
+.exchange{display:flex; flex-direction:column; gap:.5rem; max-width:48rem; margin:0 0 1.5rem}
+.turn{display:grid; grid-template-columns:5.4rem 1fr; gap:.9rem; align-items:baseline;
+  padding:.6rem 0; border-bottom:1px solid var(--line-2)}
+.turn .who{font:600 .68rem/1.5 var(--mono); letter-spacing:.1em; color:var(--muted)}
+.turn .said{font-size:.95rem}
+.turn.tool .said{font-family:var(--mono); font-size:.82rem; color:var(--parchment-2)}
+
+/* architecture */
+.arch{font-family:var(--mono); font-size:.8rem; line-height:1.75; color:var(--parchment-2);
+  border:1px solid var(--line); border-radius:3px; padding:1.1rem 1.3rem; overflow-x:auto;
+  margin:0 0 1.5rem; white-space:pre}
+.tracks{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.5rem;
+  max-width:56ch}
+.tracks li{display:flex; gap:.9rem; align-items:baseline}
+.tracks .letter{font:700 .96rem/1 var(--mono); color:var(--parchment); flex:none; width:1.1rem}
+.tracks .role{color:var(--parchment-2); font-size:.95rem}
+
+.nav{display:flex; gap:.6rem; align-items:center; margin-top:2.2rem;
+  border-top:1px solid var(--line-2); padding-top:1.2rem}
+#on{background:var(--ink-3); color:var(--parchment); border:1px solid var(--muted);
+  border-radius:2px; padding:.55rem 1.1rem; font:600 .8rem/1 var(--sans); cursor:pointer}
+.ghostbtn{background:transparent; border:1px solid var(--line); color:var(--muted);
+  border-radius:2px; padding:.55rem 1rem; font:600 .8rem/1 var(--sans); cursor:pointer}
+button:disabled{opacity:.35; cursor:not-allowed}
+.pos{margin-left:auto; font-family:var(--mono); font-size:.74rem; color:var(--muted)}
+.done{margin-top:1.4rem; display:flex; gap:.7rem; flex-wrap:wrap}
+
+/* Before / change / after. Identical row labels on both sides so the only visible
+   difference is the numbers — the mechanism, not a repair id. */
+.mech{display:grid; grid-template-columns:1fr auto 1fr; gap:.7rem; align-items:stretch;
+  margin:.5rem 0 1rem; max-width:48rem}
+@media (max-width:760px){.mech{grid-template-columns:1fr}}
+.side{border:1px solid var(--line); border-radius:3px; padding:.7rem .85rem}
+.side.good{border-color:var(--norepair)}
+.side.bad{border-color:var(--incorrect)}
+.sidelabel{font:600 .64rem/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:.5rem}
+.mrow{display:flex; justify-content:space-between; gap:1rem; padding:.26rem 0;
+  border-bottom:1px solid var(--line-2); font-size:.86rem}
+.mrow:last-child{border-bottom:0}
+.mrow b{font-family:var(--mono); font-size:.84rem; text-align:right}
+.mechact{display:flex; flex-direction:column; justify-content:center; text-align:center;
+  padding:.7rem .9rem; font-size:.88rem; color:var(--parchment); max-width:12rem}
+.acthead{font:600 .64rem/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:.4rem}
+.verified{font-size:.92rem; color:var(--parchment-2); max-width:56ch; margin:0 0 .4rem}
+.verified b{color:var(--parchment)}

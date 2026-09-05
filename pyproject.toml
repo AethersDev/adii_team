@@ -1,0 +1,28 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "adii"
+version = "0.0.1"
+description = "ADII: evidence-gated data-incident investigation. Team implementation."
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest>=8.0", "ruff>=0.6"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["02_src/adii"]
+
+[tool.pytest.ini_options]
+testpaths = ["02_src/tests"]
+pythonpath = ["02_src"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

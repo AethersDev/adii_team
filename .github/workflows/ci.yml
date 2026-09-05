@@ -1,0 +1,39 @@
+name: ci
+
+# "Works on my machine" stops being an argument here. Windows and macOS are where the
+# team actually develops; Ubuntu is a neutral third opinion.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt
+      - name: Environment check
+        run: python 02_src/scripts/check_env.py
+      - name: Lint
+        run: python -m ruff check 02_src
+      # Named separately so a boundary violation is legible in the CI summary rather than
+      # buried among unit failures. These are the rules an agent breaks first.
+      - name: Architecture boundaries
+        run: python -m pytest 02_src/tests/architecture -q
+      - name: Agent briefing is in sync
+        run: python 02_src/scripts/sync_briefing.py && git diff --exit-code CLAUDE.md AGENTS.md
+      - name: Status page is in sync
+        run: python 02_src/scripts/sync_status.py && git diff --exit-code 02_src/docs/current_status.md
+      - name: Tests
+        run: python -m pytest
+      - name: Walkthrough runs end to end
+        run: python -m adii.examples.walkthrough

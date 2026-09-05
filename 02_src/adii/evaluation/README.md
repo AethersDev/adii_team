@@ -1,0 +1,72 @@
+# Evaluation: scoring and answer keys
+
+Whether the answer was right, and how we know that independently of the thing that
+answered.
+
+**You own:** the incidents' correct answers, the scoring rules, the baseline arms, and the
+construction that keeps all of it unreachable from the investigator.
+
+**You do not own:** the investigation (A), the tool surface (B). And you do not adopt an
+answer key from anywhere else — we hold our own, or we are not measuring anything.
+
+## The separation that matters
+
+Contestant and judge are different programs with different authority. The agent must never
+be able to reach the answer key, the oracle, or the scoring code — not by convention, by
+construction. `02_src/tests/architecture/` enforces the import direction; the rest is your design.
+
+Note this is a *different* boundary from validation, which you also own. Validation asks
+**does this repair work**. Scoring asks **was this the right call at all** — including for
+the two dispositions that propose no repair, where there is nothing to validate.
+
+## The staged build
+
+Each stage is useful on its own, and each is a real measurement before the next exists.
+
+1. **Disposition scoring.** Fixture decision in, `correct` / `incorrect` out. Write down
+   what correct means for each disposition first. `ESCALATE` when the evidence really is
+   insufficient is a **success**, not a dodge — that distinction is most of the research
+   question, and a scorer that treats abstention as failure measures the wrong thing.
+2. **Repair verdicts.** Wire in the independent validator. `REPAIR` is only correct if the
+   repair is *also* accepted; a right diagnosis with a wrong fix is not a pass.
+3. **Baseline arms.** Same incidents, weaker systems: always-escalate (no model at all),
+   and alert-only (same model, same prompt, **zero tools**). Without these, a score is a
+   number with nothing to attribute it to. See
+   [../../../02_src/docs/inherited/CONTROLS.md](../../../02_src/docs/inherited/CONTROLS.md) — it also
+   explains why a perfect score is a problem rather than a result.
+
+## Two rules to build in before there is anything to protect
+
+Both are cheap now and impossible to retrofit once a result exists.
+
+- **An answer key is frozen by hash and never edited.** A correction is a *new file*.
+  Evidence scored against a key means nothing if the key can move afterwards.
+- **Scoring semantics are pre-registered.** Deciding what counts as success after seeing
+  results is how a real finding becomes an unfalsifiable one.
+
+## The question this component answers
+
+Who owns the correct answer, when is it consulted, and why would exposing it to the agent
+invalidate everything we report?
+
+## Invariants
+
+- Never appears in agent context, and is never importable from `investigator/`. An
+  investigator that can reach the answer key has not investigated anything.
+- Scores a completed run against hidden truth, offline — not on the path an investigation
+  takes.
+- Answers whether the investigator was *right*. Whether a proposed action is *acceptable*
+  is `validation/`'s question, and they are not the same question.
+
+*Enforced by* `test_the_investigator_cannot_reach_the_judge`.
+
+## How to test it
+
+```bash
+pytest 02_src/tests -k evaluation
+```
+
+## Related
+
+Consumes `contracts/`. Consumed by offline analysis only.
+Six-question summary in [system_map.md](../../docs/system_map.md#evaluation).
