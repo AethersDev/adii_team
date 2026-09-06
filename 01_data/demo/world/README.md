@@ -36,4 +36,4 @@ retire the current evaluation-derived ones in `../fixtures/`. Each generated fix
 declares `provenance: "generated"`; a test asserts every fixture declares how it was made.
 
 The orientation layer should render actual output from a runnable world, not a curated
-story that resembles one.
+story that resembles one.>
