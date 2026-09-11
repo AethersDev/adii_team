@@ -38,7 +38,7 @@ pip install -r requirements.txt
 **3. Configure the API key**
 
 Not needed yet. The system currently runs with no model and no network; when the agent
-loop lands, this step becomes `export ANTHROPIC_API_KEY=...` and `check_env.py` starts
+loop lands, this step becomes `export OPENAI_API_KEY=...` and `check_env.py` starts
 checking for it.
 
 **4. Run the environment check**
