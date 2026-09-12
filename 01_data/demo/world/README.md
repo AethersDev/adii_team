@@ -19,6 +19,9 @@ Build the smallest executable operational world in which three configurations of
 | **B** | 56 | 56 | 56 | SUCCESS | promotion ended yesterday | **NO_REPAIR** |
 | **C** | 100 | ? | 55 | SUCCESS | manifest fault; source receipt unavailable | **ESCALATE** |
 
+
+
+
 Fifty to a hundred rows. The value is in the relationships between evidence sources, not
 volume.
 
