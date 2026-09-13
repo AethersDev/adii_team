@@ -1,24 +1,26 @@
 # Proposal: the trace event contract (D-1)
 
-**Status: proposed, 13 September 2026. Not agreed.** This is the first of the six week-2
-decisions in [plan_telemetry.md](plan_telemetry.md), put in front of the team before any
-constructor lands. Every event the loop, the tool layer and the validator emit will be built
-through this vocabulary, and a vocabulary that grew by accident cannot be corrected later
-without breaking archives.
+**Status: proposed, 13 September 2026. Not agreed. No constructor lands before it is.**
+This is the first of the six week-2 decisions in [plan_telemetry.md](plan_telemetry.md).
+Every event the loop, the tool layer and the validator emit will be built through this
+vocabulary, and a vocabulary that grew by accident cannot be corrected later without
+breaking archives. The branch pauses here on purpose: before disagreement becomes code.
 
-The question is not *what should we log*. It is:
+Read this file, then the affected types in `02_src/adii/contracts/core.py`, then fill in
+the decision record at the end. The question is not *what should we log*. It is:
 
 > **What facts must survive a run so that reporting, debugging, evaluation and later
 > evidence citation never have to reconstruct what happened?**
 
-## What stays fixed
+## The envelope stays fixed
 
-`TraceEvent(sequence, kind, payload)` in `02_src/adii/contracts/core.py` is the envelope,
-and this proposal does not change it. `sequence` is the identity of an event within a run.
-A timestamp travels in the payload as `at` (ISO 8601, UTC). Two envelope fields were
-considered and are not proposed: an `event_id` adds nothing to a contiguous `sequence`
-inside one run, and an `actor` is implied by the kind. Either can be added later as a
-reviewed contract change if a real use appears.
+`TraceEvent(sequence, kind, payload)` in `contracts/core.py` is the envelope, and this
+proposal does not change it. Two fields were considered and are not proposed: an
+`event_id`, because `(run label, sequence)` is already a stable compound identity — the
+label is immutable and the sequence is contiguous — and adding a second identifier would
+give one object two names without a demonstrated need; and an `actor`, because the kind
+implies it. If events are ever referenced from outside their run, that is the moment to
+reconsider, as a reviewed contract change.
 
 Three invariants the record enforces on every trace it accepts:
 
@@ -27,46 +29,67 @@ Three invariants the record enforces on every trace it accepts:
 - every `kind` is one of the kinds below, and its payload carries the fields that kind
   requires.
 
+## Two identities, kept apart
+
+`sequence` identifies a **trace event**. `observation_id` identifies an **evidence object
+the tool layer produced**. They are different things and must never be derived from each
+other: the tool layer keeps its own counter and mints `obs-0001`, `obs-0002`, … for each
+observation it returns, unique within the run, and only a `tool_observed` event carries
+one. A submission cites observations by `observation_id` and nothing else, so a citation
+can resolve only to an actual observation, never to an arbitrary trace event.
+
+```text
+tool_requested → tool_observed(obs-0002) → submission cites obs-0002
+→ the inspector resolves the citation to that observation's exact trace event
+```
+
+## The rule for adding a kind
+
+**Every event kind must justify its existence with a trajectory it disambiguates** — a
+failure, or a reconstruction, that becomes ambiguous without it. If a kind cannot name one,
+it is not added. Requests and responses are separate kinds under this rule:
+
+```text
+model_requested → provider timeout → no model_responded   → run_terminated(model_failure)
+tool_requested  → tool error       → no tool_observed     → the trace shows the request
+```
+
+Neither trajectory is representable with a single `model_turn` or `tool_call` event without
+inventing a turn that never completed.
+
 ## The kinds
 
-Requests and responses are different custody events. A request that never got its response
-is a real state — a timeout, a crash — and it has to be representable without inventing a
-turn that never completed.
-
-| kind | emitted by | payload carries | why it exists |
+| kind | emitted by | payload carries | the trajectory that justifies it |
 |---|---|---|---|
-| `run_started` | runtime | `incident_id`, `at` | the run began; the configuration it began under is on the record |
-| `model_requested` | investigator | `turn`, `at`, `messages` — the messages added since the previous request; the full prompt is reconstructible from the trace | the transcript is caller-owned and what the model saw is part of the record (D1) |
-| `model_responded` | investigator | `turn`, `at`, `content`, `usage` or null, `fingerprint` or null | one usage and one fingerprint slot per response; null is recorded, never omitted (D7, D15) |
-| `tool_requested` | investigator | `call_id`, `name`, `arguments`, `at` | a `ToolCall`, verbatim |
-| `tool_observed` | tool layer | `call_id`, `name`, `status`, `content`, `observation_id`, `at` | a `ToolResult`, verbatim, plus the identity a decision may later cite — minted here, never by the model (D2) |
-| `submission_proposed` | investigator | `disposition`, `root_cause_id`, `repair_id`, `evidence_refs`, `at` | the terminal submission as the loop produced it, before the contract validated it — so a malformed answer is on the record, not a crash |
-| `validation_completed` | validator | `accepted`, `at` | the verdict, from the other authority |
-| `run_terminated` | runtime | `termination`, `detail`, `at` | how the run ended, in the loop's own controlled terms |
+| `run_started` | runtime | `incident_id`, `at` | a run that began and produced nothing else still leaves a record of having begun; the configuration it began under is on the record |
+| `model_requested` | investigator | `turn`, `at`, `messages` — the messages added since the previous request; the full prompt is reconstructible from the trace | a request with no response is a timeout or a crash, and must be distinguishable from a turn that completed (D1: the transcript is caller-owned) |
+| `model_responded` | investigator | `turn`, `at`, `content`, `usage` or null, `fingerprint` or null | one usage and one fingerprint slot per response; a null is recorded, never omitted, so a backend change mid-run is visible (D7, D15) |
+| `tool_requested` | investigator | `call_id`, `name`, `arguments`, `at` | a `ToolCall`, verbatim: a request the tool layer refused or never answered still happened |
+| `tool_observed` | tool layer | `call_id`, `name`, `status`, `content`, `observation_id`, `at` | a `ToolResult`, verbatim, plus the identity a decision may later cite — minted here, never by the model (D2); `DENIED`, `REJECTED` and `ERROR` are observations too |
+| `submission_proposed` | investigator | `disposition`, `root_cause_id`, `repair_id`, `evidence_refs`, `at` | the terminal submission as the loop produced it, before the contract validated it — so a malformed answer is on the record as a scored failure, not a crash (M4) |
+| `validation_completed` | validator | `accepted`, `at` | the verdict, from the other authority, distinguishable from the agent's own rehearsal |
+| `run_terminated` | runtime | `termination`, `detail`, `at` | how the run ended, in the loop's own controlled terms; without it a truncated archive and a completed run look the same |
 
 The walkthrough's five kinds map onto these — `incident_received` to `run_started`,
 `tool_call` to `tool_requested`, `tool_result` to `tool_observed`, `decision_submitted` to
 `submission_proposed`, `validation_completed` unchanged — and its fixture is rewritten in
-the agreed vocabulary the day this is agreed. It is the only trace that exists, so the
-cost of changing it is now zero and only rises.
+the agreed vocabulary the day this is agreed. It is the only trace that exists, so the cost
+of changing it is zero today and only rises.
 
-## Observation identity, and citations
+## Timing
 
-`tool_observed` mints `observation_id` — `obs-0004` for the observation at sequence 4 —
-in the tool layer, bound to the trace. A decision cites observations by that id and by
-nothing else:
+Ordering is `sequence`, never the clock. `at` (ISO 8601, UTC, from the runtime's clock) is
+in every payload because latency and the wall-clock bound are measured from the trace, not
+self-reported (M8, D9). It is evidence of *duration*, not of *order*, and two events with
+equal or inverted timestamps are not an error.
 
-```text
-tool_requested → tool_observed → obs-0004 → decision cites obs-0004
-→ the inspector resolves the citation to the exact trace event
-```
+## Citations need one contract change
 
-This needs one contract change, which is why it is raised now rather than at M3:
-`InvestigationDecision` gains `evidence_refs: tuple[str, ...]`, and where the record is
-built every ref is checked against the observations the trace actually holds — the
-contract cannot see the trace, so the record does the check. A citation to an id nobody
-minted is rejected (D2). That change is a cross-boundary review for the four of us.
-Nothing in D waits on it.
+`InvestigationDecision` gains `evidence_refs: tuple[str, ...]`. The contract cannot see the
+trace, so where the record is built every ref is checked against the observations the trace
+actually holds; a citation to an id nobody minted is rejected (D2). This is raised now
+rather than at M3 because it is the one place the vocabulary reaches into the shared
+contracts, and it takes all four names. Nothing in D waits on it.
 
 ## How a run ends
 
@@ -91,24 +114,43 @@ reference, no correctness, no evaluator state, and no evidence id that a tool di
 If a field would let a reader of the archive know how the run *should* have gone, it
 belongs to the evaluation authority and travels in a separate, hash-bound artefact.
 
-## Done when
+## The acceptance test, fixed before the code
 
-D-1 is complete only when this sequence runs end to end with a scripted adapter and no
-live model:
+D-1 is complete only when this sequence runs end to end from a **scripted adapter** — no
+live model — and every assertion below holds:
 
 ```text
-incident → model_requested → model_responded → tool_requested → tool_observed (obs id)
-→ submission_proposed citing the id → validation_completed → run_terminated
+scripted incident
+→ run_started
+→ model_requested → model_responded
+→ tool_requested  → tool_observed(obs-0001)
+→ model_requested → model_responded
+→ submission_proposed(evidence_refs=["obs-0001"])
+→ validation_completed
+→ run_terminated
 → RunRecord → archive → inspector
 ```
 
-and the inspector renders that trace with no knowledge of the walkthrough. That is the
-first genuine vertical skeleton of ADII.
+```text
+✓ sequence is contiguous from 0
+✓ every kind is in the vocabulary and every payload carries its required fields
+✓ obs-0001 is minted exactly once, by the tool layer, and only on a tool_observed event
+✓ evidence_refs resolve to observations within the same run
+✓ a fabricated evidence_ref is rejected where the record is built
+✓ no evaluator or answer-key field enters the trace
+✓ the inspector renders the run from the RunRecord alone, with no knowledge of the script
+```
 
-## To agree
+Once the decisions below are made, D-1 has almost no design freedom left — only
+implementation.
 
-1. The kind set above, with the request/response split.
-2. `observation_id` minted in the tool layer, and `evidence_refs` on the decision as a
-   reviewed contract change.
-3. The termination set, owned by the loop.
-4. Timestamps in the payload; the envelope unchanged.
+## Decision record
+
+Four decisions, not four discussions. A contract change takes all four names.
+
+| # | Decision | What must be fixed before code | Touches `contracts/` | Decided | By |
+|---|---|---|---|---|---|
+| 1 | Event vocabulary | the exact closed set of kinds above, and what each means | no | open | |
+| 2 | Observation identity | the tool layer mints `observation_id`; unique within a run; never derived from `sequence` | no | open | |
+| 3 | Decision citations | `evidence_refs` enters `InvestigationDecision` now, checked against the trace where the record is built | **yes** | open | |
+| 4 | Event timing | `at` in every payload, from the runtime's clock, evidence of duration only; `sequence` orders | no | open | |

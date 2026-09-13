@@ -5,6 +5,10 @@ else in this repository is reachable from the runtime.
 The rule is a location, not a marker. A file that calls itself a fixture is still a copy of
 the truth if it sits where the runtime can read it, so no declaration exempts a file.
 
+The allowance is narrow on purpose: `evaluation/` may hold team-visible development fixtures
+and scoring logic. Private final-evaluation worlds, answer keys, or hidden authority state
+never enter this repository — not there, not anywhere. Blind material is custodian-held.
+
 The front-door invariants I1 and I2 from docs/DATA_WORLD_v0.md used to be asserted here over
 five hand-authored demo fixtures. Those are gone: the inspector shows archived runs and
 nothing else, and I1 and I2 are asserted over runs against the operational world once it
