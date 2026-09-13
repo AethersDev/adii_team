@@ -121,10 +121,10 @@ can explain to a large one they cannot.
 02_src/adii/validation/    the validation boundary — the other authority
 02_src/adii/evaluation/    incidents, answer keys, scoring, baselines
 02_src/adii/reporting/     telemetry — traces, artifacts, reports
-02_src/adii/demo/          orientation only — the rest of adii/ may never import it
+02_src/adii/demo/          the run inspector, read-only — the rest of adii/ may never import it
 02_src/tests/architecture/ the boundaries, executable
 01_data/demo/world/        the shared operational world (work order; not built)
-01_data/demo/fixtures/     the five recorded runs the demo serves
+01_data/runs/              the archive: one record per run, what the inspector reads
 01_data/walkthrough/       the teaching fixture
 ```
 

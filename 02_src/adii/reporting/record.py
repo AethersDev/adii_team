@@ -1,0 +1,191 @@
+"""The run record — one strict, versioned document per run.
+
+Holds what A, B and C produced without depending on how they produced it: the incident the
+investigator was handed, every trace event in order, how the run ended, the decision if there
+was one, the verdict if there was one, what it cost, the configuration it ran under, and
+where the record came from. The archive stores this shape and the inspector renders it, and
+nothing else. When the shape changes, SCHEMA changes with it and old files keep loading
+under the version they declare.
+
+Two refusals, both at the boundary: a document whose schema this reader does not know is
+never guessed at, and a value that is not JSON — NaN or Infinity — never reaches a sink,
+because an archive no conforming parser can read back is not an archive.
+"""
+from __future__ import annotations
+
+import json
+import math
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from pathlib import Path
+
+from ..contracts import (
+    Disposition,
+    IncidentContext,
+    InvestigationDecision,
+    InvestigationRun,
+    TraceEvent,
+    ValidationResult,
+)
+
+SCHEMA = "adii.run_record/v1"
+REPO = Path(__file__).resolve().parents[3]
+
+# How a run ended: a closed set, the loop's own classification, preserved and never
+# reinterpreted. `detail` is free text beside it — never instead of it, or the archive fills
+# with "timeout", "model timeout" and "provider timeout" and the report has to reinterpret
+# the one thing the record existed to preserve. Only "submitted" carries a decision.
+TERMINATIONS = ("submitted", "model_failure", "bound_hit", "infrastructure_failure")
+
+
+@dataclass(frozen=True)
+class RunRecord:
+    label: str
+    context: IncidentContext
+    trace: tuple[TraceEvent, ...]
+    termination: str
+    detail: str
+    decision: InvestigationDecision | None
+    validation: ValidationResult | None
+    tool_calls: int
+    model_turns: int
+    api_cost_usd: float
+    latency_ms: int
+    configuration: dict[str, object]
+    provenance: dict[str, str | None]
+
+    def __post_init__(self) -> None:
+        if not self.label.strip():
+            raise ValueError("label must not be empty")
+        if self.termination not in TERMINATIONS:
+            raise ValueError(
+                f"termination must be one of {TERMINATIONS}, got {self.termination!r}")
+        if (self.termination == "submitted") != (self.decision is not None):
+            raise ValueError("a submitted run carries a decision, and only a submitted run does")
+        if self.validation is not None and (
+                self.decision is None or self.decision.disposition is not Disposition.REPAIR):
+            raise ValueError("only a REPAIR decision has a repair to validate")
+        for name in ("tool_calls", "model_turns", "latency_ms"):
+            if getattr(self, name) < 0:
+                raise ValueError(f"{name} must be non-negative")
+        if not math.isfinite(self.api_cost_usd) or self.api_cost_usd < 0:
+            raise ValueError(
+                f"api_cost_usd must be finite and non-negative, got {self.api_cost_usd!r}")
+
+    @classmethod
+    def from_run(cls, label: str, context: IncidentContext, run: InvestigationRun, *,
+                 configuration: dict[str, object], origin: str) -> RunRecord:
+        """A submitted run, as the runtime hands it over. Provenance is captured now: the
+        source revision is read at write time, never cached for the life of a process."""
+        return cls(
+            label=label, context=context, trace=run.trace,
+            termination="submitted", detail="the investigator committed to a disposition",
+            decision=run.decision, validation=run.validation,
+            tool_calls=run.tool_calls, model_turns=run.model_turns,
+            api_cost_usd=run.api_cost_usd, latency_ms=run.latency_ms,
+            configuration=dict(configuration),
+            provenance={"origin": origin,
+                        "written_at": datetime.now(UTC).isoformat(timespec="seconds"),
+                        "source_revision": source_revision()})
+
+    def to_json(self) -> str:
+        """Strict RFC 8259. Raises ValueError on NaN or Infinity anywhere in the record,
+        before anything reaches a sink."""
+        context, decision, validation = self.context, self.decision, self.validation
+        doc = {
+            "schema": SCHEMA,
+            "label": self.label,
+            "termination": self.termination,
+            "detail": self.detail,
+            "context": {"incident_id": context.incident_id, "alert": context.alert,
+                        "as_of": context.as_of,
+                        "permitted_write_paths": list(context.permitted_write_paths)},
+            "trace": [{"sequence": e.sequence, "kind": e.kind, "payload": e.payload}
+                      for e in self.trace],
+            "decision": None if decision is None else {
+                "disposition": decision.disposition.value,
+                "root_cause_id": decision.root_cause_id,
+                "root_cause_summary": decision.root_cause_summary,
+                "repair_id": decision.repair_id, "patch": decision.patch},
+            "validation": None if validation is None else {
+                "accepted": validation.accepted, "report": validation.report,
+                "checks_run": list(validation.checks_run)},
+            "counters": {"tool_calls": self.tool_calls, "model_turns": self.model_turns,
+                         "api_cost_usd": self.api_cost_usd, "latency_ms": self.latency_ms},
+            "configuration": self.configuration,
+            "provenance": self.provenance,
+        }
+        return json.dumps(doc, indent=2, ensure_ascii=False, allow_nan=False) + "\n"
+
+
+def _not_json(constant: str) -> None:
+    raise ValueError(f"{constant} is not JSON")
+
+
+def from_json(text: str) -> RunRecord:
+    """Parse one record. Refuses any schema but SCHEMA — a reader that guesses at a shape
+    it does not know is how an archive drifts from its source without anyone noticing."""
+    doc = json.loads(text, parse_constant=_not_json)
+    schema = doc.get("schema") if isinstance(doc, dict) else None
+    if schema != SCHEMA:
+        raise ValueError(f"unknown record schema {schema!r}: this reader understands {SCHEMA}")
+    try:
+        c, d, v, n = doc["context"], doc["decision"], doc["validation"], doc["counters"]
+        return RunRecord(
+            label=doc["label"],
+            context=IncidentContext(
+                incident_id=c["incident_id"], alert=c["alert"], as_of=c["as_of"],
+                permitted_write_paths=tuple(c["permitted_write_paths"])),
+            trace=tuple(TraceEvent(sequence=e["sequence"], kind=e["kind"], payload=e["payload"])
+                        for e in doc["trace"]),
+            termination=doc["termination"], detail=doc["detail"],
+            decision=None if d is None else InvestigationDecision(
+                disposition=Disposition(d["disposition"]), root_cause_id=d["root_cause_id"],
+                root_cause_summary=d["root_cause_summary"], repair_id=d["repair_id"],
+                patch=d["patch"]),
+            validation=None if v is None else ValidationResult(
+                accepted=v["accepted"], report=v["report"], checks_run=tuple(v["checks_run"])),
+            tool_calls=n["tool_calls"], model_turns=n["model_turns"],
+            api_cost_usd=n["api_cost_usd"], latency_ms=n["latency_ms"],
+            configuration=doc["configuration"], provenance=doc["provenance"])
+    except KeyError as missing:
+        raise ValueError(f"record is missing {missing}") from missing
+
+
+def write_record(record: RunRecord, root: Path) -> Path:
+    """`root/<label>/record.json`, never overwritten: a label names one run forever. The
+    record is serialised — and so validated — before the directory is reserved."""
+    path = root / record.label / "record.json"
+    if path.exists():
+        raise FileExistsError(f"{path} exists; a label names one run, choose another")
+    text = record.to_json()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8", newline="\n")
+    return path
+
+
+def read_record(path: Path) -> RunRecord:
+    return from_json(path.read_text(encoding="utf-8"))
+
+
+def source_revision(root: Path = REPO) -> str | None:
+    """The commit the working tree is at, read now rather than remembered, so a long-lived
+    process cannot stamp every record with the revision it started at. None when there is
+    no repository to read — from a ZIP, say."""
+    git = root / ".git"
+    head = git / "HEAD"
+    if not head.is_file():
+        return None
+    ref = head.read_text(encoding="utf-8").strip()
+    if not ref.startswith("ref: "):
+        return ref                                     # detached HEAD holds the hash itself
+    name = ref[5:]
+    loose = git / name
+    if loose.is_file():
+        return loose.read_text(encoding="utf-8").strip()
+    packed = git / "packed-refs"
+    if packed.is_file():
+        for line in packed.read_text(encoding="utf-8").splitlines():
+            if line.endswith(" " + name):
+                return line.split(" ", 1)[0]
+    return None

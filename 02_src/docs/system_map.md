@@ -59,8 +59,9 @@ that proposes a repair never gets to say whether the repair was accepted.
 | Evaluation | `02_src/adii/evaluation/` | scoring against hidden truth; kept away from the investigator |
 | Reporting | `02_src/adii/reporting/` | traces, run artifacts, human-readable output |
 | Examples | `02_src/adii/examples/` | the runnable walkthrough |
-| Demo | `02_src/adii/demo/` | the vision demo: recorded runs, served |
-| Demo data | `01_data/demo/` | the team-visible world and the recorded runs |
+| Inspector | `02_src/adii/demo/` | the run inspector: archived runs, served read-only |
+| Run archive | `01_data/runs/` | one record per run, what the inspector reads |
+| Demo data | `01_data/demo/` | the team-visible operational world (a work order today) |
 
 `current_status.md` says which of these are built and which are still scaffolds. It is
 generated, so it does not go stale.
@@ -194,19 +195,19 @@ never from a self-report. If a behaviour is not in the trace, nobody can prove i
 
 ## demo/
 
-**PURPOSE** The orientation layer. Five recorded runs served through one interface, so the
-shape of a decision can be argued about before the system that produces one exists.
+**PURPOSE** The run inspector. Every archived run, served to a browser read-only: the
+trace, the decision, the verdict, the cost, and where the record came from.
 
-**INPUT** The recorded runs in `01_data/demo/fixtures/`.
+**INPUT** The run archive in `01_data/runs/`, one `record.json` per run.
 
-**OUTPUT** A local web page. No model, no database, no agent.
+**OUTPUT** A local web page. No model, no database, no agent in this process.
 
-**CALLS** The standard library only, so it runs on a laptop with nothing installed.
+**CALLS** The standard library, and `reporting/` to read records.
 
 **CALLED BY** `python -m adii.demo`. Nothing in the implementation.
 
-**MUST NOT DO** Be imported by any other `adii` package. It has fixture data where the real
-system has an agent, a tool layer and a validator; one import and it stops being a demo and
-starts being the codebase.
+**MUST NOT DO** Be imported by any other `adii` package, launch a run, or invent a field
+that is not in the record. A page that can start a run can spend money; a page that fills
+in a blank is asserting something the runtime never said.
 *Enforced by* `test_the_demo_is_never_imported_by_the_implementation`,
 `test_the_demo_backend_stays_dependency_free`.

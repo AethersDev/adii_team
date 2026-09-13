@@ -5,7 +5,7 @@ open every file in this folder and should be able to run the system from it.
 
 ```text
 demo/world/        the operational world the whole team shares
-demo/fixtures/     the five recorded runs the demo serves
+runs/              the archive: one record per run, read by the inspector
 walkthrough/       the teaching fixture the walkthrough replays
 ```
 
@@ -22,11 +22,11 @@ That is not a filing convention. An investigator that can read the answer has no
 investigated anything, and a benchmark whose answers ship with it measures nothing.
 
 A test enforces the sharp edge of this:
-`02_src/tests/integration/test_front_door_invariants.py` scans the whole repository for
+`02_src/tests/integration/test_answer_keys_stay_out.py` scans the whole repository for
 evaluation-shaped JSON — `answer_key`, `expected_disposition`, `evidence_sufficient` and
-friends — and fails the build unless the file declares itself a demo fixture. A fixture
-may *show* what an evaluator knew, as a teaching point. A standalone key is
-indistinguishable from a copied authority, and a copy here is reachable from the runtime.
+friends — and fails the build on any hit outside `02_src/adii/evaluation/`, the evaluation
+authority's own package. The rule is a location, not a marker: a file that calls itself a
+fixture is still a copy of the truth if it sits where the runtime can read it.
 
 ## Adding data
 

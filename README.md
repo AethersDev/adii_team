@@ -49,15 +49,15 @@ python 02_src/scripts/check_env.py
 
 If it prints `Ready.`, your machine is done. Nobody needs to touch your laptop.
 
-**5. Run the demo**
+**5. Open the run inspector**
 
 ```bash
-python -m adii.demo                 # → http://127.0.0.1:8000
+python -m adii.examples.walkthrough --archive   # archive one run
+python -m adii.demo                              # → http://127.0.0.1:8000
 ```
 
-Five complete runs — a repair accepted, a repair *rejected*, a sound pipeline left alone,
-and an abstention — through one interface. It is an executable specification, not an
-implementation: no model, no database, no agent. See
+Every archived run — the walkthrough today, real provider runs once the runtime exists —
+through one read-only page: the trace, the decision, the verdict, the cost. See
 [02_src/adii/demo/README.md](02_src/adii/demo/README.md).
 
 Then the same architecture in one command:
@@ -92,7 +92,7 @@ packaging migration at the deadline.
 ```text
 01_data/                     data the system reads. Team-visible, never evaluation-only
   demo/world/                the operational world the whole team shares
-  demo/fixtures/             the five recorded runs the demo serves
+  runs/                      the archive: one record per run, what the inspector reads
   walkthrough/               the teaching fixture
 
 02_src/                      the system, its tests, its tools, its technical docs
@@ -102,7 +102,7 @@ packaging migration at the deadline.
   adii/validation/           the validation boundary
   adii/evaluation/           scoring and answer keys
   adii/reporting/            telemetry — traces, artifacts, reports
-  adii/demo/                 the orientation layer — explanation, never implementation
+  adii/demo/                 the run inspector — read-only over the archive
   tests/contract/            the contracts are pinned here
   tests/architecture/        the boundaries, as tests that fail the build
   scripts/                   check_env.py, sync_briefing.py, sync_status.py

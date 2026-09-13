@@ -6,10 +6,12 @@ and we cannot claim it.
 **You own:** `TraceEvent`, run artifacts, reproducibility, the report, cost and latency
 instrumentation, CI, and the environment.
 
-## First build
+## What is here
 
-`render_run()` is already here — it turns a run into something a human reads. Extend it.
-Then the run-artifact format: what gets persisted so a run can be replayed months later.
+`record.py` — the run record: one strict, versioned document per run
+(`adii.run_record/v1`), what the archive stores and the inspector renders. `render_run()` —
+the text report from a run. The rest is planned, unit by unit, in
+[plan_telemetry.md](../../docs/plan_telemetry.md).
 
 ## What to get right early
 
@@ -37,7 +39,7 @@ If a behaviour is not in the trace, what can you prove about it?
 ## How to test it
 
 ```bash
-pytest 02_src/tests -k report or pytest 02_src/tests/integration
+pytest 02_src/tests -k "record or report or walkthrough"
 ```
 
 ## Related
