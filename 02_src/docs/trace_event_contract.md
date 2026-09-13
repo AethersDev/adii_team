@@ -6,8 +6,9 @@ Every event the loop, the tool layer and the validator emit will be built throug
 vocabulary, and a vocabulary that grew by accident cannot be corrected later without
 breaking archives. The branch pauses here on purpose: before disagreement becomes code.
 
-Read this file, then the affected types in `02_src/adii/contracts/core.py`, then fill in
-the decision record at the end. The question is not *what should we log*. It is:
+**For the reviewer.** Read this file, then the affected types in
+`02_src/adii/contracts/core.py`, then decide only the four rows in the decision record at
+the end. Nothing else needs reading first. The question is not *what should we log*. It is:
 
 > **What facts must survive a run so that reporting, debugging, evaluation and later
 > evidence citation never have to reconstruct what happened?**
@@ -146,7 +147,14 @@ implementation.
 
 ## Decision record
 
-Four decisions, not four discussions. A contract change takes all four names.
+Four decisions, not four discussions. Each row ends in exactly one of three states —
+`APPROVED`, `REVISE` (with what changes) or `DEFER` (with what it waits on) — never "looks
+good" or "probably". A contract change takes all four names.
+
+When the rows are filled, the resolution is recorded in a **new commit**. This file's
+history is proposal, then review, then decision, then implementation; rewriting an earlier
+commit to make the proposal look as if it always held the final answer would destroy the
+one part of that history worth keeping.
 
 | # | Decision | What must be fixed before code | Touches `contracts/` | Decided | By |
 |---|---|---|---|---|---|
