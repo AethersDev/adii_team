@@ -16,7 +16,7 @@ from __future__ import annotations
 import json
 import math
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -36,6 +36,12 @@ ARCHIVE = REPO / "01_data" / "runs"
 # exactly one path segment: nothing that could leave the archive, nest inside it, or fail
 # to survive a URL.
 LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
+
+
+def _check_label(label: str) -> None:
+    if not LABEL.fullmatch(label):
+        raise ValueError("label must be one path segment: letters, digits, '.', '_' and '-', "
+                         f"starting with a letter or digit; got {label!r}")
 
 # How a run ended: a closed set, the loop's own classification, preserved and never
 # reinterpreted. `detail` is free text beside it — never instead of it, or the archive fills
@@ -61,9 +67,7 @@ class RunRecord:
     provenance: dict[str, str | None]
 
     def __post_init__(self) -> None:
-        if not LABEL.fullmatch(self.label):
-            raise ValueError("label must be one path segment: letters, digits, '.', '_' and '-', "
-                             f"starting with a letter or digit; got {self.label!r}")
+        _check_label(self.label)
         if self.termination not in TERMINATIONS:
             raise ValueError(
                 f"termination must be one of {TERMINATIONS}, got {self.termination!r}")
@@ -82,18 +86,14 @@ class RunRecord:
     @classmethod
     def from_run(cls, label: str, context: IncidentContext, run: InvestigationRun, *,
                  configuration: dict[str, object], origin: str) -> RunRecord:
-        """A submitted run, as the runtime hands it over. Provenance is captured now: the
-        source revision is read at write time, never cached for the life of a process."""
+        """A submitted run assembled outside the runtime — the walkthrough's."""
         return cls(
             label=label, context=context, trace=run.trace,
             termination="submitted", detail="the investigator committed to a disposition",
             decision=run.decision, validation=run.validation,
             tool_calls=run.tool_calls, model_turns=run.model_turns,
             api_cost_usd=run.api_cost_usd, latency_ms=run.latency_ms,
-            configuration=dict(configuration),
-            provenance={"origin": origin,
-                        "written_at": datetime.now(UTC).isoformat(timespec="seconds"),
-                        "source_revision": source_revision()})
+            configuration=dict(configuration), provenance=provenance(origin))
 
     def to_json(self) -> str:
         """Strict RFC 8259. Raises ValueError on NaN or Infinity anywhere in the record,
@@ -173,8 +173,54 @@ def write_record(record: RunRecord, root: Path) -> Path:
     return path
 
 
+def reserve(root: Path, label: str) -> Path:
+    """Claim `root/<label>` before the run starts, so a taken label is refused before anything
+    is spent. Call it only after every precondition that needs no I/O has passed: a run that
+    is refused for any other reason must leave the label reusable. Raises FileExistsError
+    when the label is taken."""
+    _check_label(label)
+    path = root / label
+    try:
+        path.mkdir(parents=True, exist_ok=False)
+    except FileExistsError:
+        raise FileExistsError(f"{path} exists; a label names one run, choose another") from None
+    return path
+
+
+def strict(record: RunRecord) -> RunRecord:
+    """The record if it is strict JSON; otherwise the same run as an infrastructure failure
+    that names the poison, keeping every event whose payload is strict JSON on its own. A
+    payload that is not JSON is our defect, and the archive shows the run that produced it
+    rather than losing it. Nothing but the trace can carry a poison in, so if the result
+    still does not serialise the failure is terminal."""
+    try:
+        record.to_json()
+    except (TypeError, ValueError) as poison:
+        kept = tuple(e for e in record.trace if _is_strict(e.payload))
+        return replace(record, trace=kept, decision=None, validation=None,
+                       termination="infrastructure_failure",
+                       detail=f"record is not strict JSON: {poison}")
+    return record
+
+
+def _is_strict(payload: object) -> bool:
+    try:
+        json.dumps(payload, allow_nan=False)
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
 def read_record(path: Path) -> RunRecord:
     return from_json(path.read_text(encoding="utf-8"))
+
+
+def provenance(origin: str) -> dict[str, str | None]:
+    """Where a record came from, captured at the moment the record is made: the source
+    revision is read now, never cached for the life of a process."""
+    return {"origin": origin,
+            "written_at": datetime.now(UTC).isoformat(timespec="seconds"),
+            "source_revision": source_revision()}
 
 
 def source_revision(root: Path = REPO) -> str | None:

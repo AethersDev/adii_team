@@ -11,18 +11,19 @@ the scripted components in `fakes.py` today, the real packages when they exist.
 from __future__ import annotations
 
 import time
+import traceback
 from typing import Protocol
 
 from ..contracts import (
     Disposition,
     IncidentContext,
     InvestigationDecision,
-    InvestigationRun,
     ToolCall,
     ToolResult,
     TraceEvent,
     ValidationResult,
 )
+from ..reporting.record import RunRecord, provenance, strict
 
 
 class Tools(Protocol):
@@ -42,6 +43,21 @@ class Validator(Protocol):
 
     def validate(self, context: IncidentContext,
                  decision: InvestigationDecision) -> ValidationResult: ...
+
+
+class Terminated(Exception):
+    """Raised by the loop to end a run without a decision: the model failed, or a bound was
+    hit. The classification is the loop's own and travels to the record unchanged — the
+    runtime adds no interpretation (plan D-14). `detail` says which failure or which bound,
+    in the loop's words."""
+
+    ENDINGS = ("model_failure", "bound_hit")
+
+    def __init__(self, termination: str, detail: str) -> None:
+        if termination not in self.ENDINGS:
+            raise ValueError(f"termination must be one of {self.ENDINGS}, got {termination!r}")
+        super().__init__(f"{termination}: {detail}")
+        self.termination, self.detail = termination, detail
 
 
 class Recorder:
@@ -87,25 +103,39 @@ class _Watched:
         return result
 
 
-def run_incident(context: IncidentContext, investigator: Investigator, tools: Tools,
-                 validator: Validator) -> InvestigationRun:
-    """Investigate, validate if a repair was proposed, and return the public run with its
-    counters taken from the trace. Only a REPAIR reaches the validator: the contract says
-    so, and this is where it is enforced on the way through."""
+def run_incident(label: str, context: IncidentContext, investigator: Investigator,
+                 tools: Tools, validator: Validator, *,
+                 configuration: dict[str, object]) -> RunRecord:
+    """Investigate, validate if a repair was proposed, and return the record — for every way
+    a run can end. A submission carries its decision. A run the loop ended carries the loop's
+    classification verbatim. Anything else that escapes is our defect: an infrastructure
+    failure, with its traceback on stderr, never a lost run. In every case the trace so far
+    is the evidence and the counters come from it. Only a REPAIR reaches the validator: the
+    contract says so, and this is where it is enforced on the way through."""
     started = time.monotonic()
     recorder = Recorder()
     recorder.event("incident_received", {"incident_id": context.incident_id})
-    decision = investigator.investigate(context, recorder.watch(tools))
-    recorder.event("decision_submitted", {"disposition": decision.disposition.value})
-    validation = None
-    if decision.disposition is Disposition.REPAIR:
-        validation = validator.validate(context, decision)
-        recorder.event("validation_completed", {"accepted": validation.accepted})
-    return InvestigationRun(
-        incident_id=context.incident_id, decision=decision, trace=recorder.trace,
-        validation=validation, tool_calls=recorder.tool_calls,
+    decision = validation = None
+    try:
+        decision = investigator.investigate(context, recorder.watch(tools))
+        recorder.event("decision_submitted", {"disposition": decision.disposition.value})
+        if decision.disposition is Disposition.REPAIR:
+            validation = validator.validate(context, decision)
+            recorder.event("validation_completed", {"accepted": validation.accepted})
+        termination, detail = "submitted", "the investigator committed to a disposition"
+    except Terminated as ended:
+        decision = validation = None
+        termination, detail = ended.termination, ended.detail
+    except Exception as defect:  # ours, not the model's: classified and shown, never hidden
+        traceback.print_exc()
+        decision = validation = None
+        termination, detail = "infrastructure_failure", f"{type(defect).__name__}: {defect}"
+    return strict(RunRecord(
+        label=label, context=context, trace=recorder.trace, termination=termination,
+        detail=detail, decision=decision, validation=validation, tool_calls=recorder.tool_calls,
         # No model has run, so no turns and no spend. How the investigator's model traffic
         # reaches this trace is decision 1 of the trace event contract; until it is made,
         # a number here would be invented.
         model_turns=0, api_cost_usd=0.0,
-        latency_ms=int((time.monotonic() - started) * 1000))
+        latency_ms=int((time.monotonic() - started) * 1000),
+        configuration=dict(configuration), provenance=provenance("runtime")))
