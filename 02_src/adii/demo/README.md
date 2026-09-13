@@ -4,8 +4,8 @@
 the decision, the verdict, what it cost, and where the record came from.
 
 ```bash
-python -m adii.examples.walkthrough --archive   # archive one run (the walkthrough)
-python -m adii.demo                              # → http://127.0.0.1:8000
+python -m adii.runtime --incident demo-learning-001 --provider fake   # produce and archive one run
+python -m adii.demo                                                     # → http://127.0.0.1:8000
 ```
 
 No install. No dependencies. Standard library only.

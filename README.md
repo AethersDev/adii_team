@@ -49,15 +49,17 @@ python 02_src/scripts/check_env.py
 
 If it prints `Ready.`, your machine is done. Nobody needs to touch your laptop.
 
-**5. Open the run inspector**
+**5. Run one incident, then open the inspector**
 
 ```bash
-python -m adii.examples.walkthrough --archive   # archive one run
-python -m adii.demo                              # → http://127.0.0.1:8000
+python -m adii.runtime --incident demo-learning-001 --provider fake   # investigate, validate, archive, report
+python -m adii.demo                                                     # → http://127.0.0.1:8000
 ```
 
-Every archived run — the walkthrough today, real provider runs once the runtime exists —
-through one read-only page: the trace, the decision, the verdict, the cost. See
+`fake` scripts the investigator, the tools and the validator — no model, no cost — and
+drives them through the real runtime. Every archived run appears in the inspector, a
+read-only page: the trace, the decision, the verdict, the cost. See
+[02_src/adii/runtime/README.md](02_src/adii/runtime/README.md) and
 [02_src/adii/demo/README.md](02_src/adii/demo/README.md).
 
 Then the same architecture in one command:
@@ -81,6 +83,7 @@ architecture — in that order.
 pytest                                        # all tests
 python -m ruff check 02_src                   # lint
 python -m adii.examples.walkthrough --step    # the walkthrough, one stage at a time
+python -m adii.runtime --incident demo-learning-001 --provider fake   # one incident → archive → report
 python 02_src/scripts/check_env.py            # is my machine ready?
 ```
 
@@ -102,6 +105,7 @@ packaging migration at the deadline.
   adii/validation/           the validation boundary
   adii/evaluation/           scoring and answer keys
   adii/reporting/            telemetry — traces, artifacts, reports
+  adii/runtime/              one incident end to end — the harness that owns the trace
   adii/demo/                 the run inspector — read-only over the archive
   tests/contract/            the contracts are pinned here
   tests/architecture/        the boundaries, as tests that fail the build

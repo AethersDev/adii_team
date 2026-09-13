@@ -13,10 +13,13 @@ not preserving. A tracked manifest of what exists (path, size, digest) lands wit
 preservation unit in `02_src/docs/plan_telemetry.md`; until then, a run you need to keep is
 copied out by hand.
 
-To see a run before the runtime exists:
+To produce a run:
 
 ```bash
-python -m adii.examples.walkthrough --archive
+python -m adii.runtime --incident demo-learning-001 --provider fake
 ```
+
+`python -m adii.examples.walkthrough --archive` archives the same run assembled by hand
+rather than produced by the runtime; the two should agree, and a test says they do.
 
 A label names one run forever. Archiving under a taken label is refused, never overwritten.

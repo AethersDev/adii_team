@@ -58,6 +58,7 @@ that proposes a repair never gets to say whether the repair was accepted.
 | Validation | `02_src/adii/validation/` | independent acceptance of a candidate action |
 | Evaluation | `02_src/adii/evaluation/` | scoring against hidden truth; kept away from the investigator |
 | Reporting | `02_src/adii/reporting/` | traces, run artifacts, human-readable output |
+| Runtime | `02_src/adii/runtime/` | one incident end to end: investigator, validation, archive, report |
 | Examples | `02_src/adii/examples/` | the runnable walkthrough |
 | Inspector | `02_src/adii/demo/` | the run inspector: archived runs, served read-only |
 | Run archive | `01_data/runs/` | one record per run, what the inspector reads |
@@ -190,6 +191,27 @@ human-readable report.
 
 **MUST NOT DO** Take a component's word for its own numbers. Counters come from the trace,
 never from a self-report. If a behaviour is not in the trace, nobody can prove it happened.
+
+---
+
+## runtime/
+
+**PURPOSE** One incident, end to end, in one process: the investigator, then validation
+if a repair was proposed, then the record, the archive and the report.
+
+**INPUT** An incident id and a provider. `fake` scripts the three components from the
+walkthrough's recorded run and costs nothing.
+
+**OUTPUT** One `record.json` in `01_data/runs/`, and the rendered report.
+
+**CALLS** The investigator, the tool layer and the validator through three protocols, and
+`reporting/` for the record. It is the only component that sees every boundary crossing,
+so it writes the trace itself, on the way through.
+
+**CALLED BY** `python -m adii.runtime`.
+
+**MUST NOT DO** Take a component's word for a counter, or let anything but a REPAIR reach
+the validator. If a behaviour is not in the trace it writes, it did not happen.
 
 ---
 

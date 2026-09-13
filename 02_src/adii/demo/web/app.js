@@ -84,7 +84,7 @@ async function boot() {
       el("h2", null, "No runs archived yet"),
       el("p", null, "Runs are launched from the command line and appear here once archived. " +
         "To see one now:"),
-      el("pre", null, "python -m adii.examples.walkthrough --archive")));
+      el("pre", null, "python -m adii.runtime --incident demo-learning-001 --provider fake")));
     return;
   }
   $("runs").replaceChildren(...runs.map((r) => {
