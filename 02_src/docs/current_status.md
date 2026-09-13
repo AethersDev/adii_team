@@ -24,6 +24,7 @@ and a test fails the build when it is stale. Milestone marks come from
 
 ```text
     contracts          154 lines
+    tools              484 lines
     reporting           69 lines
     examples           128 lines
     demo                86 lines
@@ -33,7 +34,6 @@ and a test fails the build when it is stale. Milestone marks come from
 
 ```text
     investigator
-    tools
     validation
     evaluation
 ```
