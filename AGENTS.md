@@ -125,8 +125,10 @@ Step 4 is the one that gets skipped and the one that matters.
 
 > "Try to prove this is wrong. What inputs break it? What did I not test?"
 
-`02_src/docs/inherited/CONFORMANCE.md` catalogues fifteen defects found by audit in code that
-already passed its own tests. It is what plausible-but-wrong looks like in this domain.
+`02_src/docs/inherited/CONFORMANCE.md` carries 39 requirements plus three X1 sub-items,
+distilled from an audit that found fifteen defects in code that already passed its own
+tests; its Traceability section maps the original fifteen. It is what plausible-but-wrong
+looks like in this domain.
 
 ## Where agents are confidently wrong
 

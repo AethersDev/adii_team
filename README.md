@@ -158,7 +158,7 @@ ADII cost to learn. Read it before building the component it covers.
 
 | | |
 |---|---|
-| [CONFORMANCE.md](02_src/docs/inherited/CONFORMANCE.md) | fifteen audited defects, restated as requirements per capability |
+| [CONFORMANCE.md](02_src/docs/inherited/CONFORMANCE.md) | 39 requirements plus three X1 sub-items, per capability; its Traceability section maps the fifteen audited defects |
 | [AUTHORITY_LIFECYCLE.md](02_src/docs/inherited/AUTHORITY_LIFECYCLE.md) | boundary 4, and the freeze-ordering mistake that produced it |
 | [CONTROLS.md](02_src/docs/inherited/CONTROLS.md) | how we know investigating beats guessing — and why 18/18 is a problem |
 

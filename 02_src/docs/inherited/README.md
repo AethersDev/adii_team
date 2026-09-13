@@ -12,7 +12,9 @@ Three documents. None of them is code you should copy.
 
 A reference implementation of ADII reached a working investigator, ran a real evaluation,
 and was then audited. The audit found **fifteen defects in code that already passed its own
-tests** — several subtle, several detectable only during a paid run.
+tests** — several subtle, several detectable only during a paid run — and fixing them
+surfaced more. `CONFORMANCE.md` restates them as 39 requirements plus three X1 sub-items;
+its Traceability section maps the original fifteen.
 
 This repository is a fresh implementation, not a fork. **The reference implementation's
 tests are our requirements; its code is not our code.** Read `CONFORMANCE.md` before
