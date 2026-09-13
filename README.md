@@ -56,8 +56,8 @@ python -m adii.runtime --incident demo-learning-001 --provider fake   # investig
 python -m adii.demo                                                     # → http://127.0.0.1:8000
 ```
 
-`fake` scripts the investigator, the tools and the validator — no model, no cost — and
-drives them through the real runtime. Every archived run appears in the inspector, a
+`fake` scripts the investigator and the validator — no model, no cost — and drives them
+through the real runtime over the real tool layer. Every archived run appears in the inspector, a
 read-only page: the trace, the decision, the verdict, the cost. See
 [02_src/adii/runtime/README.md](02_src/adii/runtime/README.md) and
 [02_src/adii/demo/README.md](02_src/adii/demo/README.md).

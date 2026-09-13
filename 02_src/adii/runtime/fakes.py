@@ -55,8 +55,9 @@ class ScriptedValidator:
 def scripted(run: InvestigationRun,
              ) -> tuple[ScriptedInvestigator, ScriptedTools, ScriptedValidator]:
     """The three components, scripted from a recorded run. Today that run is the
-    walkthrough's; the runtime replays its calls through the real boundary and records
-    them itself."""
+    walkthrough's. The command line takes the investigator and the validator from here and
+    the tools from `adii.tools`; tests take all three when the trace must reproduce the
+    recorded one exactly."""
     calls = tuple(ToolCall(call_id=e.payload["call_id"], name=e.payload["name"],
                            arguments=e.payload["arguments"])
                   for e in run.trace if e.kind == "tool_call")

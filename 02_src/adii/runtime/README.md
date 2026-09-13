@@ -16,7 +16,8 @@ incident → investigator → decision → (REPAIR only) validator → verdict
 
 It knows A, B and C only as three protocols in `run.py` — `Investigator.investigate(context,
 tools)`, `Tools.execute(call)`, `Validator.validate(context, decision)` — expressed in
-contract types. Anything that satisfies them runs. Today `fakes.py` scripts all three from
+contract types. Anything that satisfies them runs. Today the tools are the real executor
+over the walkthrough world, and `fakes.py` scripts the investigator and the validator from
 the walkthrough's recorded run; that is what `--provider fake` means, and it costs nothing.
 
 ## The harness owns the trace

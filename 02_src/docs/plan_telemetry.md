@@ -126,7 +126,7 @@ preservation, then provider. Within a phase the order is the dependency order.
 
 | # | Unit | Done when | Ids |
 |---|---|---|---|
-| D-6 ✔ 13 Sep (fake path; the failure paths are D-4; Windows and macOS CI runs on the PR) | `adii/runtime/` — `python -m adii.runtime --incident <id> --provider fake`: investigator → validation → archive → render, in one process. Defines the three protocols it expects from A, B and C. Runs today with a walkthrough replay standing in for the investigator | one command, one incident, one archived record, one rendered report; a distinct exit code per outcome class; green on Windows and macOS | M7 |
+| D-6 ✔ 13 Sep (fake path; the failure paths are D-4; Windows and macOS CI runs on the PR; 14 Sep: the tools are B's real executor, the investigator and validator still scripted) | `adii/runtime/` — `python -m adii.runtime --incident <id> --provider fake`: investigator → validation → archive → render, in one process. Defines the three protocols it expects from A, B and C. Runs today with a walkthrough replay standing in for the investigator | one command, one incident, one archived record, one rendered report; a distinct exit code per outcome class; green on Windows and macOS | M7 |
 | D-7 | `render.py` v2 — renders from a `RunRecord`, not from live objects; labels success, model failure, bound hit, validator rejection and infrastructure failure each in its own terms; pairs every call with the result the model saw, in order; a terminal submission is never called "pending" | one committed record per outcome class; each renders with a distinct label; `expected_report.txt` grows one file per class | D11 |
 | D-7b | Inspector, production features — the run list grows with the archive (label, incident, model, outcome class, cost, started); filter by incident and by model; **compare** two runs of one incident side by side, which is how models get tested; the provenance drawer shows requested and effective configuration, one fingerprint per response, and the ledger with its unknown rows | two archived runs of one incident compare on one screen; a run with an unknown-usage row shows its cost as a lower bound, labelled | D7, D11, D15 |
 | D-8 | The escape invariant — nothing drawn from a record is interpolated raw into any rendering surface; a source-level assertion that runs without a browser (the demo already has one for its own scripts) | reverting the escape turns the test red | D12 |
@@ -173,7 +173,7 @@ count of random trials; is prevention tested at the boundary with the downstream
 | From | What | Needed for | By |
 |---|---|---|---|
 | A | build every event through `reporting.events`; a typed termination reason on every exit (bound hit, model failure, submission); no self-reported counters; enforce `Budget` | D-6, D-9, D-14 | week 3 |
-| B | evidence ids minted in the execution layer and carried in `tool_result` events; the four statuses verbatim | D-3 | week 3 |
+| B | evidence ids minted in the execution layer and carried in `tool_result` events; the four statuses verbatim | D-3 | week 3 — landed 13 Sep, as `evidence_id` in every OK observation; the runtime drives it since 14 Sep |
 | C | failure signals for the grid; freeze identifiers (answer-key digests) for receipts; the shape of scoring output | D-15, D-17, D-19 | week 5 |
 
 Until each lands, the corresponding unit is tested against the walkthrough fixture and a
