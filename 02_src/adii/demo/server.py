@@ -92,7 +92,13 @@ def main(port: int = 8000) -> int:
     if not runs:
         print("  Archive one now:  python -m adii.examples.walkthrough --archive")
     print()
-    with ThreadingHTTPServer(("127.0.0.1", port), Handler) as httpd:
+    try:
+        httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    except OSError as taken:                 # the port is held, or not ours to bind
+        print(f"could not listen on 127.0.0.1:{port}: {taken.strerror}.")
+        print(f"  Another inspector may be running. Pick a port:  python -m adii.demo {port + 1}")
+        return 1
+    with httpd:
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
