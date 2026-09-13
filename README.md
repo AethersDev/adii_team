@@ -38,7 +38,7 @@ pip install -r requirements.txt
 **3. Configure the API key**
 
 Not needed yet. The system currently runs with no model and no network; when the agent
-loop lands, this step becomes `export ANTHROPIC_API_KEY=...` and `check_env.py` starts
+loop lands, this step becomes `export OPENAI_API_KEY=...` and `check_env.py` starts
 checking for it.
 
 **4. Run the environment check**
@@ -162,7 +162,7 @@ ADII cost to learn. Read it before building the component it covers.
 
 | | |
 |---|---|
-| [CONFORMANCE.md](02_src/docs/inherited/CONFORMANCE.md) | fifteen audited defects, restated as requirements per capability |
+| [CONFORMANCE.md](02_src/docs/inherited/CONFORMANCE.md) | 39 requirements plus three X1 sub-items, per capability; its Traceability section maps the fifteen audited defects |
 | [AUTHORITY_LIFECYCLE.md](02_src/docs/inherited/AUTHORITY_LIFECYCLE.md) | boundary 4, and the freeze-ordering mistake that produced it |
 | [CONTROLS.md](02_src/docs/inherited/CONTROLS.md) | how we know investigating beats guessing — and why 18/18 is a problem |
 
