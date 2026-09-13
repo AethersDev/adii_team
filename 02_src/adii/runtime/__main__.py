@@ -2,9 +2,10 @@
 
     python -m adii.runtime --incident demo-learning-001 --provider fake
 
-`fake` scripts the investigator, the tool layer and the validator from the walkthrough's
-recorded run — the only incident that exists today — and drives them through the real
-runtime, so the record that lands in the archive was produced, not assembled. A real
+`fake` scripts the investigator and the validator from the walkthrough's recorded run — no
+model runs and no validator exists yet — and drives them through the real runtime over the
+real tool layer, against the walkthrough world. The record that lands in the archive was
+produced, not assembled, and its observations are what the tools actually returned. A real
 provider is a later unit and arrives with a receipt written first (plan D-11, D-15).
 """
 from __future__ import annotations
@@ -16,6 +17,7 @@ from pathlib import Path
 from ..examples.walkthrough import load
 from ..reporting import RunRecord, render_run, write_record
 from ..reporting.record import ARCHIVE
+from ..tools import build_sql_tools, open_walkthrough_world
 from .fakes import scripted
 from .run import run_incident
 
@@ -25,7 +27,8 @@ def main(argv: list[str] | None = None) -> int:
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--incident", required=True, help="the incident id to investigate")
     parser.add_argument("--provider", required=True, choices=["fake"],
-                        help="fake: scripted components — no model, no network, no cost")
+                        help="fake: a scripted investigator and validator over the real "
+                             "tool layer — no model, no cost")
     parser.add_argument("--label", help="archive label (default: <incident>-<UTC time>); "
                                         "a label names one run forever")
     parser.add_argument("--archive", default=str(ARCHIVE), metavar="DIR",
@@ -39,13 +42,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"no such incident {args.incident!r}; "
               f"the only incident today is {context.incident_id!r}")
         return 2
-    investigator, tools, validator = scripted(recorded)
+    investigator, _, validator = scripted(recorded)
+    tools = build_sql_tools(open_walkthrough_world())
     run = run_incident(context, investigator, tools, validator)
 
     label = args.label or f"{context.incident_id}-{datetime.now(UTC):%Y%m%dT%H%M%SZ}"
     try:
         record = RunRecord.from_run(label, context, run,
-                                    configuration={"provider": args.provider, "model": None},
+                                    configuration={"provider": args.provider, "model": None,
+                                                   "tools": list(tools.names)},
                                     origin="runtime")
         path = write_record(record, Path(args.archive))
     except ValueError as bad:                # the label is not one the archive can hold

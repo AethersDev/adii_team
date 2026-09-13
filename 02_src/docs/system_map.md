@@ -199,8 +199,8 @@ never from a self-report. If a behaviour is not in the trace, nobody can prove i
 **PURPOSE** One incident, end to end, in one process: the investigator, then validation
 if a repair was proposed, then the record, the archive and the report.
 
-**INPUT** An incident id and a provider. `fake` scripts the three components from the
-walkthrough's recorded run and costs nothing.
+**INPUT** An incident id and a provider. `fake` scripts the investigator and the validator
+from the walkthrough's recorded run, over the real tool layer, and costs nothing.
 
 **OUTPUT** One `record.json` in `01_data/runs/`, and the rendered report.
 

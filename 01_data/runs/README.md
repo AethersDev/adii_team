@@ -20,6 +20,8 @@ python -m adii.runtime --incident demo-learning-001 --provider fake
 ```
 
 `python -m adii.examples.walkthrough --archive` archives the same run assembled by hand
-rather than produced by the runtime; the two should agree, and a test says they do.
+rather than produced by the runtime. The two agree on every status, the decision and the
+verdict, and a test says they do; they are not byte-identical, because the runtime's record
+carries what the real tool layer returned, evidence ids included.
 
 A label names one run forever. Archiving under a taken label is refused, never overwritten.

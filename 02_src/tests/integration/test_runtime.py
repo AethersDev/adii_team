@@ -19,9 +19,32 @@ def test_one_command_takes_an_incident_to_an_archived_run_and_a_report(tmp_path,
     assert code == 0
     record = read_record(tmp_path / "first" / "record.json")
     assert record.termination == "submitted" and record.provenance["origin"] == "runtime"
-    assert record.configuration == {"provider": "fake", "model": None}
+    assert record.configuration == {"provider": "fake", "model": None,
+                                    "tools": ["get_schema", "run_sql"]}
     out = capsys.readouterr().out
     assert "ADII INVESTIGATION REPORT" in out and "decided by the validator" in out
+
+
+def statuses(trace) -> dict[str, str]:
+    return {e.payload["call_id"]: e.payload["status"] for e in trace if e.kind == "tool_result"}
+
+
+def test_the_fake_provider_drives_the_real_tool_layer(tmp_path):
+    """The investigator and the validator are scripted; the tools are the real executor over
+    the walkthrough world. Every call comes back with the status the fixture recorded, the
+    refusal included, and the record carries what the tools actually said — evidence ids
+    and all. Only the statuses, the decision and the verdict are the fixture's."""
+    assert main(["--incident", "demo-learning-001", "--provider", "fake",
+                 "--archive", str(tmp_path), "--label", "live", "--no-report"]) == 0
+    record = read_record(tmp_path / "live" / "record.json")
+    _, recorded = load()
+    assert statuses(record.trace) == statuses(recorded.trace)
+    results = [e.payload for e in record.trace if e.kind == "tool_result"]
+    assert all(r["content"]["evidence_id"].startswith("ev-") for r in results
+               if r["status"] == "OK")
+    assert [r["name"] for r in results if r["status"] == "DENIED"] == ["delete_table"]
+    assert record.tool_calls == 3
+    assert record.decision == recorded.decision and record.validation == recorded.validation
 
 
 def test_the_runtime_reproduces_the_walkthrough_from_scripted_components():
