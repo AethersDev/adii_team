@@ -94,10 +94,11 @@ belongs to one person.
 
 ## Before you build
 
-Read [inherited/](inherited/). Three short documents carrying what a previous
+Read [inherited/](inherited/). Three documents carrying what a previous
 implementation of this system cost to learn:
 
-- **CONFORMANCE.md** — fifteen audited defects, restated as requirements for your code
+- **CONFORMANCE.md** — 39 requirements plus three X1 sub-items for your code, traced back
+  to the fifteen audited defects
 - **AUTHORITY_LIFECYCLE.md** — boundary 4, and the mistake that produced it
 - **CONTROLS.md** — how we know investigating beats guessing, and why a perfect score is a
   problem

@@ -30,8 +30,9 @@ two-minute walkthrough on any significant change.
 
 *Why this exists:* four people plus coding agents produce more code than four people can
 review. Plausible, well-commented, well-tested code can still be wrong — an audit of the
-reference implementation found fifteen real defects in exactly that kind of code. This is
-what keeps generation speed from outrunning review.
+reference implementation found fifteen real defects in exactly that kind of code, and
+fixing them surfaced more; `02_src/docs/inherited/CONFORMANCE.md` carries the 39
+requirements that resulted. This is what keeps generation speed from outrunning review.
 
 ## Who reviews what
 
