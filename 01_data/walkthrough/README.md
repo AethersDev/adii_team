@@ -33,6 +33,7 @@ python -m adii.examples.walkthrough --step
 | `decision.json` | the disposition, the reasoning, the patch |
 | `validation.json` | the independent verdict |
 | `expected_report.txt` | what the telemetry layer renders — a committed regression test |
+| `record.json` | the same run as one `adii.run_record/v1` document — what `--archive` writes and the inspector renders; a committed fixture of the v1 shape |
 
 ## What this run establishes
 

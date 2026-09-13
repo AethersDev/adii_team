@@ -167,10 +167,10 @@ architecture exists to prevent.
 **Goal** One command takes an incident to an archived run and a readable report.
 
 **Done when**
-- [ ] one command, one incident, one run artifact
+- [x] one command, one incident, one run artifact
 - [ ] same commit green on Windows and macOS
-- [ ] the report shows evidence, decision, validation and cost
-- [ ] a fake provider is still sufficient
+- [x] the report shows evidence, decision, validation and cost
+- [x] a fake provider is still sufficient
 
 ---
 

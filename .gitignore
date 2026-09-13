@@ -6,7 +6,12 @@ __pycache__/
 .ruff_cache/
 .DS_Store
 Thumbs.db
-runs/
+# Run archives. Payloads are machine-produced and bulk, so they stay out of history.
+# Ignoring is not preserving (inherited CONFORMANCE D13): the README and, later, the
+# manifest beside them are tracked, so what exists is attested even when the bytes are not.
+01_data/runs/*
+!01_data/runs/README.md
+!01_data/runs/MANIFEST.json
 
 # Environment / secrets
 .env

@@ -49,15 +49,17 @@ python 02_src/scripts/check_env.py
 
 If it prints `Ready.`, your machine is done. Nobody needs to touch your laptop.
 
-**5. Run the demo**
+**5. Run one incident, then open the inspector**
 
 ```bash
-python -m adii.demo                 # → http://127.0.0.1:8000
+python -m adii.runtime --incident demo-learning-001 --provider fake   # investigate, validate, archive, report
+python -m adii.demo                                                     # → http://127.0.0.1:8000
 ```
 
-Five complete runs — a repair accepted, a repair *rejected*, a sound pipeline left alone,
-and an abstention — through one interface. It is an executable specification, not an
-implementation: no model, no database, no agent. See
+`fake` scripts the investigator, the tools and the validator — no model, no cost — and
+drives them through the real runtime. Every archived run appears in the inspector, a
+read-only page: the trace, the decision, the verdict, the cost. See
+[02_src/adii/runtime/README.md](02_src/adii/runtime/README.md) and
 [02_src/adii/demo/README.md](02_src/adii/demo/README.md).
 
 Then the same architecture in one command:
@@ -81,6 +83,7 @@ architecture — in that order.
 pytest                                        # all tests
 python -m ruff check 02_src                   # lint
 python -m adii.examples.walkthrough --step    # the walkthrough, one stage at a time
+python -m adii.runtime --incident demo-learning-001 --provider fake   # one incident → archive → report
 python 02_src/scripts/check_env.py            # is my machine ready?
 ```
 
@@ -92,7 +95,7 @@ packaging migration at the deadline.
 ```text
 01_data/                     data the system reads. Team-visible, never evaluation-only
   demo/world/                the operational world the whole team shares
-  demo/fixtures/             the five recorded runs the demo serves
+  runs/                      the archive: one record per run, what the inspector reads
   walkthrough/               the teaching fixture
 
 02_src/                      the system, its tests, its tools, its technical docs
@@ -102,7 +105,8 @@ packaging migration at the deadline.
   adii/validation/           the validation boundary
   adii/evaluation/           scoring and answer keys
   adii/reporting/            telemetry — traces, artifacts, reports
-  adii/demo/                 the orientation layer — explanation, never implementation
+  adii/runtime/              one incident end to end — the harness that owns the trace
+  adii/demo/                 the run inspector — read-only over the archive
   tests/contract/            the contracts are pinned here
   tests/architecture/        the boundaries, as tests that fail the build
   scripts/                   check_env.py, sync_briefing.py, sync_status.py

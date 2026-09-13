@@ -3,30 +3,36 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ADII — what it does</title>
-<link rel="stylesheet" href="/style.css">
-<link rel="stylesheet" href="/intro.css">
+<title>ADII — Run inspector</title>
+<link rel="stylesheet" href="/adii-ui.css">
 </head>
-<body class="intro">
+<body>
+<!-- Disposition and verdict marks: shape first, hue second. Referenced by mark() in app.js. -->
+<svg width="0" height="0" aria-hidden="true" style="position:absolute">
+  <symbol id="m-repair" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/></symbol>
+  <symbol id="m-no_repair" viewBox="0 0 16 16"><rect x="1.5" y="1.5" width="13" height="13"/></symbol>
+  <symbol id="m-escalate" viewBox="0 0 16 16"><polygon points="8,0.8 14.2,4.4 14.2,11.6 8,15.2 1.8,11.6 1.8,4.4"/></symbol>
+  <symbol id="m-pass" viewBox="0 0 16 16"><path d="M2 8.5l4 4L14 3.5l-1.5-1.4L6 9.3 3.4 6.9z"/></symbol>
+  <symbol id="m-fail" viewBox="0 0 16 16"><path d="M3.2 1.8L1.8 3.2 6.6 8l-4.8 4.8 1.4 1.4L8 9.4l4.8 4.8 1.4-1.4L9.4 8l4.8-4.8-1.4-1.4L8 6.6z"/></symbol>
+</svg>
+<a class="skip" href="#view">Skip to content</a>
 <header>
-  <div class="brand"><span class="glyph">◆</span>ADII</div>
-  <span class="eyebrow">Learn ADII · about five minutes</span>
+  <span class="brand"><span class="glyph" aria-hidden="true">◆</span>ADII</span>
+  <span class="header-sub">Run inspector</span>
+  <nav class="runs" id="runs" aria-label="Archived runs"></nav>
   <div class="spacer"></div>
-  <a class="linkbtn" href="/inspector.html">Technical run inspector →</a>
-  <button id="theme" title="Toggle light and dark">◐</button>
+  <button class="btn" id="theme" aria-label="Switch between dark and light">◐</button>
 </header>
 
-<main class="learn">
-  <nav id="rail" aria-label="Chapters"></nav>
-  <div>
-    <article id="stage" aria-live="polite"></article>
-    <div class="nav">
-      <button class="ghostbtn" id="back">← Back</button>
-      <button id="on">Next →</button>
-      <span class="pos" id="pos"></span>
-    </div>
-  </div>
+<main>
+  <aside aria-labelledby="trace-label">
+    <span class="label" id="trace-label">Trace</span>
+    <ul class="steps" id="steps"></ul>
+  </aside>
+  <article id="view"></article>
 </main>
-<script src="/learn.js"></script>
+
+<footer id="foot"></footer>
+<script src="/app.js"></script>
 </body>
 </html>

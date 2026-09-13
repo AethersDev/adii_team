@@ -34,9 +34,8 @@ volume.
 
 ## Then, and only then
 
-Generate the front-door fixtures from this world rather than hand-authoring them, and
-retire the current evaluation-derived ones in `../fixtures/`. Each generated fixture
-declares `provenance: "generated"`; a test asserts every fixture declares how it was made.
-
-The orientation layer should render actual output from a runnable world, not a curated
-story that resembles one.
+Run the investigator against this world and archive the runs. The inspector shows archived
+runs and nothing else, so the front door renders actual output from a runnable world, not a
+curated story that resembles one. The front-door invariants I1 and I2 in
+[DATA_WORLD_v0.md](../../../02_src/docs/DATA_WORLD_v0.md) are then asserted over those
+runs.

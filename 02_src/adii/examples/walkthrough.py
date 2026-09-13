@@ -23,8 +23,10 @@ from ..contracts import (
     ValidationResult,
 )
 from ..reporting import render_run
+from ..reporting.record import ARCHIVE, RunRecord, write_record
 
-FIXTURE = Path(__file__).resolve().parents[3] / "01_data" / "walkthrough"
+REPO = Path(__file__).resolve().parents[3]
+FIXTURE = REPO / "01_data" / "walkthrough"
 
 
 def load() -> tuple[IncidentContext, InvestigationRun]:
@@ -124,9 +126,23 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--step", action="store_true",
                         help="pause between stages (press Enter to advance)")
     parser.add_argument("--report-only", action="store_true", help="print only the report")
+    parser.add_argument("--archive", nargs="?", const=str(ARCHIVE), metavar="DIR",
+                        help="write this run to the archive as one record, so the inspector "
+                             "shows it (default: 01_data/runs)")
     args = parser.parse_args(argv)
 
     context, run = load()
+    if args.archive:
+        record = RunRecord.from_run("demo-learning-001", context, run,
+                                    configuration={"provider": "fixture", "model": None},
+                                    origin="walkthrough")
+        try:
+            path = write_record(record, Path(args.archive))
+        except FileExistsError as taken:
+            print(f"not archived: {taken}")
+            return 1
+        print(f"archived {path}")
+        return 0
     if not args.report_only:
         print("=" * 78)
         print("ADII WALKTHROUGH — demo-learning-001 (a teaching fixture, not a scenario)")

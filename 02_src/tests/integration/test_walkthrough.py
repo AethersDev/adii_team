@@ -6,7 +6,7 @@ from pathlib import Path
 
 from adii.contracts import Disposition
 from adii.examples.walkthrough import load, main, stages
-from adii.reporting import render_run
+from adii.reporting import read_record, render_run
 
 EXPECTED = (Path(__file__).resolve().parents[3]
             / "01_data" / "walkthrough" / "expected_report.txt")
@@ -47,3 +47,12 @@ def test_it_runs_as_a_module(capsys):
     out = capsys.readouterr().out
     assert "ADII INVESTIGATION REPORT" in out
     assert "decided by the validator, never by the agent" in out
+
+
+def test_archive_writes_the_run_once(tmp_path, capsys):
+    """One command, one record, and a label names one run forever."""
+    assert main(["--archive", str(tmp_path)]) == 0
+    record = read_record(tmp_path / "demo-learning-001" / "record.json")
+    assert record.termination == "submitted" and record.tool_calls == 3
+    assert main(["--archive", str(tmp_path)]) == 1
+    assert "a label names one run" in capsys.readouterr().out
