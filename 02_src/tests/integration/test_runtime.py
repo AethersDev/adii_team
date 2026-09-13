@@ -67,9 +67,14 @@ def test_only_a_repair_reaches_the_validator():
         ScriptedValidator(None).validate(context, replace(no_repair))
 
 
-def test_an_unknown_incident_and_a_taken_label_are_refused(tmp_path, capsys):
+def test_an_unknown_incident_a_bad_label_and_a_taken_label_are_refused(tmp_path, capsys):
     assert main(["--incident", "nope", "--provider", "fake", "--archive", str(tmp_path)]) == 2
     assert "no such incident 'nope'" in capsys.readouterr().out
+    escape = ["--incident", "demo-learning-001", "--provider", "fake",
+              "--archive", str(tmp_path / "archive"), "--label", "../escape"]
+    assert main(escape) == 2
+    assert "one path segment" in capsys.readouterr().out
+    assert not (tmp_path / "escape").exists()
     args = ["--incident", "demo-learning-001", "--provider", "fake",
             "--archive", str(tmp_path), "--label", "twice", "--no-report"]
     assert main(args) == 0

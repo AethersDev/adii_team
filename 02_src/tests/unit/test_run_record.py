@@ -73,6 +73,25 @@ def test_strict_on_the_way_in_too():
         from_json(text)
 
 
+def test_a_record_of_the_wrong_shape_is_refused_with_a_message():
+    """The schema line alone proves nothing. A hand-edited record with a string where the
+    trace should be is refused as unreadable, not left to crash whoever lists the archive."""
+    doc = json.loads(walkthrough_record().to_json())
+    doc["trace"] = "oops"
+    with pytest.raises(ValueError, match="malformed"):
+        from_json(json.dumps(doc))
+
+
+def test_a_label_is_one_path_segment():
+    """The label names the run's directory and its URL. Anything that could leave the
+    archive, nest inside it, or fail to survive a URL is refused at construction."""
+    record = walkthrough_record()
+    for bad in ("", "../escape", "nested/run", "with space", ".hidden", "back\\slash"):
+        with pytest.raises(ValueError, match="one path segment"):
+            replace(record, label=bad)
+    assert replace(record, label="demo-learning-001-20260913T132843Z")
+
+
 def test_a_record_carries_no_machine_specific_path():
     """A record is verified on another machine or not at all."""
     assert not re.search(r"(/Users/|/home/|[A-Za-z]:\\)", walkthrough_record().to_json())

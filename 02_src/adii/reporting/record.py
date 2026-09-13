@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -30,6 +31,11 @@ from ..contracts import (
 
 SCHEMA = "adii.run_record/v1"
 REPO = Path(__file__).resolve().parents[3]
+ARCHIVE = REPO / "01_data" / "runs"
+# A label names the run's directory in the archive and its URL in the inspector, so it is
+# exactly one path segment: nothing that could leave the archive, nest inside it, or fail
+# to survive a URL.
+LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 
 # How a run ended: a closed set, the loop's own classification, preserved and never
 # reinterpreted. `detail` is free text beside it — never instead of it, or the archive fills
@@ -55,8 +61,9 @@ class RunRecord:
     provenance: dict[str, str | None]
 
     def __post_init__(self) -> None:
-        if not self.label.strip():
-            raise ValueError("label must not be empty")
+        if not LABEL.fullmatch(self.label):
+            raise ValueError("label must be one path segment: letters, digits, '.', '_' and '-', "
+                             f"starting with a letter or digit; got {self.label!r}")
         if self.termination not in TERMINATIONS:
             raise ValueError(
                 f"termination must be one of {TERMINATIONS}, got {self.termination!r}")
@@ -150,6 +157,8 @@ def from_json(text: str) -> RunRecord:
             configuration=doc["configuration"], provenance=doc["provenance"])
     except KeyError as missing:
         raise ValueError(f"record is missing {missing}") from missing
+    except TypeError as shape:      # a field of the wrong shape — a trace that is a string, say
+        raise ValueError(f"record is malformed: {shape}") from shape
 
 
 def write_record(record: RunRecord, root: Path) -> Path:

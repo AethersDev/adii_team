@@ -23,11 +23,10 @@ from ..contracts import (
     ValidationResult,
 )
 from ..reporting import render_run
-from ..reporting.record import RunRecord, write_record
+from ..reporting.record import ARCHIVE, RunRecord, write_record
 
 REPO = Path(__file__).resolve().parents[3]
 FIXTURE = REPO / "01_data" / "walkthrough"
-ARCHIVE = REPO / "01_data" / "runs"
 
 
 def load() -> tuple[IncidentContext, InvestigationRun]:

@@ -16,15 +16,12 @@ import json
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from ..reporting.record import read_record
+from ..reporting.record import ARCHIVE, LABEL, REPO, read_record
 
-HERE = Path(__file__).resolve().parent
-REPO = HERE.parents[2]
-ARCHIVE = REPO / "01_data" / "runs"
-WEB = HERE / "web"
+WEB = Path(__file__).resolve().parent / "web"
 
 
-def index(root: Path = ARCHIVE) -> list[dict]:
+def index(root: Path) -> list[dict]:
     """One row per archived run, newest first — only what a run list needs. A record this
     reader cannot load is listed with its error rather than hidden: an archive that quietly
     drops a run is worse than one that shows a broken one."""
@@ -33,7 +30,7 @@ def index(root: Path = ARCHIVE) -> list[dict]:
         label = path.parent.name
         try:
             record = read_record(path)
-        except ValueError as why:            # not JSON, not this schema, or a field missing
+        except ValueError as why:      # not JSON, not this schema, a field missing or misshapen
             rows.append({"label": label, "error": str(why)})
             continue
         rows.append({
@@ -69,10 +66,12 @@ class Handler(SimpleHTTPRequestHandler):
         if parts[:2] != ["api", "runs"] or len(parts) > 3:
             return self.send_json({"error": "no such endpoint"}, 404)
         if len(parts) == 2:
-            return self.send_json(index())
+            return self.send_json(index(ARCHIVE))
         label = parts[2]
         record = ARCHIVE / label / "record.json"
-        if label in (".", "..") or not record.is_file():
+        # LABEL first: a label that is not one path segment never reaches the filesystem,
+        # where a backslash is a directory separator on Windows.
+        if not LABEL.fullmatch(label) or not record.is_file():
             return self.send_json({"error": f"no run {label!r}"}, 404)
         return self.send(record.read_bytes())      # verbatim: what was archived is what is shown
 
@@ -91,11 +90,12 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 def main(port: int = 8000) -> int:
-    runs = index()
+    runs = index(ARCHIVE)
     print(f"ADII run inspector — http://127.0.0.1:{port}")
     print(f"  {len(runs)} archived run(s) in {ARCHIVE.relative_to(REPO)}. Read-only.")
     if not runs:
-        print("  Archive one now:  python -m adii.examples.walkthrough --archive")
+        print("  Produce one now:  python -m adii.runtime --incident demo-learning-001 "
+              "--provider fake")
     print()
     try:
         httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)

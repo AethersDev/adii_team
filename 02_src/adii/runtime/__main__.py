@@ -15,10 +15,9 @@ from pathlib import Path
 
 from ..examples.walkthrough import load
 from ..reporting import RunRecord, render_run, write_record
+from ..reporting.record import ARCHIVE
 from .fakes import scripted
 from .run import run_incident
-
-ARCHIVE = Path(__file__).resolve().parents[3] / "01_data" / "runs"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -44,11 +43,14 @@ def main(argv: list[str] | None = None) -> int:
     run = run_incident(context, investigator, tools, validator)
 
     label = args.label or f"{context.incident_id}-{datetime.now(UTC):%Y%m%dT%H%M%SZ}"
-    record = RunRecord.from_run(label, context, run,
-                                configuration={"provider": args.provider, "model": None},
-                                origin="runtime")
     try:
+        record = RunRecord.from_run(label, context, run,
+                                    configuration={"provider": args.provider, "model": None},
+                                    origin="runtime")
         path = write_record(record, Path(args.archive))
+    except ValueError as bad:                # the label is not one the archive can hold
+        print(f"not archived: {bad}")
+        return 2
     except FileExistsError as taken:
         print(f"not archived: {taken}")
         return 1

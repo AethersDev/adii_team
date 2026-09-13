@@ -93,29 +93,36 @@ async function boot() {
     else chip.append(r.disposition ? mark(r.disposition) : "", el("span", "chiplabel", r.label),
       ` · ${r.disposition || r.termination}${r.validation ? ` · ${r.validation}` : ""}`);
     chip.dataset.label = r.label;
-    chip.onclick = () => guard($("view"), () => select(r.label));
+    chip.onclick = () => guard($("view"), () => select(r));
     return chip;
   }));
   const linked = runs.find((r) => r.label === location.hash.slice(1));
-  await select((linked || runs[0]).label);
+  await select(linked || runs[0]);
 }
 
-async function select(label) {
-  const record = await load(`/api/runs/${label}`);
-  history.replaceState(null, "", `#${label}`);
+/* `row` is the run list's entry. A record the archive could not read is never fetched: the
+ * backend refused it, and rendering the bytes anyway would be the guess this page never makes. */
+async function select(row) {
+  history.replaceState(null, "", `#${row.label}`);
   document.querySelectorAll(".runchip").forEach((c) =>
-    c.setAttribute("aria-pressed", String(c.dataset.label === label)));
+    c.setAttribute("aria-pressed", String(c.dataset.label === row.label)));
+  if (row.error) return refused("The archive could not read this record", `${row.error}.`);
+  const record = await load(`/api/runs/${row.label}`);
   if (record.schema !== SCHEMA) return mismatch(record.schema);
   render(record);
 }
 
 /* A record in a shape this page does not read. Refused, not guessed at. */
 function mismatch(schema) {
+  refused("This record is in a shape this inspector does not read",
+    "It declares ", el("code", null, String(schema)), " and this page renders ",
+    el("code", null, SCHEMA), ".");
+}
+
+function refused(title, ...why) {
   $("steps").replaceChildren();
-  $("view").replaceChildren(el("div", "state state--error",
-    el("h2", null, "This record is in a shape this inspector does not read"),
-    el("p", null, "It declares ", el("code", null, String(schema)), " and this page renders ",
-      el("code", null, SCHEMA), ". Nothing below is interpreted.")));
+  $("view").replaceChildren(el("div", "state state--error", el("h2", null, title),
+    el("p", null, ...why, " Nothing below is interpreted.")));
 }
 
 /* ── the single renderer ────────────────────────────────────────────── */

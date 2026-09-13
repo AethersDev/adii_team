@@ -14,6 +14,7 @@ from ..contracts import (
     ToolResult,
     ValidationResult,
 )
+from .run import Tools
 
 
 class ScriptedTools:
@@ -34,7 +35,7 @@ class ScriptedInvestigator:
     def __init__(self, calls: tuple[ToolCall, ...], decision: InvestigationDecision) -> None:
         self._calls, self._decision = calls, decision
 
-    def investigate(self, context: IncidentContext, tools: ScriptedTools) -> InvestigationDecision:
+    def investigate(self, context: IncidentContext, tools: Tools) -> InvestigationDecision:
         for call in self._calls:
             tools.execute(call)
         return self._decision

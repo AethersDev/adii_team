@@ -52,11 +52,18 @@ def test_semantic_colours_stay_where_they_are_entitled(token, scopes):
     assert not leaks, f"{token}* used outside its scope in: {leaks}"
 
 
+# Every way a browser turns a string into markup or code. Text nodes are the only door.
+EXECUTES = ("innerHTML", "outerHTML", "insertAdjacentHTML", "document.write", "srcdoc",
+            "eval(", "new Function", "createContextualFragment")
+
+
 def test_the_view_layer_never_executes_what_it_renders():
     """The day a live provider runs, every string in a record is model-written, and a
     report that executes what the model wrote is inherited defect D12. Text nodes cannot
-    execute; innerHTML can."""
-    assert "innerHTML" not in code("app.js")
+    execute; every name in EXECUTES can."""
+    script = code("app.js")
+    used = [name for name in EXECUTES if name in script]
+    assert not used, f"app.js turns strings into markup or code with {used}"
 
 
 def test_a_dead_backend_is_a_rendered_state_not_a_blank_page():
