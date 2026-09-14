@@ -6,10 +6,13 @@
 #
 # The first line installs this repository itself, so `import adii` and
 # `python -m adii.demo` work from anywhere. The rest are the test and lint tools.
-# The system has no third-party runtime dependencies: it is Python's standard
-# library, on purpose. Anything added here has to earn its place in review.
+# Runtime dependencies are deliberately few and pinned. Anything added here has to earn
+# its place in review.
 
 -e .
+
+# Responses API adapter. Client construction and credentials remain outside investigator code.
+openai==3.13.0
 
 # Pinned for the same reason as ruff: the clean-clone path and CI both consume this
 # file, so an open major on the test runner means the same commit can go red tomorrow

@@ -7,7 +7,7 @@ name = "adii"
 version = "0.0.1"
 description = "ADII: evidence-gated data-incident investigation. Team implementation."
 requires-python = ">=3.12,<3.13"
-dependencies = []
+dependencies = ["openai==3.13.0"]
 
 [dependency-groups]
 dev = ["pytest>=8.0", "ruff>=0.6"]
