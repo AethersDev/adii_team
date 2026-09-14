@@ -125,8 +125,9 @@ python -m adii.examples.walkthrough --step
 Nobody is assigned a subsystem, so nobody has to wait for permission to touch one. The
 path in is the same for everyone:
 
-1. **Run it.** `python -m adii.demo`, then the walkthrough above. Both work with nothing
-   installed beyond `requirements.txt` and no API key.
+1. **Run it.** `python -m adii.runtime --incident demo-learning-001 --provider fake`, then
+   `python -m adii.demo` to see the archived run, then the walkthrough above. All three
+   work with nothing installed beyond `requirements.txt` and no API key.
 2. **Read the vocabulary.** `02_src/adii/contracts/core.py` — eight types, and the only
    thing every part of the system agrees on.
 3. **Read one package README.** Pick the capability the task you want touches. They are

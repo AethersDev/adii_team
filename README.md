@@ -106,13 +106,16 @@ packaging migration at the deadline.
   adii/evaluation/           scoring and answer keys
   adii/reporting/            telemetry — traces, artifacts, reports
   adii/runtime/              one incident end to end — the harness that owns the trace
+  adii/examples/             the walkthrough, and one produced record per ending
   adii/demo/                 the run inspector — read-only over the archive
   tests/contract/            the contracts are pinned here
   tests/architecture/        the boundaries, as tests that fail the build
-  scripts/                   check_env.py, sync_briefing.py, sync_status.py
-  docs/                      system map, build plan, status, glossary, architecture
+  tests/unit/  integration/  everything else, including the browser check on the inspector
+  scripts/                   check_env.py, sync_briefing.py, sync_status.py, sync_identity.py
+  docs/                      system map, build plan, status, glossary, architecture, the D plan
 
-03_assets/                   diagrams, screenshots, and design prototypes
+03_assets/                   diagrams, screenshots, design prototypes, and the identity
+  identity/                  the design system the inspector's stylesheet is synced from
 ```
 
 The split between `adii/` and `adii/demo/` is an authority boundary, not housekeeping:

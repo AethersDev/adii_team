@@ -59,9 +59,10 @@ that proposes a repair never gets to say whether the repair was accepted.
 | Evaluation | `02_src/adii/evaluation/` | scoring against hidden truth; kept away from the investigator |
 | Reporting | `02_src/adii/reporting/` | traces, run artifacts, human-readable output |
 | Runtime | `02_src/adii/runtime/` | one incident end to end: investigator, validation, archive, report |
-| Examples | `02_src/adii/examples/` | the runnable walkthrough |
+| Examples | `02_src/adii/examples/` | the runnable walkthrough, and one produced record per ending |
 | Inspector | `02_src/adii/demo/` | the run inspector: archived runs, served read-only |
 | Run archive | `01_data/runs/` | one record per run, what the inspector reads |
+| Design system | `03_assets/identity/` | the identity handoff; the inspector's stylesheet is a synced copy of its `css/` |
 | Demo data | `01_data/demo/` | the team-visible operational world (a work order today) |
 
 `current_status.md` says which of these are built and which are still scaffolds. It is
@@ -225,7 +226,9 @@ trace, the decision, the verdict, the cost, and where the record came from.
 
 **OUTPUT** A local web page. No model, no database, no agent in this process.
 
-**CALLS** The standard library, and `reporting/` to read records.
+**CALLS** The standard library, and `reporting/` to read records. Its stylesheet is the
+identity handoff's, copied from `03_assets/identity/css/` by `scripts/sync_identity.py`
+and held byte-identical by a test.
 
 **CALLED BY** `python -m adii.demo`. Nothing in the implementation.
 

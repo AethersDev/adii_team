@@ -56,9 +56,20 @@ can reach it, every number the project reports becomes meaningless.
 The ordered record of what actually happened in a run. The source for every counter — if a
 behaviour is not in the trace, nobody can prove it happened.
 
-**Run artifact**
-The persisted, public record of one investigation: context, trace, decision, validation,
-cost, latency.
+**Run record**
+The persisted, public record of one investigation, `adii.run_record/v1`: context, trace,
+how the run ended, decision, validation, counters, configuration, provenance. One strict
+JSON document per run under `01_data/runs/<label>/record.json`; the inspector reads nothing
+else. Also called the run artifact.
+
+**Label**
+The name a run is archived under. One path segment, reserved before the run starts, and
+it names one run forever: a taken label is refused, never overwritten.
+
+**Termination**
+How a run ended: `submitted` with a decision, or without one — `bound_hit` and
+`model_failure` are the loop's own words, carried unchanged; `infrastructure_failure` is a
+defect of ours, named. A run leaves a record however it ended.
 
 **Boundary**
 A place where one component may only reach another through a defined contract, enforced by

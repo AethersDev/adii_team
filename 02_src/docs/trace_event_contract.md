@@ -148,6 +148,13 @@ implementation.
 ## Decision record
 
 Four decisions, not four discussions. Each row ends in exactly one of three states —
+**Evidence since the proposal, 14 September.** Row 2: B's executor
+(`02_src/adii/tools/executor.py`) mints an id per OK observation, named `evidence_id`, a
+hash of the tool, its arguments and its content — not the sequence number. Row 4: the
+runtime measures latency around the run with a monotonic clock and records nothing per
+event. The termination set lives in code as `runtime.run.Terminated`, raised by the loop.
+None of this resolves a row; it is what the deciders now have in front of them.
+
 `APPROVED`, `REVISE` (with what changes) or `DEFER` (with what it waits on) — never "looks
 good" or "probably". A contract change takes all four names.
 

@@ -32,7 +32,8 @@ without anyone touching their machine.
 that is not true at M0 it is never true.
 
 **Build** Cross-platform layout, pinned dependencies, environment check, contracts,
-walkthrough fixture, vision demo, architecture tests.
+walkthrough fixture, the demo (a teaching page then; the run inspector since 13 September),
+architecture tests.
 
 **Demo** `pip install -r requirements.txt && pytest && python -m adii.demo`
 
@@ -165,6 +166,8 @@ architecture exists to prevent.
 ## M7 — End-to-end vertical slice
 
 **Goal** One command takes an incident to an archived run and a readable report.
+
+**Demo** `python -m adii.runtime --incident demo-learning-001 --provider fake && python -m adii.demo`
 
 **Done when**
 - [x] one command, one incident, one run artifact
