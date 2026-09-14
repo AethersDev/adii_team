@@ -10,6 +10,7 @@ from ..contracts import (
     ToolResult,
     TraceEvent,
 )
+from .provider import ScriptExhaustedError
 from .state import InvestigationState
 
 STOP_SIGNAL: str = "<STOP>"
@@ -24,6 +25,15 @@ class TurnBudgetExceededError(RuntimeError):
         self.limit = limit
         self.trace = trace
         super().__init__(f"model-turn budget exceeded: max_turns={limit}")
+
+
+class ProviderFailureError(RuntimeError):
+    """Raised when the provider fails at its runtime boundary."""
+
+    def __init__(self, reason: str, trace: tuple[TraceEvent, ...]) -> None:
+        self.reason = reason
+        self.trace = trace
+        super().__init__(f"provider failure: {reason}")
 
 
 def run(
@@ -59,10 +69,43 @@ def run(
             )
             raise TurnBudgetExceededError(max_turns, tuple(trace))
 
-        response = provider.respond(
-            observation=observation,
-            observations=state.observations,
-        )
+        try:
+            response = provider.respond(
+                observation=observation,
+                observations=state.observations,
+            )
+        except ScriptExhaustedError:
+            raise
+        except Exception as error:
+            reason = f"{type(error).__name__}: {error}"
+            trace.append(
+                TraceEvent(
+                    sequence=len(trace),
+                    kind="provider_failure",
+                    payload={
+                        "incident_id": incident.incident_id,
+                        "turn_index": turn_index,
+                        "reason": reason,
+                    },
+                )
+            )
+            raise ProviderFailureError(reason, tuple(trace)) from error
+
+        if not isinstance(response, str):
+            reason = f"provider returned {type(response).__name__}, expected str"
+            trace.append(
+                TraceEvent(
+                    sequence=len(trace),
+                    kind="provider_failure",
+                    payload={
+                        "incident_id": incident.incident_id,
+                        "turn_index": turn_index,
+                        "reason": reason,
+                    },
+                )
+            )
+            raise ProviderFailureError(reason, tuple(trace))
+
         observation = None
         turns_taken += 1
 
@@ -138,7 +181,7 @@ def run(
             call_id = f"tool-call-{turn_index}"
             try:
                 intent = json.loads(response.removeprefix(TOOL_CALL_PREFIX))
-            except json.JSONDecodeError:
+            except (json.JSONDecodeError, RecursionError):
                 intent = None
 
             name = intent.get("name") if isinstance(intent, dict) else None
@@ -170,7 +213,31 @@ def run(
             )
 
             if valid_envelope:
-                result = executor.execute(call)
+                try:
+                    result = executor.execute(call)
+                except Exception as error:
+                    result = ToolResult(
+                        call_id=call.call_id,
+                        name=call.name,
+                        status="ERROR",
+                        content={
+                            "error": (
+                                f"executor raised {type(error).__name__}: {error}"
+                            )
+                        },
+                    )
+                if not isinstance(result, ToolResult):
+                    result = ToolResult(
+                        call_id=call.call_id,
+                        name=call.name,
+                        status="ERROR",
+                        content={
+                            "error": (
+                                f"executor returned {type(result).__name__}, "
+                                "expected ToolResult"
+                            )
+                        },
+                    )
             else:
                 result = ToolResult(
                     call_id=call.call_id,
@@ -212,7 +279,7 @@ def run(
 def _parse_decision(payload: str) -> InvestigationDecision:
     try:
         submission = json.loads(payload)
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, RecursionError):
         raise ValueError("decision must be valid JSON") from None
 
     if not isinstance(submission, dict):

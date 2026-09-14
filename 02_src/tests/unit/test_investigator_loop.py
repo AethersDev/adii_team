@@ -13,13 +13,21 @@ from adii.investigator.loop import (
     DECISION_PREFIX,
     STOP_SIGNAL,
     TOOL_CALL_PREFIX,
+    ProviderFailureError,
     TurnBudgetExceededError,
     run,
 )
 from adii.investigator.provider import ScriptedProvider, ScriptExhaustedError
 from adii.investigator.state import InvestigationState
 
-from .fakes import FakeToolExecutor, StateAwareFakeProvider
+from .fakes import (
+    FakeToolExecutor,
+    NonStringProvider,
+    NonToolResultExecutor,
+    RaisingProvider,
+    RaisingToolExecutor,
+    StateAwareFakeProvider,
+)
 
 
 def incident() -> IncidentContext:
@@ -941,3 +949,204 @@ def test_evidence_gate_rejection_does_not_change_state_before_retry():
     ]
     assert [event.sequence for event in trace] == [0, 1, 2, 3]
     assert [event.payload["turn_index"] for event in trace] == [0, 1, 1, 2]
+
+
+def test_provider_exception_before_first_response_is_traced_and_wrapped():
+    provider = RaisingProvider()
+    executor = FakeToolExecutor()
+
+    with pytest.raises(ProviderFailureError) as raised:
+        run(incident(), provider, executor, max_turns=1)
+
+    assert isinstance(raised.value.__cause__, RuntimeError)
+    assert str(raised.value) == (
+        "provider failure: RuntimeError: deterministic provider failure"
+    )
+    assert executor.calls == []
+    assert raised.value.trace[0].kind == "provider_failure"
+    assert raised.value.trace[0].payload == {
+        "incident_id": "incident-phase-2",
+        "turn_index": 0,
+        "reason": "RuntimeError: deterministic provider failure",
+    }
+    assert [event.sequence for event in raised.value.trace] == [0]
+
+
+def test_provider_exception_after_tool_result_preserves_prior_trace_and_state():
+    provider = RaisingProvider(tool_call_response())
+    executor = FakeToolExecutor()
+
+    with pytest.raises(ProviderFailureError) as raised:
+        run(incident(), provider, executor, max_turns=2)
+
+    result = executor.results[0]
+    assert provider.received_observations == (None, result)
+    assert provider.received_context == ((), (result,))
+    assert provider.received_observations[1] is result
+    assert provider.received_context[1][0] is result
+    assert executor.results == [result]
+    assert [event.kind for event in raised.value.trace] == [
+        "tool_call",
+        "tool_result",
+        "provider_failure",
+    ]
+    assert [event.sequence for event in raised.value.trace] == [0, 1, 2]
+    assert raised.value.trace[-1].payload["turn_index"] == 1
+
+
+def test_script_exhaustion_remains_unwrapped_and_has_no_provider_failure():
+    provider = ScriptedProvider(["ordinary"])
+
+    with pytest.raises(ScriptExhaustedError) as raised:
+        run(incident(), provider, FakeToolExecutor(), max_turns=2)
+
+    assert raised.value.__cause__ is None
+    assert not isinstance(raised.value, ProviderFailureError)
+
+
+def test_non_string_provider_response_is_a_terminal_provider_failure():
+    executor = FakeToolExecutor()
+
+    with pytest.raises(ProviderFailureError) as raised:
+        run(incident(), NonStringProvider(123), executor, max_turns=1)
+
+    assert raised.value.__cause__ is None
+    assert raised.value.reason == "provider returned int, expected str"
+    assert executor.calls == []
+    assert raised.value.trace[0].payload == {
+        "incident_id": "incident-phase-2",
+        "turn_index": 0,
+        "reason": "provider returned int, expected str",
+    }
+
+
+def test_provider_failure_is_deterministic_across_identical_runs():
+    failures = []
+    for _ in range(2):
+        with pytest.raises(ProviderFailureError) as raised:
+            run(incident(), RaisingProvider(), FakeToolExecutor(), max_turns=1)
+        failures.append((str(raised.value), raised.value.trace))
+
+    assert failures[0] == failures[1]
+
+
+def test_executor_exception_becomes_one_error_result_and_loop_continues():
+    provider = ScriptedProvider(
+        [tool_call_response(), "continue after executor error", STOP_SIGNAL]
+    )
+    executor = RaisingToolExecutor()
+
+    decision, trace = run(incident(), provider, executor, max_turns=3)
+
+    result = provider.received_observations[1]
+    assert decision is None
+    assert result is not None
+    assert result.status == "ERROR"
+    assert result.call_id == "tool-call-0"
+    assert result.name == "fake_tool"
+    assert result.content == {
+        "error": "executor raised RuntimeError: deterministic executor failure"
+    }
+    assert len(executor.calls) == 1
+    assert provider.received_observations == (None, result, None)
+    assert provider.received_context == ((), (result,), (result,))
+    assert provider.received_observations[1] is result
+    assert provider.received_context[1][0] is result
+    assert [event.kind for event in trace] == [
+        "tool_call",
+        "tool_result",
+        "model_turn",
+        "loop_stopped",
+    ]
+    assert [event.sequence for event in trace] == [0, 1, 2, 3]
+    assert trace[1].payload["status"] == "ERROR"
+
+
+def test_non_tool_result_from_executor_becomes_one_error_observation():
+    provider = ScriptedProvider([tool_call_response(), STOP_SIGNAL])
+    executor = NonToolResultExecutor({"not": "a ToolResult"})
+
+    decision, trace = run(incident(), provider, executor, max_turns=2)
+
+    result = provider.received_observations[1]
+    assert decision is None
+    assert result is not None
+    assert result.status == "ERROR"
+    assert result.call_id == "tool-call-0"
+    assert result.name == "fake_tool"
+    assert result.content == {
+        "error": "executor returned dict, expected ToolResult"
+    }
+    assert len(executor.calls) == 1
+    assert provider.received_context == ((), (result,))
+    assert provider.received_context[1][0] is result
+    assert [event.kind for event in trace] == [
+        "tool_call",
+        "tool_result",
+        "loop_stopped",
+    ]
+    assert [event.sequence for event in trace] == [0, 1, 2]
+
+
+def test_deeply_nested_tool_json_is_rejected_without_executor_dispatch():
+    pathological_json = "[" * 5_000 + "0" + "]" * 5_000
+    provider = ScriptedProvider([TOOL_CALL_PREFIX + pathological_json, STOP_SIGNAL])
+    executor = FakeToolExecutor()
+
+    decision, trace = run(incident(), provider, executor, max_turns=2)
+
+    result = provider.received_observations[1]
+    assert decision is None
+    assert executor.calls == []
+    assert result is not None
+    assert result.status == "REJECTED"
+    assert [event.kind for event in trace] == [
+        "tool_call",
+        "tool_result",
+        "loop_stopped",
+    ]
+
+
+def test_deeply_nested_decision_json_is_rejected_and_loop_continues():
+    pathological_json = "[" * 5_000 + "0" + "]" * 5_000
+    provider = ScriptedProvider([DECISION_PREFIX + pathological_json, STOP_SIGNAL])
+    executor = FakeToolExecutor()
+
+    decision, trace = run(incident(), provider, executor, max_turns=2)
+
+    assert decision is None
+    assert executor.calls == []
+    assert [event.kind for event in trace] == [
+        "decision_rejected",
+        "loop_stopped",
+    ]
+    assert trace[0].payload["reason"] == "decision must be valid JSON"
+
+
+def test_repeated_continuable_parse_failures_end_at_existing_turn_budget():
+    pathological_json = "[" * 5_000 + "0" + "]" * 5_000
+    provider = ScriptedProvider(
+        [
+            DECISION_PREFIX + pathological_json,
+            TOOL_CALL_PREFIX + pathological_json,
+        ]
+    )
+    executor = FakeToolExecutor()
+
+    with pytest.raises(TurnBudgetExceededError) as raised:
+        run(incident(), provider, executor, max_turns=2)
+
+    assert executor.calls == []
+    assert [event.kind for event in raised.value.trace] == [
+        "decision_rejected",
+        "tool_call",
+        "tool_result",
+        "budget_exceeded",
+    ]
+    assert [event.sequence for event in raised.value.trace] == [0, 1, 2, 3]
+    assert [event.payload["turn_index"] for event in raised.value.trace] == [
+        0,
+        1,
+        1,
+        2,
+    ]

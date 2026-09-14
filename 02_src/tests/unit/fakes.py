@@ -77,3 +77,73 @@ class StateAwareFakeProvider:
 
         self._turn += 1
         return response
+
+
+class RaisingProvider:
+    """Return optional responses, then fail deterministically."""
+
+    def __init__(self, *responses: str) -> None:
+        self._responses = responses
+        self._cursor = 0
+        self._received_observations: list[ToolResult | None] = []
+        self._received_context: list[tuple[ToolResult, ...]] = []
+
+    @property
+    def received_observations(self) -> tuple[ToolResult | None, ...]:
+        return tuple(self._received_observations)
+
+    @property
+    def received_context(self) -> tuple[tuple[ToolResult, ...], ...]:
+        return tuple(self._received_context)
+
+    def respond(
+        self,
+        *,
+        observation: ToolResult | None = None,
+        observations: tuple[ToolResult, ...] = (),
+    ) -> str:
+        self._received_observations.append(observation)
+        self._received_context.append(tuple(observations))
+        if self._cursor < len(self._responses):
+            response = self._responses[self._cursor]
+            self._cursor += 1
+            return response
+        raise RuntimeError("deterministic provider failure")
+
+
+class NonStringProvider:
+    """Return one deterministic non-string value."""
+
+    def __init__(self, value: object) -> None:
+        self.value = value
+
+    def respond(
+        self,
+        *,
+        observation: ToolResult | None = None,
+        observations: tuple[ToolResult, ...] = (),
+    ) -> object:
+        return self.value
+
+
+class RaisingToolExecutor:
+    """Record a call, then fail deterministically."""
+
+    def __init__(self) -> None:
+        self.calls: list[ToolCall] = []
+
+    def execute(self, call: ToolCall) -> ToolResult:
+        self.calls.append(call)
+        raise RuntimeError("deterministic executor failure")
+
+
+class NonToolResultExecutor:
+    """Return a deterministic value that violates the executor boundary."""
+
+    def __init__(self, value: object) -> None:
+        self.value = value
+        self.calls: list[ToolCall] = []
+
+    def execute(self, call: ToolCall) -> object:
+        self.calls.append(call)
+        return self.value
