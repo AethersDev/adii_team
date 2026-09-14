@@ -46,6 +46,7 @@ def index(root: Path) -> list[dict]:
             "disposition": record.decision.disposition.value if record.decision else None,
             "validation": None if record.validation is None
             else ("ACCEPT" if record.validation.accepted else "REJECT"),
+            "provider": record.configuration.get("provider"),
             "model": record.configuration.get("model"),
             "api_cost_usd": record.api_cost_usd,
             "written_at": record.provenance.get("written_at"),

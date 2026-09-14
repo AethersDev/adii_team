@@ -7,6 +7,8 @@
  *
  * The record is drawn as a chain of custody. Every block hangs off a spine owned by whoever
  * asserted it, and says so in text; where the spine doubles, authority has changed hands.
+ * Two runs of one incident can be put side by side — that is how models get tested — and
+ * each side is the same renderer over its own record.
  *
  * No innerHTML anywhere. Every string here is model-written the day a live provider runs,
  * and a report that executes what the model wrote is inherited defect D12. Text nodes
@@ -26,6 +28,7 @@ const ENDED = {
   bound_hit: "Ended by a bound",
   infrastructure_failure: "Ended by an infrastructure failure",
 };
+const ALL = "*";   /* the filter value that matches every run */
 
 /* ── helpers ────────────────────────────────────────────────────────── */
 const $ = (id) => document.getElementById(id);
@@ -51,6 +54,9 @@ function mark(kind) {
   return svg;
 }
 
+const cost = (usd) => `$${Number(usd).toFixed(4)}`;
+const when = (iso) => (iso ? `${iso.slice(0, 16).replace("T", " ")}Z` : "");   /* written in UTC */
+
 async function load(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${url} answered ${res.status}`);
@@ -70,7 +76,10 @@ function guard(target, task) {
   });
 }
 
-/* ── boot ───────────────────────────────────────────────────────────── */
+/* ── state and boot ─────────────────────────────────────────────────── */
+/* The run list as /api/runs returned it, the run on screen, and the run beside it. */
+const state = { runs: [], primary: null, against: null };
+
 $("theme").onclick = () => {
   const root = document.documentElement;
   root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
@@ -78,8 +87,9 @@ $("theme").onclick = () => {
 guard($("view"), boot);
 
 async function boot() {
-  const runs = await load("/api/runs");
-  if (!runs.length) {
+  state.runs = await load("/api/runs");
+  if (!state.runs.length) {
+    $("runcount").replaceChildren("none");
     $("view").replaceChildren(el("div", "state",
       el("h2", null, "No runs archived yet"),
       el("p", null, "Runs are launched from the command line and appear here once archived. " +
@@ -87,29 +97,101 @@ async function boot() {
       el("pre", null, "python -m adii.runtime --incident demo-learning-001 --provider fake")));
     return;
   }
-  $("runs").replaceChildren(...runs.map((r) => {
-    const chip = el("button", "runchip");
-    if (r.error) chip.append(el("span", "chiplabel", r.label), " · unreadable");
-    else chip.append(r.disposition ? mark(r.disposition) : "", el("span", "chiplabel", r.label),
-      ` · ${r.disposition || r.termination}${r.validation ? ` · ${r.validation}` : ""}`);
-    chip.dataset.label = r.label;
-    chip.onclick = () => guard($("view"), () => select(r));
-    return chip;
-  }));
-  const linked = runs.find((r) => r.label === location.hash.slice(1));
-  await select(linked || runs[0]);
+  filters();
+  runList();
+  const [a, b] = location.hash.slice(1).split(",");
+  const primary = state.runs.find((r) => r.label === a) || state.runs[0];
+  const against = state.runs.find((r) => r.label === b && r.label !== primary.label
+    && !r.error && r.incident_id === primary.incident_id);
+  await show(primary, against || null);
 }
 
-/* `row` is the run list's entry. A record the archive could not read is never fetched: the
- * backend refused it, and rendering the bytes anyway would be the guess this page never makes. */
-async function select(row) {
-  history.replaceState(null, "", `#${row.label}`);
-  document.querySelectorAll(".runchip").forEach((c) =>
-    c.setAttribute("aria-pressed", String(c.dataset.label === row.label)));
-  if (row.error) return refused("The archive could not read this record", `${row.error}.`);
-  const record = await load(`/api/runs/${row.label}`);
-  if (record.schema !== SCHEMA) return mismatch(record.schema);
-  render(record);
+/* ── the run list: every archived run, filtered by incident and by model ─ */
+function filters() {
+  const readable = state.runs.filter((r) => !r.error);
+  const fill = (id, key, everything, missing) => {
+    const values = [...new Set(readable.map((r) => r[key] ?? ""))];
+    $(id).replaceChildren(option(ALL, everything),
+      ...values.map((v) => option(v, v || missing)));
+    $(id).onchange = runList;
+  };
+  fill("f-incident", "incident_id", "Every incident", "no incident");
+  fill("f-model", "model", "Every model", "no model");
+}
+
+function option(value, text) {
+  const o = el("option", null, text);
+  o.value = value;
+  return o;
+}
+
+function runList() {
+  const incident = $("f-incident").value, model = $("f-model").value;
+  const visible = state.runs.filter((r) => !r.error
+    && (incident === ALL || r.incident_id === incident)
+    && (model === ALL || (r.model ?? "") === model)
+    || r.error && incident === ALL && model === ALL);
+  $("runs").replaceChildren(...visible.map(row));
+  $("runcount").replaceChildren(`${visible.length} of ${state.runs.length}`);
+  if (state.primary) markSelected();
+}
+
+function row(r) {
+  const li = el("li", "run");
+  li.dataset.label = r.label;
+  const open = el("button", "run-open");
+  if (r.error) {
+    open.append(el("span", "run-head", el("span", "chiplabel", r.label)),
+      el("span", "run-meta", `unreadable — ${r.error}`));
+  } else {
+    const outcome = r.disposition
+      ? `${r.disposition}${r.validation ? ` · ${r.validation}` : ""}` : r.termination;
+    open.append(
+      el("span", "run-head", r.disposition ? mark(r.disposition) : "", el("span", "chiplabel", r.label)),
+      el("span", "run-meta", `${r.incident_id} · ${r.model || "no model"} · ${outcome}`),
+      el("span", "run-meta", `${cost(r.api_cost_usd)} · ${when(r.written_at)}`));
+  }
+  open.onclick = () => guard($("view"), () => show(r, null));
+  li.append(open);
+  if (!r.error) {
+    const vs = el("button", "run-vs", "compare");
+    vs.title = "Side by side with the run on screen — same incident only";
+    vs.onclick = () => guard($("view"), () => show(state.primary, r));
+    li.append(vs);
+  }
+  return li;
+}
+
+function markSelected() {
+  const { primary, against } = state;
+  document.querySelectorAll("#runs .run").forEach((li) => {
+    const label = li.dataset.label;
+    li.querySelector(".run-open").setAttribute("aria-pressed", String(label === primary.label));
+    const vs = li.querySelector(".run-vs");
+    if (!vs) return;
+    const run = state.runs.find((r) => r.label === label);
+    vs.hidden = label === primary.label;
+    vs.disabled = run.incident_id !== primary.incident_id;
+    vs.setAttribute("aria-pressed", String(Boolean(against) && label === against.label));
+  });
+}
+
+/* ── showing a run, or two ──────────────────────────────────────────── */
+/* `primary` and `against` are run-list rows. A record the archive could not read is never
+ * fetched: the backend refused it, and rendering the bytes anyway would be the guess this
+ * page never makes. */
+async function show(primary, against) {
+  state.primary = primary;
+  state.against = against;
+  history.replaceState(null, "", `#${[primary.label, against && against.label].filter(Boolean).join(",")}`);
+  markSelected();
+  if (primary.error) return refused("The archive could not read this record", `${primary.error}.`);
+  const a = await load(`/api/runs/${primary.label}`);
+  if (a.schema !== SCHEMA) return mismatch(a.schema);
+  if (!against) return render(a);
+  const b = await load(`/api/runs/${against.label}`);
+  if (b.schema !== SCHEMA) return mismatch(b.schema);
+  renderCompare(a, b);
 }
 
 /* A record in a shape this page does not read. Refused, not guessed at. */
@@ -121,14 +203,42 @@ function mismatch(schema) {
 
 function refused(title, ...why) {
   $("steps").replaceChildren();
+  $("view").className = "";
   $("view").replaceChildren(el("div", "state state--error", el("h2", null, title),
     el("p", null, ...why, " Nothing below is interpreted.")));
 }
 
 /* ── the single renderer ────────────────────────────────────────────── */
 function render(r) {
-  renderRail(r.trace);
+  renderRail(r);
+  $("view").className = "";
   $("view").replaceChildren(runRecord(r), provenance(r));
+  foot(r);
+}
+
+/* Two runs of one incident. Each side is the same renderer over its own record; the rail
+ * shows the trace of the run on the left and says so. */
+function renderCompare(a, b) {
+  renderRail(a);
+  const close = el("button", "btn", "Close comparison");
+  close.onclick = () => guard($("view"), () => show(state.primary, null));
+  $("view").className = "wide";
+  $("view").replaceChildren(
+    el("div", "compare-bar",
+      el("span", "label", `Two runs of ${a.context.incident_id}, side by side`), close),
+    el("div", "compare", side(a), side(b)));
+  foot(a);
+}
+
+function side(r) {
+  const c = r.configuration;
+  return el("section", "side",
+    el("h2", "side-title", r.label),
+    el("p", "owner-line", `${c.provider ?? "provider not recorded"} · ${c.model ?? "no model"}`),
+    runRecord(r), provenance(r));
+}
+
+function foot(r) {
   $("foot").replaceChildren("Read-only view of ", el("code", null, r.schema),
     " records in 01_data/runs. Runs are launched from the command line; nothing on this " +
     "page can spend money.");
@@ -147,8 +257,9 @@ function headline(e) {
   }
 }
 
-function renderRail(trace) {
-  $("steps").replaceChildren(...trace.map((e) => {
+function renderRail(r) {
+  $("trace-label").replaceChildren(state.against ? `Trace · ${r.label}` : "Trace");
+  $("steps").replaceChildren(...r.trace.map((e) => {
     const li = el("li");
     const head = el("button", null,
       el("span", "n", String(e.sequence).padStart(2, "0")),
@@ -249,16 +360,21 @@ function runRecord(r) {
 }
 
 /* What the archive knows about the run itself: identity, how it ended, what it cost, what
- * it ran under, and where the record came from. Counters are telemetry's, from the trace. */
+ * it ran under, and where the record came from. Counters are telemetry's, from the trace.
+ * Nested configuration — requested and effective, one day — flattens to dotted keys. */
+const flat = (prefix, value) => Object.entries(value ?? {}).flatMap(([k, v]) => {
+  const key = prefix ? `${prefix}.${k}` : k;
+  if (v && typeof v === "object" && !Array.isArray(v)) return flat(key, v);
+  return [[key, v === null ? "null" : Array.isArray(v) ? v.join(", ") : String(v)]];
+});
+
 function provenance(r) {
   const rows = [
     ["schema", r.schema], ["label", r.label], ["termination", r.termination],
     ["detail", r.detail],
-    ...Object.entries(r.provenance),
-    ...Object.entries(r.configuration).map(([k, v]) => [`configuration.${k}`, v]),
-    ...Object.entries(r.counters),
+    ...flat("", r.provenance), ...flat("configuration", r.configuration), ...flat("", r.counters),
   ];
   return el("details", "prov", el("summary", null, "Provenance, configuration and cost"),
     el("div", "provgrid", ...rows.map(([k, v]) =>
-      el("div", null, el("span", "k", k), el("span", "v", v === null ? "null" : String(v))))));
+      el("div", null, el("span", "k", k), el("span", "v", v)))));
 }

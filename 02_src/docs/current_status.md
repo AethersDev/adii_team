@@ -28,7 +28,7 @@ and a test fails the build when it is stale. Milestone marks come from
     reporting          300 lines
     runtime            228 lines
     examples           225 lines
-    demo               104 lines
+    demo               105 lines
 ```
 
 ## Scaffold only — a README and an empty package
