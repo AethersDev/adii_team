@@ -12,7 +12,15 @@ from pathlib import Path
 import pytest
 from adii.contracts import TraceEvent
 from adii.examples.walkthrough import load
-from adii.reporting.record import SCHEMA, RunRecord, from_json, read_record, write_record
+from adii.reporting.record import (
+    SCHEMA,
+    RunRecord,
+    from_json,
+    read_record,
+    reserve,
+    strict,
+    write_record,
+)
 
 COMMITTED = Path(__file__).resolve().parents[3] / "01_data" / "walkthrough" / "record.json"
 
@@ -103,6 +111,29 @@ def test_only_a_submitted_run_carries_a_decision():
         replace(record, termination="bound_hit", detail="tool_calls: 40 of 40 used")
     with pytest.raises(ValueError, match="termination must be one of"):
         replace(record, termination="gave_up", decision=None, validation=None)
+
+
+def test_a_poisoned_record_is_salvaged_as_an_infrastructure_failure():
+    """The event that is not JSON is dropped and named; every other event stays; the result
+    is a record that writes. A clean record passes through untouched."""
+    record = walkthrough_record()
+    poisoned = replace(record, trace=record.trace + (
+        TraceEvent(sequence=99, kind="tool_result", payload={"cost": math.inf}),))
+    salvaged = strict(poisoned)
+    assert salvaged.termination == "infrastructure_failure"
+    assert "not strict JSON" in salvaged.detail
+    assert salvaged.trace == record.trace and salvaged.decision is None
+    assert from_json(salvaged.to_json()) == salvaged
+    assert strict(record) is record
+
+
+def test_a_label_is_reserved_once_and_only_when_valid(tmp_path):
+    assert reserve(tmp_path, "one") == tmp_path / "one"
+    with pytest.raises(FileExistsError, match="a label names one run"):
+        reserve(tmp_path, "one")
+    with pytest.raises(ValueError, match="one path segment"):
+        reserve(tmp_path, "../two")
+    assert not (tmp_path.parent / "two").exists()
 
 
 def test_a_label_names_one_run_forever(tmp_path):

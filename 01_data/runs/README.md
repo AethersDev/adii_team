@@ -1,8 +1,10 @@
 # 01_data/runs — the run archive
 
-Every run the runtime completes is archived here as `<label>/record.json`: one strict,
-versioned document per run (`adii.run_record/v1`, defined in
-`02_src/adii/reporting/record.py`). The inspector reads this directory and nothing else:
+Every run the runtime starts is archived here as `<label>/record.json`, however it ends —
+a submission, a run the loop ended, or a failure of ours: one strict, versioned document per
+run (`adii.run_record/v1`, defined in `02_src/adii/reporting/record.py`). A label reserved
+by a run that never finished is listed by the inspector as exactly that. The inspector reads
+this directory and nothing else:
 
 ```bash
 python -m adii.demo                        # http://127.0.0.1:8000

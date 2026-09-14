@@ -7,6 +7,7 @@ was right is not evidence, it is marketing.
 from __future__ import annotations
 
 from ..contracts import Disposition, IncidentContext, InvestigationRun
+from .record import RunRecord
 
 _RULE = "-" * 78
 
@@ -24,7 +25,9 @@ def _wrap(text: str, width: int = 76, indent: str = "  ") -> str:
     return "\n".join(lines)
 
 
-def render_run(context: IncidentContext, run: InvestigationRun) -> str:
+def render_run(context: IncidentContext, run: InvestigationRun | RunRecord) -> str:
+    """A run that reached a decision: the walkthrough's `InvestigationRun`, or a submitted
+    record. Rendering every way a run can end, from the record alone, is plan D-7."""
     decision = run.decision
     out = [_RULE, f"ADII INVESTIGATION REPORT   {context.incident_id}", _RULE, "",
            "ALERT", _wrap(context.alert), "", f"  evaluated as of {context.as_of}", "",

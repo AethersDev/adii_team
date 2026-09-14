@@ -26,8 +26,14 @@ def index(root: Path) -> list[dict]:
     reader cannot load is listed with its error rather than hidden: an archive that quietly
     drops a run is worse than one that shows a broken one."""
     rows = []
-    for path in root.glob("*/record.json"):
-        label = path.parent.name
+    for folder in root.glob("*"):
+        if not folder.is_dir():                   # the README beside the runs
+            continue
+        label, path = folder.name, folder / "record.json"
+        if not path.is_file():
+            rows.append({"label": label, "error": "the label was reserved but no record was "
+                                                  "written; the run did not finish"})
+            continue
         try:
             record = read_record(path)
         except ValueError as why:      # not JSON, not this schema, a field missing or misshapen

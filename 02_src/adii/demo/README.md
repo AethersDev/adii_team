@@ -51,8 +51,9 @@ strings.
 ## API
 
 ```
-GET /api/runs              one row per archived run, newest first; an unreadable record is
-                           listed with its error, never hidden
+GET /api/runs              one row per archived run, newest first; an unreadable record, or a
+                           label reserved by a run that never finished, is listed with its
+                           error, never hidden
 GET /api/runs/{label}      the record, verbatim
 ```
 

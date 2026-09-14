@@ -202,7 +202,8 @@ if a repair was proposed, then the record, the archive and the report.
 **INPUT** An incident id and a provider. `fake` scripts the investigator and the validator
 from the walkthrough's recorded run, over the real tool layer, and costs nothing.
 
-**OUTPUT** One `record.json` in `01_data/runs/`, and the rendered report.
+**OUTPUT** One `record.json` in `01_data/runs/` for every way the run ended — a submission,
+a run the loop ended, a failure of ours — and the rendered report when there was a decision.
 
 **CALLS** The investigator, the tool layer and the validator through three protocols, and
 `reporting/` for the record. It is the only component that sees every boundary crossing,

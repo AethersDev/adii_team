@@ -43,6 +43,16 @@ def test_an_unreadable_record_is_listed_not_hidden(tmp_path):
     assert rows["demo-learning-001"]["disposition"] == "REPAIR"
 
 
+def test_a_reserved_label_without_a_record_is_listed_not_hidden(tmp_path):
+    """A run killed between claiming its label and writing its record leaves an empty
+    folder. That is a run that happened, so it is listed as one that did not finish. Files
+    beside the runs — the README — are not runs."""
+    (tmp_path / "killed").mkdir()
+    (tmp_path / "README.md").write_text("the archive", encoding="utf-8")
+    [row] = index(tmp_path)
+    assert row["label"] == "killed" and "no record was written" in row["error"]
+
+
 def test_the_server_serves_the_archive_verbatim_uncached_and_nothing_else(tmp_path, monkeypatch):
     """The HTTP layer end to end: the list, the record byte for byte, the page, no caching,
     and a label that is not one path segment never reaching the filesystem — on Windows a
