@@ -137,6 +137,30 @@ def test_instructions_constrain_output_and_preserve_authority_boundaries() -> No
     assert "Never claim that a repair was accepted or independently validated" in instructions
 
 
+def test_instructions_require_iterative_evidence_gathering_before_escalation() -> None:
+    client = _FakeClient()
+
+    _provider(client).respond()
+
+    instructions = _only_request(client)["instructions"]
+    assert isinstance(instructions, str)
+    assert "Investigation is iterative" in instructions
+    assert "multiple tool calls across multiple turns" in instructions
+    assert "continue investigating rather than immediately submitting a decision" in instructions
+    assert "Schema discovery alone is normally insufficient" in instructions
+    assert "use an advertised query or other evidence-gathering tool" in instructions
+    assert "Do not use ESCALATE merely because evidence has not yet been gathered" in instructions
+    assert "Reserve ESCALATE until" in instructions
+    assert "reasonable investigation has been attempted" in instructions
+    for walkthrough_specific_detail in (
+        "source_orders",
+        "mart_orders",
+        "division by 100",
+        "double normalization",
+    ):
+        assert walkthrough_specific_detail not in instructions
+
+
 def test_latest_observation_is_serialized_as_json_data() -> None:
     client = _FakeClient()
     latest = ToolResult("call-2", "future_tool", "DENIED", {"error": "not allowed"})
