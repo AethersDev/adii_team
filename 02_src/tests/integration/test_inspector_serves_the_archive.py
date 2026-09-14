@@ -23,7 +23,8 @@ def test_an_archived_run_is_listed_with_what_a_run_list_needs(tmp_path):
     assert row["label"] == "demo-learning-001"
     assert row["termination"] == "submitted"
     assert row["disposition"] == "REPAIR" and row["validation"] == "ACCEPT"
-    assert row["model"] is None and row["api_cost_usd"] == 0.0142
+    assert row["provider"] == "fixture" and row["model"] is None
+    assert row["api_cost_usd"] == 0.0142 and row["written_at"]
 
 
 def test_an_unreadable_record_is_listed_not_hidden(tmp_path):

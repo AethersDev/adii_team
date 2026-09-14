@@ -19,13 +19,23 @@
 <header>
   <span class="brand"><span class="glyph" aria-hidden="true">◆</span>ADII</span>
   <span class="header-sub">Run inspector</span>
-  <nav class="runs" id="runs" aria-label="Archived runs"></nav>
   <div class="spacer"></div>
   <button class="btn" id="theme" aria-label="Switch between dark and light">◐</button>
 </header>
 
 <main>
-  <aside aria-labelledby="trace-label">
+  <aside>
+    <section class="runlist" aria-labelledby="runs-label">
+      <div class="runs-head">
+        <span class="label" id="runs-label">Runs</span>
+        <span class="runcount" id="runcount"></span>
+      </div>
+      <div class="filters">
+        <select id="f-incident" aria-label="Filter by incident"></select>
+        <select id="f-model" aria-label="Filter by model"></select>
+      </div>
+      <ol class="runs" id="runs"></ol>
+    </section>
     <span class="label" id="trace-label">Trace</span>
     <ul class="steps" id="steps"></ul>
   </aside>

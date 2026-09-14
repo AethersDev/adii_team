@@ -23,6 +23,15 @@ authority has passed from the investigator to the validator. A run that ended wi
 decision — a model failure, a bound, an infrastructure failure — is labelled in the loop's
 own terms, and nothing about it is coloured as a verdict.
 
+## The run list, filters and compare
+
+The list in the rail grows with the archive: label, incident, model, outcome, cost and when
+the record was written, newest first, each row carrying its disposition mark. Two filters
+narrow it by incident and by model. Every row of the same incident as the run on screen
+offers **compare**, which puts the two records side by side, each drawn by the same
+renderer over its own record — that is how two models get tested against each other. A
+comparison deep-links as `#label,label`.
+
 ## What it is not
 
 - **Not a launcher.** Runs start from the command line. A page that can start a run can
@@ -57,7 +66,7 @@ GET /api/runs              one row per archived run, newest first; an unreadable
 GET /api/runs/{label}      the record, verbatim
 ```
 
-Deep-link to a run with `#label`.
+Deep-link to a run with `#label`, or to a comparison with `#label,label`.
 
 ## Verify
 
