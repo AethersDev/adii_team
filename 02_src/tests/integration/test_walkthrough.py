@@ -8,8 +8,7 @@ from adii.contracts import Disposition
 from adii.examples.walkthrough import load, main, stages
 from adii.reporting import read_record, render_run
 
-EXPECTED = (Path(__file__).resolve().parents[3]
-            / "01_data" / "walkthrough" / "expected_report.txt")
+WALKTHROUGH = Path(__file__).resolve().parents[3] / "01_data" / "walkthrough"
 
 
 def test_the_fixture_loads_into_real_contract_objects():
@@ -38,8 +37,9 @@ def test_the_walk_covers_every_boundary():
 
 
 def test_the_rendered_report_matches_the_committed_one():
-    context, run = load()
-    assert render_run(context, run) == EXPECTED.read_text(encoding="utf-8")
+    record = read_record(WALKTHROUGH / "record.json")
+    expected = (WALKTHROUGH / "expected_report.txt").read_text(encoding="utf-8")
+    assert render_run(record) == expected
 
 
 def test_it_runs_as_a_module(capsys):

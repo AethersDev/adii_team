@@ -1,0 +1,211 @@
+{
+  "schema": "adii.run_record/v1",
+  "label": "repair-rejected",
+  "termination": "submitted",
+  "detail": "the investigator committed to a disposition",
+  "context": {
+    "incident_id": "demo-learning-001",
+    "alert": "The demo dashboard shows about 3 orders per day where it used to show about 300. Nothing else changed that anyone noticed.",
+    "as_of": "2026-01-15T00:00:00Z",
+    "permitted_write_paths": [
+      "transforms/stg_orders.sql"
+    ]
+  },
+  "trace": [
+    {
+      "sequence": 0,
+      "kind": "incident_received",
+      "payload": {
+        "incident_id": "demo-learning-001"
+      }
+    },
+    {
+      "sequence": 1,
+      "kind": "tool_call",
+      "payload": {
+        "call_id": "c1",
+        "name": "get_schema",
+        "arguments": {
+          "table": "orders"
+        }
+      }
+    },
+    {
+      "sequence": 2,
+      "kind": "tool_result",
+      "payload": {
+        "call_id": "c1",
+        "name": "get_schema",
+        "status": "OK",
+        "content": {
+          "table": "orders",
+          "columns": [
+            "order_id",
+            "order_date",
+            "amount_cents"
+          ],
+          "ddl": "CREATE TABLE orders (order_id TEXT PRIMARY KEY, order_date TEXT NOT NULL, amount_cents INTEGER NOT NULL)",
+          "evidence_id": "ev-d76ae1003a801552"
+        }
+      }
+    },
+    {
+      "sequence": 3,
+      "kind": "tool_call",
+      "payload": {
+        "call_id": "c2",
+        "name": "run_sql",
+        "arguments": {
+          "query": "SELECT order_date, COUNT(*) AS n FROM orders GROUP BY order_date LIMIT 3"
+        }
+      }
+    },
+    {
+      "sequence": 4,
+      "kind": "tool_result",
+      "payload": {
+        "call_id": "c2",
+        "name": "run_sql",
+        "status": "OK",
+        "content": {
+          "columns": [
+            "order_date",
+            "n"
+          ],
+          "rows": [
+            [
+              "2026-01-12",
+              298
+            ],
+            [
+              "2026-01-13",
+              301
+            ],
+            [
+              "2026-01-14",
+              297
+            ]
+          ],
+          "row_count": 3,
+          "truncated": false,
+          "max_rows": 50,
+          "evidence_id": "ev-cf8f69bccba4aa57"
+        }
+      }
+    },
+    {
+      "sequence": 5,
+      "kind": "tool_call",
+      "payload": {
+        "call_id": "c3",
+        "name": "run_sql",
+        "arguments": {
+          "query": "SELECT * FROM mart_daily WHERE day = '2026-01-14'"
+        }
+      }
+    },
+    {
+      "sequence": 6,
+      "kind": "tool_result",
+      "payload": {
+        "call_id": "c3",
+        "name": "run_sql",
+        "status": "OK",
+        "content": {
+          "columns": [
+            "day",
+            "revenue_usd"
+          ],
+          "rows": [
+            [
+              "2026-01-14",
+              2.97
+            ]
+          ],
+          "row_count": 1,
+          "truncated": false,
+          "max_rows": 50,
+          "evidence_id": "ev-1746cb628b7300fb"
+        }
+      }
+    },
+    {
+      "sequence": 7,
+      "kind": "tool_call",
+      "payload": {
+        "call_id": "c4",
+        "name": "delete_table",
+        "arguments": {
+          "table": "orders"
+        }
+      }
+    },
+    {
+      "sequence": 8,
+      "kind": "tool_result",
+      "payload": {
+        "call_id": "c4",
+        "name": "delete_table",
+        "status": "DENIED",
+        "content": {
+          "error": "unknown tool 'delete_table'",
+          "known_tools": [
+            "get_schema",
+            "run_sql"
+          ]
+        }
+      }
+    },
+    {
+      "sequence": 9,
+      "kind": "decision_submitted",
+      "payload": {
+        "disposition": "REPAIR"
+      }
+    },
+    {
+      "sequence": 10,
+      "kind": "validation_completed",
+      "payload": {
+        "accepted": false
+      }
+    }
+  ],
+  "decision": {
+    "disposition": "REPAIR",
+    "root_cause_id": "DEMO_DOUBLE_UNIT_CONVERSION",
+    "root_cause_summary": "orders.amount_cents is already in cents, but stg_orders.sql divides by 100 twice, so the mart reports 1/100th of the real count-weighted revenue. Source counts are steady at ~300/day; only the mart moved.",
+    "repair_id": "DEMO_REMOVE_SECOND_CONVERSION",
+    "patch": {
+      "transforms/stg_orders.sql": "SELECT order_id, order_date, amount_cents / 100.0 AS amount_usd FROM orders;\n"
+    }
+  },
+  "validation": {
+    "accepted": false,
+    "report": "Rebuilt the demo warehouse from frozen inputs with the candidate patch applied. mart_daily for 2026-01-14 reports 29700.00 against an independently recomputed 297.00: the patch removes both conversions, not one.",
+    "checks_run": [
+      "pipeline_rebuilds",
+      "row_counts_preserved",
+      "independent_recomputation"
+    ]
+  },
+  "counters": {
+    "tool_calls": 3,
+    "model_turns": 0,
+    "api_cost_usd": 0.0,
+    "latency_ms": 0
+  },
+  "configuration": {
+    "provider": "fake",
+    "model": null,
+    "tools": [
+      "get_schema",
+      "run_sql"
+    ]
+  },
+  "provenance": {
+    "origin": "runtime",
+    "written_at": "2026-09-14T07:07:57+00:00",
+    "source_revision": "42c042bd373dc47167a5840df9cf3c71950ab536"
+  }
+}

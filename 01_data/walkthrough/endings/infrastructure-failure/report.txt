@@ -1,0 +1,30 @@
+------------------------------------------------------------------------------
+ADII INVESTIGATION REPORT   demo-learning-001
+------------------------------------------------------------------------------
+
+ALERT
+  The demo dashboard shows about 3 orders per day where it used to show about
+  300. Nothing else changed that anyone noticed.
+
+  evaluated as of 2026-01-15T00:00:00Z
+
+EVIDENCE GATHERED
+  -> get_schema(table='orders')
+  <-   [OK] orders: order_id, order_date, amount_cents   ev-d76ae1003a801552
+  -> run_sql(query='SELECT order_date, COUNT(*) AS n FROM orders GROUP BY order_date LIMIT 3')
+  <-   [OK] 3 row(s), first: ['2026-01-12', 298]   ev-cf8f69bccba4aa57
+  -> run_sql(query="SELECT * FROM mart_daily WHERE day = '2026-01-14'")
+  <- (unanswered: the run ended here)
+
+RUN ENDED — INFRASTRUCTURE FAILURE   (our defect, not the model's)
+  ConnectionError: the warehouse connection dropped
+
+DECISION
+  none — the run ended before the investigator committed
+
+INDEPENDENT VALIDATION
+  never reached — no decision was submitted
+
+COST OF THIS RUN
+  tool calls 2   model turns 0   $0.0000   0 ms
+------------------------------------------------------------------------------

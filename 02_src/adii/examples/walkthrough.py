@@ -132,10 +132,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     context, run = load()
+    record = RunRecord.from_run("demo-learning-001", context, run,
+                                configuration={"provider": "fixture", "model": None},
+                                origin="walkthrough")
     if args.archive:
-        record = RunRecord.from_run("demo-learning-001", context, run,
-                                    configuration={"provider": "fixture", "model": None},
-                                    origin="walkthrough")
         try:
             path = write_record(record, Path(args.archive))
         except FileExistsError as taken:
@@ -157,7 +157,7 @@ def main(argv: list[str] | None = None) -> int:
         print("\n" + "=" * 78)
         print("And this is what the telemetry layer renders from it:")
         print("=" * 78 + "\n")
-    print(render_run(context, run))
+    print(render_run(record))
     return 0
 
 
