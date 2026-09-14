@@ -1,13 +1,18 @@
-"""Make scripts/check_env.py importable without turning scripts/ into a package."""
+"""scripts/check_env.py as a fixture, loaded from its file: scripts/ is not a package, and a
+script that is run as `python 02_src/scripts/check_env.py` stays that."""
+from __future__ import annotations
+
 import importlib.util
-import sys
-import types
 from pathlib import Path
 
-_root = Path(__file__).resolve().parents[2]
-_spec = importlib.util.spec_from_file_location("check_env", _root / "scripts" / "check_env.py")
-_module = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(_module)
-_shim = types.ModuleType("scripts_check_env_shim")
-_shim.check_env = _module
-sys.modules["scripts_check_env_shim"] = _shim
+import pytest
+
+SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "check_env.py"
+
+
+@pytest.fixture(scope="session")
+def check_env():
+    spec = importlib.util.spec_from_file_location("check_env", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module

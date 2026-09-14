@@ -10,6 +10,7 @@ on:
 jobs:
   test:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 15       # the suite takes seconds; a runner that takes longer is hung
     strategy:
       fail-fast: false
       matrix:

@@ -168,7 +168,7 @@ architecture exists to prevent.
 
 **Done when**
 - [x] one command, one incident, one run artifact
-- [ ] same commit green on Windows and macOS
+- [x] same commit green on Windows and macOS
 - [x] the report shows evidence, decision, validation and cost
 - [x] a fake provider is still sufficient
 
