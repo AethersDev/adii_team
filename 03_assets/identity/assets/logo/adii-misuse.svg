@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 320" width="600" height="320" role="img" aria-labelledby="mu-title mu-desc" font-family="ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+  <title id="mu-title">ADII logo misuse</title>
+  <desc id="mu-desc">Six incorrect uses of the ADII symbol, each struck through and captioned: stretched, recoloured into status colours, empty slot filled in, rotated, outlined with a shadow, and placed on a low-contrast background.</desc>
+
+  <rect width="600" height="320" fill="#ffffff"/>
+
+  <defs>
+    <g id="mu-mark">
+      <rect x="4" y="4" width="4" height="24"/><rect x="4" y="12" width="24" height="4"/>
+      <rect x="12" y="20" width="4" height="8"/><rect x="18" y="24" width="4" height="4"/>
+      <rect x="24" y="20" width="4" height="8"/>
+    </g>
+    <g id="mu-strike" stroke="#9e2020" stroke-width="2">
+      <path d="M0 0 L96 96"/>
+    </g>
+  </defs>
+
+  <!-- 1: stretched -->
+  <g transform="translate(24 24)">
+    <rect width="96" height="96" fill="#eef1f2" stroke="#d3d9dc"/>
+    <g transform="translate(8 24) scale(2.5 1.5)" fill="#131a1f"><use href="#mu-mark"/></g>
+    <use href="#mu-strike"/>
+    <text x="0" y="118" font-size="11" fill="#131a1f">Do not stretch or condense.</text>
+  </g>
+
+  <!-- 2: recoloured into a status colour -->
+  <g transform="translate(200 24)">
+    <rect width="96" height="96" fill="#eef1f2" stroke="#d3d9dc"/>
+    <g transform="translate(16 16) scale(2)" fill="#9e2020"><use href="#mu-mark"/></g>
+    <use href="#mu-strike"/>
+    <text x="0" y="118" font-size="11" fill="#131a1f">Do not colour the mark with</text>
+    <text x="0" y="132" font-size="11" fill="#131a1f">verdict or disposition colours.</text>
+  </g>
+
+  <!-- 3: empty slot filled -->
+  <g transform="translate(376 24)">
+    <rect width="96" height="96" fill="#eef1f2" stroke="#d3d9dc"/>
+    <g transform="translate(16 16) scale(2)" fill="#131a1f">
+      <rect x="4" y="4" width="4" height="24"/><rect x="4" y="12" width="24" height="4"/>
+      <rect x="12" y="20" width="4" height="8"/><rect x="18" y="20" width="4" height="8"/>
+      <rect x="24" y="20" width="4" height="8"/>
+    </g>
+    <use href="#mu-strike"/>
+    <text x="0" y="118" font-size="11" fill="#131a1f">Do not fill the empty slot. The</text>
+    <text x="0" y="132" font-size="11" fill="#131a1f">unfilled slot is the whole point.</text>
+  </g>
+
+  <!-- 4: rotated -->
+  <g transform="translate(24 184)">
+    <rect width="96" height="96" fill="#eef1f2" stroke="#d3d9dc"/>
+    <g transform="translate(48 48) rotate(-20) translate(-32 -32) scale(2)" fill="#131a1f"><use href="#mu-mark"/></g>
+    <use href="#mu-strike"/>
+    <text x="0" y="118" font-size="11" fill="#131a1f">Do not rotate. The rule is</text>
+    <text x="0" y="132" font-size="11" fill="#131a1f">horizontal and the riser vertical.</text>
+  </g>
+
+  <!-- 5: outline and shadow -->
+  <g transform="translate(200 184)">
+    <rect width="96" height="96" fill="#eef1f2" stroke="#d3d9dc"/>
+    <g transform="translate(19 19) scale(2)" fill="#78868e"><use href="#mu-mark"/></g>
+    <g transform="translate(16 16) scale(2)" fill="none" stroke="#131a1f" stroke-width="1"><use href="#mu-mark"/></g>
+    <use href="#mu-strike"/>
+    <text x="0" y="118" font-size="11" fill="#131a1f">Do not outline, emboss or add</text>
+    <text x="0" y="132" font-size="11" fill="#131a1f">a shadow. Solid fill only.</text>
+  </g>
+
+  <!-- 6: low contrast -->
+  <g transform="translate(376 184)">
+    <rect width="96" height="96" fill="#465059" stroke="#d3d9dc"/>
+    <g transform="translate(16 16) scale(2)" fill="#5c666d"><use href="#mu-mark"/></g>
+    <use href="#mu-strike"/>
+    <text x="0" y="118" font-size="11" fill="#131a1f">Do not place below 3:1 contrast</text>
+    <text x="0" y="132" font-size="11" fill="#131a1f">against its background.</text>
+  </g>
+</svg>

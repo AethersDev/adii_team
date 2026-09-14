@@ -17,11 +17,22 @@ Exactly one shape: `adii.run_record/v1`, defined in
 contract-mismatch state, never a guess, and the page invents no field — if it is on screen,
 it is in the record.
 
-A run is drawn as a chain of custody. Each block hangs off a spine owned by whoever
-asserted it, and says so in text; where the spine doubles and a handover is named,
-authority has passed from the investigator to the validator. A run that ended without a
-decision — a model failure, a bound, an infrastructure failure — is labelled in the loop's
-own terms, and nothing about it is coloured as a verdict.
+A run is drawn as a chain of records, each with a written owner: the operator's alert, the
+investigator's disposition and assertion, its proposed change, the validator's verdict. The
+coloured riser on a record only repeats the owner the text names. A run that ended without
+a decision — a model failure, a bound, an infrastructure failure — is labelled in the loop's
+own terms, achromatic, and nothing about it is coloured as a verdict.
+
+## The design system
+
+The page is built on the identity handoff in [`03_assets/identity/`](../../../03_assets/identity/):
+its `tokens.css`, `base.css` and `components.css` are copied here by
+`python 02_src/scripts/sync_identity.py`, and a test fails the build when the copy differs
+from the handoff by a byte. `inspector.css` adds only layout — the run list, the trace, the
+comparison — and introduces no colour. Dark is the default, set on `<html>` at render time;
+violet means interactive and nothing else. The rules the handoff states in prose are tests
+here: dispositions are peers, verdict colour appears only in the validator's row, absence
+and endings are achromatic, and nothing a model wrote is ever parsed as markup.
 
 ## The run list, filters and compare
 
@@ -41,21 +52,23 @@ comparison deep-links as `#label,label`.
 
 ## Two devices that carry the argument
 
-**The three dispositions are peers.** One shape each — circle, square, hexagon — so the
-disposition survives colour-blindness and print, and three hues generated at the same
-lightness and chroma, so no one of them can shout. If ESCALATE were quieter than REPAIR,
-the page would silently argue that abstaining is a degraded outcome, which is the opposite
-of ADII's claim.
+**The three dispositions are peers.** One glyph each, built from the symbol, and three
+hues held at the same lightness so no one of them can shout, with the literal token as
+text. If ESCALATE were quieter than REPAIR, the page would silently argue that abstaining
+is a degraded outcome, which is the opposite of ADII's claim.
 
 **Valence belongs only to whoever is entitled to it.** Dispositions are never coloured
-right or wrong. Green and rust appear in exactly one place: the validator's ACCEPT and
-REJECT, a correctness judgement made by an authority entitled to make it. How a run ended is
-achromatic, because it is the loop's report and nobody's verdict.
+right or wrong. Pass and fail colour appear in exactly one place: the validator's ACCEPT
+and REJECT row, a correctness judgement made by an authority entitled to make it. How a
+run ended is achromatic, because it is the loop's report and nobody's verdict.
 
 These are rules, not taste: `02_src/tests/integration/test_demo_design_rules.py` fails the
 build when a disposition colour is spent as a success colour, a verdict colour leaks out of
 its scope, a token is used without being declared, or the script assembles HTML from
-strings.
+strings. And `test_the_page_executes_nothing.py` drives the shipped page in headless Chrome
+with a record whose every model-written field carries a payload that executes on parse: it
+has to appear as text, and the page's own title has to survive. Locally it skips without
+Chrome; on CI it must run.
 
 ## API
 
@@ -71,5 +84,5 @@ Deep-link to a run with `#label`, or to a comparison with `#label,label`.
 ## Verify
 
 ```bash
-python -m pytest 02_src/tests -k "record or inspector or design or walkthrough"
+python -m pytest 02_src/tests -k "record or inspector or design or walkthrough or executes"
 ```

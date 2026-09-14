@@ -7,6 +7,8 @@ needs to run.
 diagrams/       architecture diagrams, decision-flow figures
 screenshots/    captures of the demo and of real runs, for the final presentation
 design/         HTML prototypes explored while deciding what the front door should be
+identity/       the identity and design-system handoff: tokens, components, specimens,
+                the logo family, and its own checks (python3 tools/check_specimen.py)
 ```
 
 `design/` is history, not specification. The prototypes were how the team argued about
