@@ -24,6 +24,7 @@ and a test fails the build when it is stale. Milestone marks come from
 
 ```text
     contracts          154 lines
+    investigator       341 lines
     tools              484 lines
     reporting          300 lines
     runtime            228 lines
@@ -34,7 +35,6 @@ and a test fails the build when it is stale. Milestone marks come from
 ## Scaffold only — a README and an empty package
 
 ```text
-    investigator
     validation
     evaluation
 ```
