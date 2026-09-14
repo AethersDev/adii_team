@@ -1,0 +1,171 @@
+# The development catalogue — a proposal, with its decision record
+
+**Status: proposal.** Nothing below is built. The rows at the end are for the team to
+resolve — `APPROVED`, `REVISE` or `DEFER`, each in its own commit — before any loader,
+fixture or test is written, because incidents are the one artefact every track reads and
+the evaluation authority scores.
+
+## The problem it solves
+
+The repository has one incident, the teaching walkthrough. The investigator, once it
+exists, will outrun that fixture in a day: there is nothing to make multi-step diagnosis,
+legitimate anomalies, or unreachable evidence real. Hand-authoring five incidents in a
+three-week capstone produces story variety — shipping, payments, inventory, customers —
+that is one investigation wearing four costumes. [DATA_WORLD_v0.md](DATA_WORLD_v0.md)
+already names the trap: surface variety is not decision-geometry variety.
+
+A private discovery corpus exists. Its custodian reports a campaign of 40,000 requested
+proposals, of which about 9,000 completed and passed the campaign's own structural checker.
+Those figures are the custodian's, measured elsewhere, and are not results of this system.
+The corpus was spent on searching incident-design space, not on evaluating this
+implementation, and that is exactly the reservoir this repository lacks.
+
+## The third option
+
+Neither copying the corpus in nor ignoring it:
+
+```text
+PRIVATE DISCOVERY CORPUS                        stays private, all of it
+        │
+        ├── evaluation-reserved/                never seen by the team; the blind reserve
+        │
+        └── dev-declassified/                   chosen on purpose, marked, burned as evaluation
+                    │
+                    ▼  one-way compilation, by the custodian, into this repository's contract
+        NEW TEAM-VISIBLE DEVELOPMENT INCIDENTS  01_data/incidents/<id>/ + the truth in evaluation/
+                    │
+                    ▼
+        building · debugging · scripted tests · demos · never final evaluation
+```
+
+The raw corpus is private evidence. A compiled incident derived from it is development
+material the moment it is declassified, and it stays development material forever.
+
+## What crosses, and what does not
+
+- **Crosses:** the compiled incident, in this repository's own contract — the world the
+  tool layer can open, the alert the investigator is handed, and the truth the evaluation
+  authority keeps. Plus a record of why it was selected.
+- **Does not cross:** the campaign runner, the old runtime, the old evaluation code, the
+  proposal format, the private taxonomy labels. The information asset is the corpus; the
+  code is not, and `test_nothing_depends_on_a_private_repository` already says so.
+
+Checker acceptance in the campaign established the checker's structural conditions and
+nothing else. It did not establish that a proposal was implemented, independently correct,
+semantically distinct from its neighbours, novel, or expressible through this repository's
+tool surface. So a proposal is ore, and compilation is qualification: every compiled
+incident has to pass the four questions in [DATA_WORLD_v0.md](DATA_WORLD_v0.md#who-decides)
+— legibility, buildability, independence, reachability — and reachability is tested by
+running the current tool layer against the compiled world before the incident lands.
+
+## The target: six geometries, not six stories
+
+The development catalogue is small on purpose: enough variation to force the architecture
+to become real, chosen on the reasoning each incident requires.
+
+| id | `development_selection_class` | the investigation has to establish | correct action |
+|---|---|---|---|
+| dev-01 | `restore_missing` | data is missing and must be restored | REPAIR |
+| dev-02 | `remove_excess` | duplicate or excess state must be removed | REPAIR |
+| dev-03 | `reassign_relationship` | a relationship or assignment is wrong | REPAIR |
+| dev-04 | `legitimate_anomaly` | the data is correct; the anomaly is legitimate | NO_REPAIR |
+| dev-05 | `unresolved_evidence` | the evidence cannot settle the question | ESCALATE |
+| dev-06 | `action_not_executable` | the action is known but cannot safely or authoritatively execute | ESCALATE |
+
+The selection class is this repository's vocabulary, deliberately not a projection of any
+private classification. The private classification stays private; the public class crosses.
+There is no table anywhere that maps one to the other.
+
+Six first, ten to twelve by M8, adding a coincident-deployment NO_REPAIR and the
+adversarial half the world specification asks for alongside the legible half. The failure
+paths — model timeout, tool failure, budget exhaustion, malformed submission — are the
+runtime's and the loop's, not incidents; the endings under `01_data/walkthrough/endings/`
+already produce those.
+
+## The receiving contract, in this repository's terms
+
+One directory per incident, team-visible, read by the runtime:
+
+```text
+01_data/incidents/<id>/
+  incident.json      the IncidentContext: incident_id, alert, as_of, permitted_write_paths,
+                     plus visibility and source_generation
+  world.sql          the world, opened read-only by the tool layer (ReadOnlyDatabase.in_memory)
+  README.md          the alert in one paragraph, and what the four questions were answered with
+```
+
+The truth lives with the evaluation authority, never beside the world:
+
+```text
+02_src/adii/evaluation/catalogue/<id>.json
+  expected_disposition, canonical_root_cause_id, accepted_repair_ids, evidence_sufficient
+  visibility: public_development
+  eligible_for_blind_evaluation: false
+  source_generation: private_discovery_corpus
+  compiled_from: an opaque private identifier — enough to trace, not enough to reconstruct
+  development_selection_class: one of the six public classes above
+  declassified_on, declassified_by
+```
+
+`test_answer_keys_stay_out` already confines evaluation-shaped JSON to that package. Two
+tests join it the day the first incident lands: every directory under `01_data/incidents/`
+has a truth file marked `public_development`, and nothing anywhere in the repository is
+marked eligible for blind evaluation.
+
+## The reserve is committed before the team sees the cases
+
+This is private work, upstream of every team decision, and it can start now:
+
+```text
+P-0   partition the discovery corpus into reserved and declassifiable
+P-1   write the reserve commitment and hash it        ← the immutable boundary
+```
+
+The commitment is a canonical document, not a bare digest of ids, so that what was fixed
+is provable later — *this candidate was already in the reserved population before any
+development case was exposed* — and not merely *a digest from before development exists*:
+
+```json
+{
+  "schema": "adii.reserve_commitment/v1",
+  "source_campaign": "<private campaign identity>",
+  "selection_policy_version": "<version of the rule that partitioned the pool>",
+  "canonicalization": "utf8-lf-sorted-v1",
+  "reserved_count": 1234,
+  "reserved_ids_sha256": "<digest of the canonicalised reserved id list>",
+  "created_at": "<UTC>",
+  "custodian": "<who>"
+}
+```
+
+The digest that binds the reserve is the digest of this whole document, canonicalised.
+If the count itself is sensitive it is omitted. The reserved ids never leave the private
+side. What enters this repository, as unit D-20 and before any development incident, is
+the commitment document and its digest under `02_src/adii/evaluation/`, so git history
+shows the boundary predating every case the team was shown. A blind incident later shown
+to be absent from the reserve, or a development incident too close to a reserved design,
+is a finding, not an argument.
+
+## The hard line
+
+Anything used to build, debug, demonstrate, prompt-tune or contract-test this system is
+development data and cannot later count as unseen evaluation. That includes derived
+variants too close to a public fixture. The final evaluation uses reserved designs that were
+never part of the declassified catalogue, compiled by someone who will not run against
+them, as the world specification already requires of blind incidents.
+
+## Decision record
+
+| # | Decision | Proposal | Contract change | Status | Resolution |
+|---|---|---|---|---|---|
+| 1 | Where a compiled incident lives | world and alert under `01_data/incidents/<id>/`; truth under `02_src/adii/evaluation/catalogue/<id>.json`; the runtime reads the first and never the second | no | open | |
+| 2 | Provenance marking | `visibility`, `eligible_for_blind_evaluation`, `source_generation`, `compiled_from`, `development_selection_class`, `declassified_on`, `declassified_by` in the truth file; `visibility` and `source_generation` repeated in `incident.json`; the six public classes are this repository's vocabulary and map to no private label | no | open | |
+| 3 | Declassification is irreversible | a declassified incident is never eligible for blind evaluation, nor is a derivative of it; a test asserts no blind-eligible material exists in the repository | no | open | |
+| 4 | Selection criterion | mechanism diversity per the six-geometry table, not story diversity; each incident passes the four questions before it lands, reachability by a test against the real tool layer | no | open | |
+| 5 | Compilation is one-way and private | the custodian compiles from the corpus into the contract above; no old code, format or taxonomy label crosses | no | open | |
+| 6 | The reserve is committed first | the private partition and the `adii.reserve_commitment/v1` document are made before any decision here is implemented; the document and its digest enter the repository before the first development incident, and git history must show that order | no | open | |
+| 7 | The loader | `python -m adii.runtime --incident <id>` loads `01_data/incidents/<id>/` through the tool layer's world opener; the walkthrough keeps its own path | no | open | |
+
+Each row resolves to exactly `APPROVED`, `REVISE` (with what changes) or `DEFER` (with
+what it waits on), in a new commit. This proposal is never amended to look as if it had
+always held the answer. Implementation of any row starts only after all seven are resolved.
