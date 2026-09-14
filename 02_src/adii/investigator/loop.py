@@ -18,6 +18,8 @@ TOOL_CALL_PREFIX: str = "<TOOL_CALL>"
 DECISION_PREFIX: str = "<DECISION>"
 
 
+
+
 class TurnBudgetExceededError(RuntimeError):
     """Raised when the investigator cannot start another model turn."""
 
