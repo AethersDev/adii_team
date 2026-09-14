@@ -26,21 +26,22 @@ command line, and nothing a page can do spends money or creates a first exposure
 
 ---
 
-## Where D stands on 13 September
+## Where D stands on 14 September
+
+The 13 September table this replaces is in the history of this file. One day later:
 
 | Exists | Missing |
 |---|---|
-| `TraceEvent` and `InvestigationRun` in the contracts | a run record with a schema version (D3, D4) |
-| `render_run()` — a text report from live contract objects | an archive: today a run leaves nothing on disk (D1, D5, D6) |
-| the walkthrough fixture, with `expected_report.txt` as a regression | counters minted by telemetry — the walkthrough counts, no runtime exists to count (D2) |
-| CI on Windows, macOS and Ubuntu; ruff; architecture tests; sync checks | a per-test timeout and the guard-removal pass (X1, X4) |
-| zero runtime dependencies | provider configuration pinning, fingerprints, a cost ledger (D7, D15, X2) |
-| an inspector over five hand-authored fixtures in a demo-only shape (`contracts/demo/v0`) | the inspector reading real run records; receipts before first exposure; a manifest for anything bound by hash (D8, D13, D14) |
-| `.gitignore` hides `runs/` | nothing preserves or attests what it hides (D13) |
+| `RunRecord` v1 in `reporting/record.py`: strict JSON, a schema version, a label that is one path segment, a termination class, provenance read at write time (D3, D4, D14) | D-1, the event vocabulary, and D-3, evidence citations — the four decision rows in [trace_event_contract.md](trace_event_contract.md) are open |
+| the archive `01_data/runs/<label>/record.json`: the label reserved before the run, one record for every ending, a reserved label with no record listed as such (D1, D5, D6) | the tracked manifest of what the archive holds (D13, unit D-10) |
+| the runtime: investigator → tools → validator on a harness-owned trace, counters from the trace, an exit code per outcome; the tools are B's real executor over the walkthrough world, evidence ids on every observation | a provider, a receipt before the first paid call, a cost ledger with unknown rows (D7, D8, D15; units D-11, D-12, D-15); model turns and cost are zero because no model runs |
+| `render_run()` from the record, every ending in its own terms, a call the run died on shown as unanswered; one committed fixture per ending under `01_data/walkthrough/endings/` (D11) | budgets and bounds (D9, unit D-9) |
+| the inspector: run list, filters, side-by-side compare, the identity design system from `03_assets/identity/`, read-only, proven in a real browser to execute nothing a model wrote (D11, D12) | the drawer's fingerprints and ledger rows (with D-11, D-12) |
+| CI on Windows, macOS and Ubuntu with a per-test timeout; every test collected, every import declared, every dependency a chosen name (X4, X2, D10) | the SDK floor job and the guard-removal pass (X2, X1; units D-13, D-18) |
 
 The first line of [../adii/reporting/README.md](../adii/reporting/README.md) still holds: if a
-behaviour is not in the trace, nobody can prove it happened. Today nothing writes the trace
-anywhere.
+behaviour is not in the trace, nobody can prove it happened. Since 13 September the runtime
+writes the trace and the archive keeps it.
 
 ## The shape of D — six pieces
 
@@ -78,7 +79,9 @@ walkthrough already does.
    for the team to approve before any constructor lands: requests and responses as separate
    events, observation ids minted by the tool layer, a termination set owned by the loop,
    and the `TraceEvent` envelope unchanged. A, B and C then build events only through D's
-   constructors in `reporting/events.py`.
+   constructors in `reporting/events.py`. *14 Sep:* the four rows are still open. B's tool
+   layer already mints an id per OK observation, named `evidence_id`, from the tool, its
+   arguments and its content — row 2 has an answer under a different name than proposed.
 2. **Where the model-provider adapter lives.** Boundary 1 forbids network access outside
    `tools/`, `examples/` and `reporting/`, and the loop needs a model. Recommendation: a new
    `adii/provider/` package, the only place a model SDK is imported, added to the allow-list
@@ -93,7 +96,7 @@ walkthrough already does.
    inspector's server reads this directory and nothing else.
 4. **A per-test timeout.** `pytest-timeout`, pinned in `requirements.txt`, with
    `timeout_method = "thread"` — the signal method does not exist on Windows (X4). A test
-   that exceeds the budget is refactored; the budget is not raised.
+   that exceeds the budget is refactored; the budget is not raised. *Done 14 Sep (D-5).*
 5. **X3 does not apply today.** There is no caller-keyed server state anywhere — the demo
    server keeps none. Recorded here so it is a decision rather than an omission; it comes
    back the moment anyone adds a rate limiter or a per-client cache.
@@ -102,7 +105,10 @@ walkthrough already does.
    that — so the path can stay until M7 and be renamed mechanically then. What changes now
    is its contract: the inspector renders `RunRecord` v1 and nothing else. The demo-only
    fields (`intro`, `mechanism`, `plain`, and `evaluation` unless a record was actually
-   scored) retired with the `contracts/demo/v0` shape on 13 September.
+   scored) retired with the `contracts/demo/v0` shape on 13 September. *14 Sep:* the
+   inspector runs on the identity design system delivered to `03_assets/identity/`; its
+   three stylesheets are copied in by `scripts/sync_identity.py` and held byte-identical
+   by a test. Dark by default, violet for interaction only, read-only stays.
 
 ---
 
@@ -165,6 +171,11 @@ count of random trials; is prevention tested at the boundary with the downstream
 - **Screenshots** of real runs into `03_assets/screenshots/` for the presentation.
 - **Housekeeping** that only D notices: GitHub handles in `CODEOWNERS`, the generated docs
   staying generated, `current_status.md` regenerated with every package that grows.
+- **The identity and design system** lives in `03_assets/identity/`, delivered as an
+  archive only — a loose SVG from a chat arrives stamped with a content credential and
+  files go missing. The inspector's stylesheet is a synced copy; the specimens there are
+  the reference for components the record cannot feed yet (receipts, per-check verdicts,
+  evidence slots), which stay off the page until their data exists.
 
 ---
 
@@ -185,8 +196,8 @@ fake. Nothing in this plan waits on another track to start.
 
 | Week | Dates | Lands |
 |---|---|---|
-| 2 | 14–20 Sep | the six decisions agreed in writing; D-1 to D-5, with D-2b the first thing anyone can open in a browser |
-| 3 | 21–27 Sep | D-6 to D-10; M7 runs end to end with fakes and the run appears in the inspector; D-7b |
+| 2 | 14–20 Sep | the six decisions agreed in writing; D-1 to D-5, with D-2b the first thing anyone can open in a browser. *Landed 13–14 Sep:* D-2, D-2b, D-4, D-5, and from week 3 D-6, D-7, D-7b, D-8; D-1 and D-3 wait on the decision record |
+| 3 | 21–27 Sep | D-9 and D-10 remain of this week's units; M7 already runs end to end and the runs appear in the inspector |
 | 4 | 28 Sep – 4 Oct | D-11 to D-14; the first real provider run happens only after D-15's receipt exists, so D-15 moves forward if that day comes early |
 | 5 | 5–11 Oct | D-15 to D-18; the guard pass over every A, B, C and D guard; freeze |
 | 6 | 12–18 Oct | D-19; the blind run; the report; demo re-pointed; submission packaging |

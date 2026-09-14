@@ -7,6 +7,7 @@ open every file in this folder and should be able to run the system from it.
 demo/world/        the operational world the whole team shares
 runs/              the archive: one record per run, read by the inspector
 walkthrough/       the teaching fixture the walkthrough replays
+walkthrough/endings/   the same incident ended every other way, produced by the runtime
 ```
 
 ## What must never be put here

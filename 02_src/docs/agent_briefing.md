@@ -67,8 +67,8 @@ essentially never to relax the test.
   *code* is not our code. `02_src/docs/inherited/` is the transfer.
 - **Freeze an artifact you know is incomplete.** An authority frozen early cannot be
   finished — see boundary 4 in `02_src/docs/architecture.md`.
-- **Touch a frozen incident.** What is legal depends on the *type*: demo incidents under
-  `02_src/adii/demo/` carry no evaluation claim and may be changed freely; development and adversarial
+- **Touch a frozen incident.** What is legal depends on the *type*: the teaching incident
+  under `01_data/walkthrough/` carries no evaluation claim and may be changed freely; development and adversarial
   incidents are additive only; anything a reported result was scored against is frozen
   permanently; blind incidents are custodian-controlled. See `02_src/docs/DATA_WORLD_v0.md`.
 - **Import a private repository.** `adii_env`, `adii_eval`, and the reference

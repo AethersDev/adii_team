@@ -4,8 +4,10 @@
 
 It is also the first operational environment the whole team shares: the tool layer
 exposes it, the agent loop investigates it, the evaluation layer knows its truth
-independently, and telemetry renders it. Until it exists, every part of the system is
-working against fixtures or fakes, and nothing has been integrated.
+independently, and telemetry renders it. Until it exists, the investigator and the
+validator are scripted from the walkthrough; the tool layer is real, and the runtime
+drives it over the walkthrough's tiny world (`02_src/adii/tools/walkthrough_world.py`), so
+the first integration exists — against the teaching incident only.
 
 Specification: [DATA_WORLD_v0.md](../../../02_src/docs/DATA_WORLD_v0.md) — *The canonical
 demo world*.
