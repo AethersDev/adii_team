@@ -8,17 +8,19 @@ structured submission.
 **You do not own:** what the tools return (B), whether a repair is accepted (C), how the
 run is persisted (D).
 
-## First build
+## What exists, as merged on 14 September
 
-A minimal loop against a **fake provider** — a scripted object that returns canned turns.
-No API key, no network:
-
-```text
-model → one tool → observation → model → structured decision
-```
-
-Then swap the fake tool for the tool layer's `get_schema` and `run_sql`. Do not start with thirteen
-tools.
+`loop.py` — `run(incident, provider, executor, *, max_turns)` returns `(decision or None,
+trace)`. The provider seam is `respond(observation=…, observations=…) -> str`, and the
+response is interpreted by prefix: `<TOOL_CALL>` JSON, `<DECISION>` JSON, `<STOP>`, or
+plain text. `provider.py` — `ScriptedProvider`, deterministic, for tests; no model, no
+network. `state.py` — `InvestigationState`, the observations accumulated so far, a frozen
+value. Endings are two exceptions carrying the trace so far, `TurnBudgetExceededError` and
+`ProviderFailureError`. The loop writes its own trace of eight kinds;
+`docs/trace_event_contract.md` records what each means and what the runtime needs from
+them. The decision policy — REPAIR and NO_REPAIR need an observation, ESCALATE does not —
+is `docs/decision_policy.md`. It runs against the tool layer's real `get_schema` and
+`run_sql` in `02_src/tests/integration/`.
 
 ## What to get right early
 
@@ -31,20 +33,15 @@ tools.
 
 ## What the runtime expects of it
 
-The runtime in `02_src/adii/runtime/run.py` calls one method and records everything
-around it:
-
-```text
-investigate(context: IncidentContext, tools) -> InvestigationDecision
-```
-
-`tools.execute(ToolCall) -> ToolResult` is the only door to the world, and the runtime
-watches it: every call and result lands in the trace on the way through, so the loop
-never counts anything itself. To end a run without a decision — a bound hit, a model
-failure — raise `Terminated("bound_hit" | "model_failure", detail)` from that module. The
-classification travels to the record unchanged; the runtime adds no interpretation. Any
-other exception is archived as an infrastructure failure, ours. The scripted stand-in the
-runtime uses today is `02_src/adii/runtime/fakes.py`; the real loop replaces it.
+The runtime in `02_src/adii/runtime/run.py` calls `investigate(context, tools)` on an
+`Investigator` and records every tool call and result on the way through, so the loop
+never counts anything. It maps an ending to a termination class and archives the run
+however it ended. Today the runtime still drives the scripted stand-in in
+`02_src/adii/runtime/fakes.py`; nothing outside this package imports the loop yet. The
+adapter between `run()` and `investigate()` — one canonical trace recorded at the provider
+boundary, A's two exceptions mapped to two termination classes, a decided meaning for a
+stop without a decision — is the next unit, and it waits on the decision rows in
+`docs/trace_event_contract.md`. A keeps its exceptions; the runtime does the mapping.
 
 ## The question this component answers
 

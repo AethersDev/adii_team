@@ -37,9 +37,9 @@ pip install -r requirements.txt
 
 **3. Configure the API key**
 
-Not needed yet. The system currently runs with no model and no network; when the agent
-loop lands, this step becomes `export OPENAI_API_KEY=...` and `check_env.py` starts
-checking for it.
+Not needed yet. The investigator loop exists and runs against a scripted provider; no
+model and no network yet. When the provider adapter lands (plan D-11, behind a receipt),
+this step becomes exporting the provider's key, and `check_env.py` starts checking for it.
 
 **4. Run the environment check**
 

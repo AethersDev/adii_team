@@ -49,7 +49,7 @@ architecture tests.
 
 ---
 
-## M1 — Basic agent loop — NEXT
+## M1 — Basic agent loop — DONE
 
 **Goal** A model message goes out, a reply comes back, and the loop terminates on purpose
 rather than by running out of turns.
@@ -63,11 +63,15 @@ stopping condition; the loop's own trace events.
 **Demo** One incident in, a terminal decision out, with a fake provider and no tools.
 
 **Done when**
-- [ ] a fake provider produces a deterministic run
-- [ ] the loop stops on a stated condition, not on an exception
-- [ ] a turn budget exists and is enforced
-- [ ] every turn appears in the trace
-- [ ] tests cover the stopping condition and the budget
+- [x] a fake provider produces a deterministic run
+- [x] the loop stops on a stated condition, not on an exception
+- [x] a turn budget exists and is enforced
+- [x] every turn appears in the trace
+- [x] tests cover the stopping condition and the budget
+
+Ticked 14 September from what `02_src/tests/unit/test_investigator_loop.py` proves. The
+loop is not yet driven by the runtime and no provider exists; those are M7's next box and
+M8, not this milestone.
 
 **Suggested first task** The fake provider, with one canned reply. It is small, it unblocks
 everything else, and it is the piece most likely to be got wrong quietly.
@@ -76,7 +80,7 @@ everything else, and it is the piece most likely to be got wrong quietly.
 
 ---
 
-## M2 — Controlled tool use
+## M2 — Controlled tool use — DONE
 
 **Goal** The model can request a tool, receive a structured observation, and continue.
 
@@ -89,12 +93,12 @@ denial handling.
 **Demo** The agent requests one controlled tool and uses its result in the next step.
 
 **Done when**
-- [ ] a valid call executes and returns a `ToolResult`
-- [ ] an unknown tool is rejected without reaching the environment
-- [ ] malformed arguments are rejected with a usable message
-- [ ] `DENIED` is a normal outcome, distinguishable from an error
-- [ ] each observation carries a stable evidence id
-- [ ] the trace records the request and the result
+- [x] a valid call executes and returns a `ToolResult`
+- [x] an unknown tool is rejected without reaching the environment
+- [x] malformed arguments are rejected with a usable message
+- [x] `DENIED` is a normal outcome, distinguishable from an error
+- [x] each observation carries a stable evidence id
+- [x] the trace records the request and the result
 
 **Suggested first task** One simple deterministic demo tool.
 
@@ -102,7 +106,7 @@ denial handling.
 
 ---
 
-## M3 — Multi-step investigation
+## M3 — Multi-step investigation — NEXT
 
 **Goal** What the agent saw in step *n* changes what it asks for in step *n+1*.
 
@@ -114,7 +118,7 @@ state.
 **Demo** A run where the second tool call is provably caused by the first observation.
 
 **Done when**
-- [ ] state is a value, inspectable and serialisable
+- [x] state is a value, inspectable and serialisable
 - [ ] a decision can cite the evidence ids it rests on
 - [ ] a run with different observations takes a different path
 - [ ] the trace shows why the loop continued
@@ -129,10 +133,10 @@ state.
 validation of the model's output.
 
 **Done when**
-- [ ] the decision validates against the contract
+- [x] the decision validates against the contract
 - [ ] a malformed model answer is a scored failure, not a crash
 - [ ] every claim cites an evidence id that exists
-- [ ] all three dispositions are reachable
+- [x] all three dispositions are reachable
 
 ---
 
@@ -165,11 +169,26 @@ architecture exists to prevent.
 
 ## M7 — End-to-end vertical slice
 
-**Goal** One command takes an incident to an archived run and a readable report.
+**Goal** One command takes an incident to an archived run and a readable report — with
+the real investigator doing the investigating.
 
 **Demo** `python -m adii.runtime --incident demo-learning-001 --provider fake && python -m adii.demo`
 
-**Done when**
+**Where it stands, 14 September.** The four boxes below are ticked by a slice in which the
+investigator is a script replaying the walkthrough. That proved the runtime, the archive,
+the report and the inspector. It did not prove the composition the milestone is named for:
+A's loop exists and B's tools exist, but nothing invokes the loop from the runtime, and the
+loop writes a trace of its own. So the milestone stays open, blocked on the trace event
+contract (`plan_telemetry.md` D-1) and the adapter that wires A into the runtime.
+
+**Complete when**, with no provider call, no judge and no development catalogue:
+- [ ] A's loop is invoked by the real runtime, with the scripted provider
+- [ ] it uses B's real tools, and their observation ids are carried, never re-minted
+- [ ] one canonical trace is recorded at the boundaries — never A's trace and the runtime's merged afterwards
+- [ ] every ending passes through the runtime boundary and lands as a termination class, a stop without a decision included
+- [ ] the result is one `adii.run_record/v1` in the archive that the inspector renders
+
+**Done when** — the original four, proven by the scripted slice on 13 September
 - [x] one command, one incident, one run artifact
 - [x] same commit green on Windows and macOS
 - [x] the report shows evidence, decision, validation and cost
