@@ -47,8 +47,9 @@ def test_investigator_traces_real_ok_result_with_evidence(executor: ToolExecutor
         ]
     )
 
-    trace = run(incident(), provider, executor, max_turns=2)
+    decision, trace = run(incident(), provider, executor, max_turns=2)
 
+    assert decision is None
     result = provider.received_observations[1]
     assert result is not None
     assert result.status == "OK"
@@ -81,8 +82,9 @@ def test_investigator_observes_real_denial_once_and_continues(
         ]
     )
 
-    trace = run(incident(), provider, executor, max_turns=3)
+    decision, trace = run(incident(), provider, executor, max_turns=3)
 
+    assert decision is None
     result = provider.received_observations[1]
     assert result is not None
     assert result.status == "DENIED"
@@ -113,8 +115,9 @@ def test_investigator_accumulates_real_rejection_and_preserves_prior_result(
         ]
     )
 
-    trace = run(incident(), provider, executor, max_turns=4)
+    decision, trace = run(incident(), provider, executor, max_turns=4)
 
+    assert decision is None
     first = provider.received_observations[1]
     second = provider.received_observations[2]
     assert first is not None

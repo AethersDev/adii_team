@@ -2,11 +2,19 @@
 
 import json
 
-from ..contracts import IncidentContext, ToolCall, ToolResult, TraceEvent
+from ..contracts import (
+    Disposition,
+    IncidentContext,
+    InvestigationDecision,
+    ToolCall,
+    ToolResult,
+    TraceEvent,
+)
 from .state import InvestigationState
 
 STOP_SIGNAL: str = "<STOP>"
 TOOL_CALL_PREFIX: str = "<TOOL_CALL>"
+DECISION_PREFIX: str = "<DECISION>"
 
 
 class TurnBudgetExceededError(RuntimeError):
@@ -24,7 +32,7 @@ def run(
     executor,
     *,
     max_turns: int,
-) -> tuple[TraceEvent, ...]:
+) -> tuple[InvestigationDecision | None, tuple[TraceEvent, ...]]:
     """Run model turns until the provider returns the explicit stop signal."""
     if isinstance(max_turns, bool) or not isinstance(max_turns, int) or max_turns < 0:
         raise ValueError("max_turns must be a non-negative integer")
@@ -70,7 +78,41 @@ def run(
                     },
                 )
             )
-            return tuple(trace)
+            return None, tuple(trace)
+
+        if response.startswith(DECISION_PREFIX):
+            try:
+                decision = _parse_decision(response.removeprefix(DECISION_PREFIX))
+            except (TypeError, ValueError) as error:
+                trace.append(
+                    TraceEvent(
+                        sequence=len(trace),
+                        kind="decision_rejected",
+                        payload={
+                            "incident_id": incident.incident_id,
+                            "turn_index": turn_index,
+                            "reason": str(error),
+                        },
+                    )
+                )
+                continue
+
+            trace.append(
+                TraceEvent(
+                    sequence=len(trace),
+                    kind="decision_submitted",
+                    payload={
+                        "incident_id": incident.incident_id,
+                        "turn_index": turn_index,
+                        "disposition": decision.disposition.value,
+                        "root_cause_id": decision.root_cause_id,
+                        "root_cause_summary": decision.root_cause_summary,
+                        "repair_id": decision.repair_id,
+                        "patch": decision.patch,
+                    },
+                )
+            )
+            return decision, tuple(trace)
 
         if response.startswith(TOOL_CALL_PREFIX):
             call_id = f"tool-call-{turn_index}"
@@ -145,3 +187,42 @@ def run(
                 },
             )
         )
+
+
+def _parse_decision(payload: str) -> InvestigationDecision:
+    try:
+        submission = json.loads(payload)
+    except json.JSONDecodeError:
+        raise ValueError("decision must be valid JSON") from None
+
+    if not isinstance(submission, dict):
+        raise ValueError("decision must be an object")
+    if "disposition" not in submission:
+        raise ValueError("decision is missing disposition")
+    try:
+        disposition = Disposition(submission["disposition"])
+    except (TypeError, ValueError):
+        raise ValueError("decision has invalid disposition") from None
+    if "root_cause_summary" not in submission:
+        raise ValueError("decision is missing root_cause_summary")
+
+    root_cause_summary = submission["root_cause_summary"]
+    root_cause_id = submission.get("root_cause_id")
+    repair_id = submission.get("repair_id")
+    patch = submission.get("patch", {})
+    if not isinstance(root_cause_summary, str):
+        raise ValueError("root_cause_summary must be a string")
+    if root_cause_id is not None and not isinstance(root_cause_id, str):
+        raise ValueError("root_cause_id must be a string or null")
+    if repair_id is not None and not isinstance(repair_id, str):
+        raise ValueError("repair_id must be a string or null")
+    if not isinstance(patch, dict):
+        raise ValueError("patch must be an object")
+
+    return InvestigationDecision(
+        disposition=disposition,
+        root_cause_id=root_cause_id,
+        root_cause_summary=root_cause_summary,
+        repair_id=repair_id,
+        patch=patch,
+    )
