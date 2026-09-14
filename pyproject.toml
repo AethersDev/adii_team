@@ -10,7 +10,7 @@ requires-python = ">=3.12,<3.13"
 dependencies = []
 
 [dependency-groups]
-dev = ["pytest>=8.0", "ruff>=0.6"]
+dev = ["pytest>=8.0", "ruff>=0.6", "pytest-timeout>=2.4"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["02_src/adii"]
@@ -18,7 +18,12 @@ packages = ["02_src/adii"]
 [tool.pytest.ini_options]
 testpaths = ["02_src/tests"]
 pythonpath = ["02_src"]
-addopts = "-q"
+addopts = "-q -p pytester"
+# Inherited X4: a hung test fails, it does not block. Thread-based, because a signal cannot
+# interrupt a native wait and does not exist on Windows. A test over budget is refactored;
+# the budget is not raised.
+timeout = 60
+timeout_method = "thread"
 
 [tool.ruff]
 line-length = 100

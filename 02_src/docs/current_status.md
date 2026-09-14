@@ -14,7 +14,7 @@ and a test fails the build when it is stale. Milestone marks come from
     [ ]  M4 — Structured terminal decision          0/4
     [ ]  M5 — Candidate repair and escalation       0/3
     [ ]  M6 — Independent validation                0/4
-    [ ]  M7 — End-to-end vertical slice             3/4
+    [ ]  M7 — End-to-end vertical slice             4/4
     [ ]  M8 — Reliability and failure handling      0/4
     [ ]  M9 — Freeze                                0/3
     [ ]  M10 — Unseen evaluation                    0/3
