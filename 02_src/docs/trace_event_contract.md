@@ -145,6 +145,90 @@ scripted incident
 Once the decisions below are made, D-1 has almost no design freedom left — only
 implementation.
 
+## Observed implementation, 14 September: three vocabularies side by side
+
+A's loop merged into main on 14 September (PR #12) with a trace vocabulary of its own. D-1
+is therefore no longer a choice of names. It is the integration contract that decides
+whether A can enter the runtime without producing two competing histories of one run.
+Three vocabularies now exist: the walkthrough's five kinds, which the runtime's `Recorder`
+writes today; the eight proposed above; and the eight A emits. This section records what
+the implementation shows, event by event, so the review is about information lost, not
+about taste.
+
+### What A emits, and what each kind actually means
+
+Read from `02_src/adii/investigator/loop.py`, not from its docstrings.
+
+| A emits | when, exactly | what it means | treatment to review |
+|---|---|---|---|
+| `model_turn` | only when a response is none of a tool call, a decision or a stop | a successful plain-text response, and nothing else | not the canonical model event; replace with explicit request and response events |
+| `tool_call` | after a response parses as a tool call, before dispatch; carries `incident_id`, `turn_index`, `call_id`, `name`, `arguments` | a request to use a tool | a durable execution event |
+| `tool_result` | after the executor answers; carries the result's `status` and `content` | B's observation reached the loop | a durable observation event; B's `evidence_id` inside `content` is the observation identity, preserved and never re-minted |
+| `decision_submitted` | after a decision parses and passes the evidence gate; carries the whole decision | the terminal submission | a durable submission event — and it closes the gap where a validator crash lost the decision, since the record's trace would carry it |
+| `decision_rejected` | when a decision fails to parse, fails the contract, or fails the evidence gate; the loop continues | a submission that did not stand | open: its own event, or an outcome attached to a submission event (row 6) |
+| `loop_stopped` | on the explicit stop signal, with no decision | the loop ended; what that means is undecided | a termination — the one ending the implementation reports without saying what it means (row 5) |
+| `budget_exceeded` | immediately before `TurnBudgetExceededError` is raised | the turn budget ended the run | a termination classification, not a peer event |
+| `provider_failure` | immediately before `ProviderFailureError` is raised, the reason redacted of credentials | the provider ended the run | a termination classification, not a peer event |
+
+Two questions for every kind: does it represent something that must survive the run, and
+if so, is it an event or a termination classification. The last three rows answer the
+second by their position in the code: each is written once, right before the loop leaves.
+
+### The proof obligation the request/response split now carries
+
+The loop calls the provider with no event beforehand. So a turn that ends in a tool call
+leaves `tool_call` and `tool_result` and no model event; a turn that decides leaves only
+the decision event; a request that fails leaves only `provider_failure`. From that trace a
+request that failed cannot be told apart from a request never made, model turns cannot be
+counted without knowing which kinds imply one, and a response that became a tool call is
+not recorded as a response at all. That is the evidence for `model_requested` and
+`model_responded` as separate events — from the implementation, not from preference.
+
+The adapter must record the response at the provider boundary, before A parses it into a
+tool call, a decision, a stop or plain text. Inferring `model_responded` afterwards from
+the parsed outcome would be the same reconstruction under better names.
+
+### The target trajectories
+
+```text
+a completed run              a provider failure          a budget
+model_requested              model_requested             …
+model_responded              run_terminated              model_requested
+tool_requested                 (provider_failure)        run_terminated
+tool_observed (obs_N)                                      (budget_exhausted)
+model_requested
+model_responded
+decision_submitted
+run_terminated (completed)
+```
+
+No synthetic failure event is needed to explain why a run ended: the termination carries
+the classification, preceded by whatever request makes it intelligible.
+
+### The ownership the review approves or rejects
+
+```text
+the provider boundary   →  model_requested, model_responded
+A                       →  interprets the response: tool request, decision, stop
+B                       →  mints the observation identity
+the runtime boundary    →  maps A's endings to the canonical termination
+RunRecord               →  preserves the one resulting trace
+```
+
+Explicitly not this: A's trace and the runtime's trace, merged afterwards into the record.
+A record reconstructed from two partial authorities is two histories under one label. A
+keeps its own exceptions, `TurnBudgetExceededError` and `ProviderFailureError`, as part of
+its execution API; the runtime boundary maps them to termination classes in two lines.
+`Terminated` moves into the shared contracts only if more than one independent package
+must produce the same object, never to make that wiring look tidier.
+
+### What is genuinely open
+
+Three questions, not eight names competing equally: the canonical names and envelopes for
+model request, model response, tool request, tool observation, and decision submission or
+rejection (rows 1–4); the meaning of a stop without a decision (row 5); and whether a
+rejection is its own event or an outcome on a submission (row 6).
+
 ## Decision record
 
 Four decisions, not four discussions. Each row ends in exactly one of three states —
@@ -169,3 +253,5 @@ one part of that history worth keeping.
 | 2 | Observation identity | the tool layer mints `observation_id`; unique within a run; never derived from `sequence` | no | open | |
 | 3 | Decision citations | `evidence_refs` enters `InvestigationDecision` now, checked against the trace where the record is built | **yes** | open | |
 | 4 | Event timing | `at` in every payload, from the runtime's clock, evidence of duration only; `sequence` orders | no | open | |
+| 5 | A stop without a decision | A's `<STOP>` ends the loop with no decision. The record allows no decision; it lacks a truthful termination class for this ending. Candidates: `intentional_stop_no_decision`, `invalid_stop`, `incomplete` — which is right depends on whether the stop is a legitimate outcome or only permission to stop trying. The adapter must not choose | no | open | |
+| 6 | Rejection: event or outcome | `decision_rejected` as its own durable event, or an outcome attached to a submission event | no | open | |

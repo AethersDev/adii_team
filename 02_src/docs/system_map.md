@@ -101,7 +101,9 @@ has seen enough, and commits to one disposition.
 
 **CALLS** `contracts/`, and the tool layer.
 
-**CALLED BY** The runtime that runs an incident end to end.
+**CALLED BY** Its own tests today, over the real tool layer. The runtime will call it
+through an adapter once the trace event contract is decided; until then the runtime
+drives a scripted stand-in.
 
 **MUST NOT DO**
 - Read the filesystem, a database, a subprocess or the network directly. Everything it

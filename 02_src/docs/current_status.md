@@ -8,13 +8,13 @@ and a test fails the build when it is stale. Milestone marks come from
 
 ```text
     [x]  M0 — Everybody can run the repo            6/6
-    [>]  M1 — Basic agent loop                      0/5
-    [ ]  M2 — Controlled tool use                   0/6
-    [ ]  M3 — Multi-step investigation              0/4
-    [ ]  M4 — Structured terminal decision          0/4
+    [x]  M1 — Basic agent loop                      5/5
+    [x]  M2 — Controlled tool use                   6/6
+    [>]  M3 — Multi-step investigation              1/4
+    [ ]  M4 — Structured terminal decision          2/4
     [ ]  M5 — Candidate repair and escalation       0/3
     [ ]  M6 — Independent validation                0/4
-    [ ]  M7 — End-to-end vertical slice             4/4
+    [ ]  M7 — End-to-end vertical slice             4/9
     [ ]  M8 — Reliability and failure handling      0/4
     [ ]  M9 — Freeze                                0/3
     [ ]  M10 — Unseen evaluation                    0/3
