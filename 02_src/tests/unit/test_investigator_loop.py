@@ -1259,8 +1259,34 @@ def test_deeply_nested_tool_json_is_rejected_without_executor_dispatch():
 
 
 def test_deeply_nested_decision_json_is_rejected_and_loop_continues():
+    # How json.loads fails on this depth is platform-dependent: some interpreters hit
+    # RecursionError (invalid JSON), others parse it successfully as a non-dict list.
+    # Both are legitimate, already-covered _parse_decision outcomes; only the invariant
+    # that the decision is safely rejected and the loop continues is asserted here.
     pathological_json = "[" * 5_000 + "0" + "]" * 5_000
     provider = ScriptedProvider([DECISION_PREFIX + pathological_json, STOP_SIGNAL])
+    executor = FakeToolExecutor()
+
+    decision, trace = run(incident(), provider, executor, max_turns=2)
+
+    assert decision is None
+    assert executor.calls == []
+    assert [event.kind for event in trace] == [
+        "decision_rejected",
+        "loop_stopped",
+    ]
+    assert trace[0].payload["reason"] in {
+        "decision must be valid JSON",
+        "decision must be an object",
+    }
+
+
+def test_recursion_error_during_decision_parse_is_reported_as_invalid_json(monkeypatch):
+    def _raise_recursion_error(*_args, **_kwargs):
+        raise RecursionError("maximum recursion depth exceeded")
+
+    monkeypatch.setattr(json, "loads", _raise_recursion_error)
+    provider = ScriptedProvider([DECISION_PREFIX + "{}", STOP_SIGNAL])
     executor = FakeToolExecutor()
 
     decision, trace = run(incident(), provider, executor, max_turns=2)
