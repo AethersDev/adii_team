@@ -162,6 +162,38 @@ X1a, X1b and X1c are review questions D asks of every guard in the registry, not
 the check independent of the code it checks; are the boundary cases named tests rather than a
 count of random trials; is prevention tested at the boundary with the downstream checks off.
 
+### The data lane — in parallel with the engineering lane
+
+Proposed 14 September in [development_catalog.md](development_catalog.md), for the team to
+resolve before any of it is built. The investigator will outrun the walkthrough fixture the
+day it exists, so the catalogue runs beside the engineering lane rather than after it:
+
+```text
+PRIVATE — can start now, needs no team decision
+P-0   partition the discovery corpus into reserved and declassifiable
+P-1   write and hash the reserve commitment (adii.reserve_commitment/v1)
+        │  the immutable boundary
+        │
+TEAM — blocked on the seven rows in development_catalog.md
+        ▼
+D-20  the reserve commitment enters the repository and is verified
+        ▼
+D-21  the receiving machinery: loader and guard tests
+        ▼
+D-22  six qualified development incidents, compiled and declassified
+        ▼
+      A develops against them  →  freeze  →  reserved material  →  blind evaluation
+```
+
+The order is the point: the private commitment precedes the first development incident in
+git history, so "reserve first" is true in the execution graph and not only in prose.
+
+| # | Unit | Done when | Ids |
+|---|---|---|---|
+| D-20 | The reserve commitment received — the custodian's `adii.reserve_commitment/v1` document and its digest committed under `02_src/adii/evaluation/`, verified against the private original by digest | the file exists in the repository and predates every development incident in git history; the digest matches the custodian's | D8, D13 |
+| D-21 | The receiving machinery — `python -m adii.runtime --incident <id>` loads `01_data/incidents/<id>/` through the tool layer's world opener; the guard tests: every incident has a truth file marked `public_development` with a public `development_selection_class`, and nothing in the repository is blind-eligible | the walkthrough still runs by its own path; a compiled incident runs end to end with the fake provider; both guard tests are red against a planted violation | D1, X4 |
+| D-22 | The declassified development catalogue — six incidents compiled by the custodian from the private corpus into the receiving contract, one per selection class, each passing the four questions, reachability tested against the real tool layer | six records in the archive, one per incident, each rendering in the inspector with its own disposition; additive from then on | M3, M4, M5 |
+
 ### Everything else, in parallel
 
 - **When B's world lands** ([DATA_WORLD_v0.md](DATA_WORLD_v0.md)), real runs against it

@@ -80,6 +80,11 @@ A part of the system a task can name: agent-loop, tools, state, evidence, decisi
 validation, evaluation, telemetry, integration. Capabilities describe software. Nobody owns
 one.
 
+**Development incident**
+A team-visible incident compiled from private material and declassified for building,
+debugging, tests and demos. Declassified is forever: it can never count as unseen
+evaluation, and neither can a derivative of it. Proposed in `development_catalog.md`.
+
 **The operational world**
 The synthetic environment incidents come from, specified in
 [DATA_WORLD_v0.md](DATA_WORLD_v0.md). It is frozen at v0: extend it, do not revise it.
