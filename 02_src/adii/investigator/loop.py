@@ -1,6 +1,7 @@
 """Minimal investigator loop driven by an explicit provider stop signal."""
 
 import json
+import re
 
 from ..contracts import (
     Disposition,
@@ -16,6 +17,21 @@ from .state import InvestigationState
 STOP_SIGNAL: str = "<STOP>"
 TOOL_CALL_PREFIX: str = "<TOOL_CALL>"
 DECISION_PREFIX: str = "<DECISION>"
+
+_CREDENTIAL_PATTERN = re.compile(
+    # API-key prefixes are deliberately case-sensitive; HTTP auth schemes are not.
+    r"(?<![A-Za-z0-9_*-])sk-(?:"
+    r"[A-Za-z0-9_-]{16,}"
+    r"|(?=[A-Za-z0-9_*-]*\*)[A-Za-z0-9_*-]{8,}"
+    r")(?![A-Za-z0-9_*-])"
+    r"|(?<![A-Za-z0-9._~+/=-])"
+    r"(?i:Bearer)[ \t]+[A-Za-z0-9._~+/=-]{16,}(?![A-Za-z0-9._~+/=-])"
+)
+
+
+def _redact_secrets(text: str) -> str:
+    """Redact narrow credential shapes from provider-derived public failure reasons."""
+    return _CREDENTIAL_PATTERN.sub("[REDACTED]", text)
 
 
 
@@ -79,7 +95,7 @@ def run(
         except ScriptExhaustedError:
             raise
         except Exception as error:
-            reason = f"{type(error).__name__}: {error}"
+            reason = _redact_secrets(f"{type(error).__name__}: {error}")
             trace.append(
                 TraceEvent(
                     sequence=len(trace),

@@ -82,8 +82,11 @@ class StateAwareFakeProvider:
 class RaisingProvider:
     """Return optional responses, then fail deterministically."""
 
-    def __init__(self, *responses: str) -> None:
+    def __init__(self, *responses: str, error: Exception | None = None) -> None:
         self._responses = responses
+        self._error = (
+            error if error is not None else RuntimeError("deterministic provider failure")
+        )
         self._cursor = 0
         self._received_observations: list[ToolResult | None] = []
         self._received_context: list[tuple[ToolResult, ...]] = []
@@ -108,7 +111,7 @@ class RaisingProvider:
             response = self._responses[self._cursor]
             self._cursor += 1
             return response
-        raise RuntimeError("deterministic provider failure")
+        raise self._error
 
 
 class NonStringProvider:

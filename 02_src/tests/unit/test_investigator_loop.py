@@ -15,6 +15,7 @@ from adii.investigator.loop import (
     TOOL_CALL_PREFIX,
     ProviderFailureError,
     TurnBudgetExceededError,
+    _redact_secrets,
     run,
 )
 from adii.investigator.provider import ScriptedProvider, ScriptExhaustedError
@@ -970,6 +971,156 @@ def test_provider_exception_before_first_response_is_traced_and_wrapped():
         "reason": "RuntimeError: deterministic provider failure",
     }
     assert [event.sequence for event in raised.value.trace] == [0]
+
+
+def test_provider_failure_redacts_openai_like_secret_in_error_and_trace():
+    secret = "sk-proj-abcdefghijklmnopqrstuvwxyz012345"
+    original = RuntimeError(f"request rejected for {secret}. status=401")
+
+    with pytest.raises(ProviderFailureError) as raised:
+        run(
+            incident(),
+            RaisingProvider(error=original),
+            FakeToolExecutor(),
+            max_turns=1,
+        )
+
+    expected_reason = "RuntimeError: request rejected for [REDACTED]. status=401"
+    assert raised.value.reason == expected_reason
+    assert secret not in raised.value.reason
+    assert str(raised.value) == f"provider failure: {expected_reason}"
+    assert raised.value.trace[0].kind == "provider_failure"
+    assert raised.value.trace[0].sequence == 0
+    assert raised.value.trace[0].payload == {
+        "incident_id": "incident-phase-2",
+        "turn_index": 0,
+        "reason": expected_reason,
+    }
+    assert secret not in raised.value.trace[0].payload["reason"]
+
+
+@pytest.mark.parametrize(
+    "secret",
+    [
+        "sk-****XXXX",
+        "sk-Eyftb***************************************99vW",
+    ],
+)
+def test_secret_redaction_covers_real_masked_openai_key_shapes(secret):
+    message = f"Incorrect API key provided: {secret}."
+
+    assert _redact_secrets(message) == "Incorrect API key provided: [REDACTED]."
+
+
+def test_masked_key_is_redacted_from_openai_like_401_failure_and_trace():
+    secret = "sk-Eyftb***************************************99vW"
+    message = (
+        "Error code: 401 - {'error': {'message': 'Incorrect API key provided: "
+        f"{secret}', 'type': 'invalid_request_error', 'code': 'invalid_api_key'}}"
+    )
+
+    with pytest.raises(ProviderFailureError) as raised:
+        run(
+            incident(),
+            RaisingProvider(error=RuntimeError(message)),
+            FakeToolExecutor(),
+            max_turns=1,
+        )
+
+    trace_reason = raised.value.trace[0].payload["reason"]
+    assert isinstance(trace_reason, str)
+    assert secret not in raised.value.reason
+    assert secret not in trace_reason
+    assert "[REDACTED]" in raised.value.reason
+    assert "[REDACTED]" in trace_reason
+    assert "Error code: 401" in raised.value.reason
+    assert "invalid_request_error" in raised.value.reason
+    assert "invalid_api_key" in raised.value.reason
+
+
+def test_provider_failure_redacts_every_credential_like_fragment():
+    secrets = (
+        "sk-admin-abcdefghijklmnopqrstuvwxyz",
+        "sk-svcacct-0123456789_ABCDEFGHIJK",
+        "Bearer eyJhbGciOiJIUzI1NiJ9.payload-signature",
+    )
+    original = RuntimeError(" | ".join(secrets))
+
+    with pytest.raises(ProviderFailureError) as raised:
+        run(
+            incident(),
+            RaisingProvider(error=original),
+            FakeToolExecutor(),
+            max_turns=1,
+        )
+
+    assert raised.value.reason.count("[REDACTED]") == len(secrets)
+    assert all(secret not in raised.value.reason for secret in secrets)
+    trace_reason = raised.value.trace[0].payload["reason"]
+    assert isinstance(trace_reason, str)
+    assert trace_reason.count("[REDACTED]") == len(secrets)
+    assert all(secret not in trace_reason for secret in secrets)
+
+
+@pytest.mark.parametrize("scheme", ["Bearer", "bearer", "BEARER"])
+def test_provider_failure_redacts_bearer_token(scheme):
+    bearer = f"{scheme} abcdefghijklmnopqrstuvwxyz.0123456789_-/+=="
+    original = RuntimeError(f"authorization failed: {bearer}")
+
+    with pytest.raises(ProviderFailureError) as raised:
+        run(
+            incident(),
+            RaisingProvider(error=original),
+            FakeToolExecutor(),
+            max_turns=1,
+        )
+
+    assert raised.value.reason == "RuntimeError: authorization failed: [REDACTED]"
+    assert bearer not in raised.value.reason
+
+
+def test_provider_failure_redaction_preserves_non_credentials_byte_for_byte():
+    message = (
+        "request=550e8400-e29b-41d4-a716-446655440000 "
+        "digest=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 "
+        "call_id=tool-call-12 token=sk-short"
+    )
+
+    with pytest.raises(ProviderFailureError) as raised:
+        run(
+            incident(),
+            RaisingProvider(error=RuntimeError(message)),
+            FakeToolExecutor(),
+            max_turns=1,
+        )
+
+    assert raised.value.reason == f"RuntimeError: {message}"
+    assert raised.value.trace[0].payload["reason"] == f"RuntimeError: {message}"
+
+
+def test_provider_failure_preserves_exact_original_exception_as_cause():
+    secret = "sk-proj-abcdefghijklmnopqrstuvwxyz012345"
+    original = RuntimeError(f"raw provider message includes {secret}")
+
+    with pytest.raises(ProviderFailureError) as raised:
+        run(
+            incident(),
+            RaisingProvider(error=original),
+            FakeToolExecutor(),
+            max_turns=1,
+        )
+
+    assert raised.value.__cause__ is original
+    assert str(original) == f"raw provider message includes {secret}"
+    assert secret not in raised.value.reason
+
+
+def test_secret_redaction_is_idempotent():
+    text = "RuntimeError: sk-proj-abcdefghijklmnopqrstuvwxyz012345 and [REDACTED]"
+    redacted = _redact_secrets(text)
+
+    assert redacted == "RuntimeError: [REDACTED] and [REDACTED]"
+    assert _redact_secrets(redacted) == redacted
 
 
 def test_provider_exception_after_tool_result_preserves_prior_trace_and_state():
