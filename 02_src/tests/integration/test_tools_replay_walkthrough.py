@@ -16,7 +16,7 @@ from adii.contracts import (
     ToolCall,
     TraceEvent,
 )
-from adii.reporting import render_run
+from adii.reporting import RunRecord, render_run
 from adii.tools import GET_SCHEMA, RUN_SQL, build_sql_tools, open_walkthrough_world
 
 FIXTURE = Path(__file__).resolve().parents[3] / "01_data" / "walkthrough"
@@ -101,7 +101,8 @@ def test_live_results_render_through_the_reporting_layer_unchanged(executor):
         decision=InvestigationDecision(Disposition.NO_REPAIR, None, "rendering test only"),
         tool_calls=sum(1 for e in trace if e.kind == "tool_result"
                        and e.payload["status"] == "OK"))
-    report = render_run(context, run)
+    report = render_run(RunRecord.from_run("live", context, run, configuration={},
+                                           origin="test"))
     assert "<-   [OK] orders: order_id, order_date, amount_cents" in report
     assert "[DENIED] unknown tool 'delete_table'" in report
     assert "tool calls 3" in report

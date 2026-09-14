@@ -76,6 +76,9 @@ class RunRecord:
         if self.validation is not None and (
                 self.decision is None or self.decision.disposition is not Disposition.REPAIR):
             raise ValueError("only a REPAIR decision has a repair to validate")
+        if (self.termination == "submitted" and self.validation is None
+                and self.decision.disposition is Disposition.REPAIR):
+            raise ValueError("a submitted REPAIR carries the validator's verdict")
         for name in ("tool_calls", "model_turns", "latency_ms"):
             if getattr(self, name) < 0:
                 raise ValueError(f"{name} must be non-negative")

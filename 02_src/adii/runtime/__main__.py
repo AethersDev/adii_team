@@ -64,12 +64,12 @@ def main(argv: list[str] | None = None) -> int:
                           configuration={"provider": args.provider, "model": None,
                                          "tools": list(tools.names)})
     print(f"archived {write_record(record, archive)}")
-    if record.termination != "submitted":
-        print(f"the run ended without a decision — {record.termination}: {record.detail}")
-        return 4 if record.termination == "infrastructure_failure" else 3
     if not args.no_report:
-        print(render_run(context, record))
-    return 0
+        print(render_run(record))
+    if record.termination == "submitted":
+        return 0
+    print(f"the run ended without a decision — {record.termination}: {record.detail}")
+    return 4 if record.termination == "infrastructure_failure" else 3
 
 
 if __name__ == "__main__":
