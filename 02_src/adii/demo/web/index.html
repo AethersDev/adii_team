@@ -1,48 +1,82 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" data-density="compact">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ADII — Run inspector</title>
-<link rel="stylesheet" href="/adii-ui.css">
+<link rel="stylesheet" href="/tokens.css">
+<link rel="stylesheet" href="/base.css">
+<link rel="stylesheet" href="/components.css">
+<link rel="stylesheet" href="/inspector.css">
 </head>
 <body>
-<!-- Disposition and verdict marks: shape first, hue second. Referenced by mark() in app.js. -->
-<svg width="0" height="0" aria-hidden="true" style="position:absolute">
-  <symbol id="m-repair" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/></symbol>
-  <symbol id="m-no_repair" viewBox="0 0 16 16"><rect x="1.5" y="1.5" width="13" height="13"/></symbol>
-  <symbol id="m-escalate" viewBox="0 0 16 16"><polygon points="8,0.8 14.2,4.4 14.2,11.6 8,15.2 1.8,11.6 1.8,4.4"/></symbol>
-  <symbol id="m-pass" viewBox="0 0 16 16"><path d="M2 8.5l4 4L14 3.5l-1.5-1.4L6 9.3 3.4 6.9z"/></symbol>
-  <symbol id="m-fail" viewBox="0 0 16 16"><path d="M3.2 1.8L1.8 3.2 6.6 8l-4.8 4.8 1.4 1.4L8 9.4l4.8 4.8 1.4-1.4L9.4 8l4.8-4.8-1.4-1.4L8 6.6z"/></symbol>
+<a class="adii-skip" href="#view">Skip to the run</a>
+
+<!-- Glyph sprite from the design system. Every glyph is decorative: the adjacent DOM text
+     carries the meaning, so every use is aria-hidden. -->
+<svg class="adii-visually-hidden" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <symbol id="g-repair" viewBox="0 0 12 12"><rect x="0" y="3" width="12" height="2"/><rect x="5" y="6" width="2" height="6"/></symbol>
+    <symbol id="g-no-repair" viewBox="0 0 12 12"><rect x="0" y="3" width="12" height="2"/><rect x="5" y="10" width="2" height="2"/></symbol>
+    <symbol id="g-escalate" viewBox="0 0 12 12"><rect x="0" y="6" width="12" height="2"/><rect x="2" y="0" width="2" height="12"/></symbol>
+    <symbol id="g-pass" viewBox="0 0 12 12"><path d="M1 6.2 L4.3 9.5 L11 2.8" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="g-fail" viewBox="0 0 12 12"><path d="M2 2 L10 10 M10 2 L2 10" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="g-none" viewBox="0 0 12 12"><rect x="1" y="5" width="10" height="2"/></symbol>
+    <symbol id="g-unresolved" viewBox="0 0 12 12"><rect x="0" y="5" width="4" height="2"/><rect x="8" y="5" width="4" height="2"/></symbol>
+  </defs>
 </svg>
-<a class="skip" href="#view">Skip to content</a>
-<header>
-  <span class="brand"><span class="glyph" aria-hidden="true">◆</span>ADII</span>
-  <span class="header-sub">Run inspector</span>
-  <div class="spacer"></div>
-  <button class="btn" id="theme" aria-label="Switch between dark and light">◐</button>
+
+<header class="adii-masthead">
+  <div class="adii-masthead__inner">
+    <span class="adii-brand">
+      <svg viewBox="0 0 122 32" role="img" aria-label="ADII" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <rect x="4" y="4" width="4" height="24"/><rect x="4" y="12" width="24" height="4"/>
+        <rect x="12" y="20" width="4" height="8"/><rect x="18" y="24" width="4" height="4"/>
+        <rect x="24" y="20" width="4" height="8"/>
+        <g transform="translate(42 0)" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="butt" stroke-miterlimit="4">
+          <path d="M4 26 L13 6 H17 L26 26"/><path d="M9.4 14 H20.6"/>
+          <path d="M36 4 V28"/><path d="M36 6 H46 A10 10 0 0 1 46 26 H36"/>
+          <path d="M65 4 V28"/><path d="M76 4 V28"/>
+        </g>
+      </svg>
+      <span class="adii-brand__tag">Run inspector</span>
+    </span>
+    <div class="adii-btn-group adii-no-print" role="group" aria-label="Display settings">
+      <button class="adii-btn" type="button" id="theme-toggle" aria-pressed="true">Light theme</button>
+      <button class="adii-btn" type="button" id="density-toggle" aria-pressed="true">Roomy rows</button>
+    </div>
+  </div>
 </header>
 
-<main>
-  <aside>
-    <section class="runlist" aria-labelledby="runs-label">
-      <div class="runs-head">
-        <span class="label" id="runs-label">Runs</span>
-        <span class="runcount" id="runcount"></span>
-      </div>
-      <div class="filters">
-        <select id="f-incident" aria-label="Filter by incident"></select>
-        <select id="f-model" aria-label="Filter by model"></select>
-      </div>
-      <ol class="runs" id="runs"></ol>
-    </section>
-    <span class="label" id="trace-label">Trace</span>
-    <ul class="steps" id="steps"></ul>
-  </aside>
-  <article id="view"></article>
+<main class="adii-page">
+  <div class="adii-columns">
+    <article id="view" class="adii-stack-lg"></article>
+    <aside class="adii-stack-lg">
+      <section class="adii-panel" aria-labelledby="runs-title">
+        <div class="adii-section__head">
+          <h2 class="adii-panel__title" id="runs-title">Runs</h2>
+          <span class="adii-eyebrow" id="runcount"></span>
+        </div>
+        <div class="adii-toolbar adii-mb-md">
+          <div class="adii-field">
+            <label class="adii-field__label" for="f-incident">Incident</label>
+            <select class="adii-select" id="f-incident"></select>
+          </div>
+          <div class="adii-field">
+            <label class="adii-field__label" for="f-model">Model</label>
+            <select class="adii-select" id="f-model"></select>
+          </div>
+        </div>
+        <ol class="adii-list-plain" id="runs"></ol>
+      </section>
+      <section class="adii-panel" aria-labelledby="trace-title">
+        <h2 class="adii-panel__title" id="trace-title">Trace</h2>
+        <ol class="adii-list-plain trace" id="steps"></ol>
+      </section>
+    </aside>
+  </div>
+  <footer class="adii-footer" id="foot"></footer>
 </main>
-
-<footer id="foot"></footer>
 <script src="/app.js"></script>
 </body>
 </html>

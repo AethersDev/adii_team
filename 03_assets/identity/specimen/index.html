@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en" data-density="compact">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>INC-2041 investigation — ADII</title>
+<meta name="description" content="ADII investigation view specimen. Invented demonstration data.">
+<link rel="icon" href="../assets/logo/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="../assets/logo/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../assets/logo/adii-appicon.svg">
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/base.css">
+<link rel="stylesheet" href="../css/components.css">
+<script>
+  // Applies a stored theme/density before first paint. No data, no network.
+  try {
+    var t = localStorage.getItem('adii-theme');
+    if (t) document.documentElement.setAttribute('data-theme', t);
+    var d = localStorage.getItem('adii-density');
+    if (d) document.documentElement.setAttribute('data-density', d);
+  } catch (e) {}
+</script>
+</head>
+<body>
+<a class="adii-skip" href="#main">Skip to investigation</a>
+
+<!-- Glyph sprite. Every glyph is decorative: the adjacent DOM text carries
+     the meaning, so all uses are aria-hidden. -->
+<svg class="adii-visually-hidden" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <symbol id="g-repair" viewBox="0 0 12 12"><rect x="0" y="3" width="12" height="2"/><rect x="5" y="6" width="2" height="6"/></symbol>
+    <symbol id="g-no-repair" viewBox="0 0 12 12"><rect x="0" y="3" width="12" height="2"/><rect x="5" y="10" width="2" height="2"/></symbol>
+    <symbol id="g-escalate" viewBox="0 0 12 12"><rect x="0" y="6" width="12" height="2"/><rect x="2" y="0" width="2" height="12"/></symbol>
+    <symbol id="g-pass" viewBox="0 0 12 12"><path d="M1 6.2 L4.3 9.5 L11 2.8" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="g-fail" viewBox="0 0 12 12"><path d="M2 2 L10 10 M10 2 L2 10" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="g-none" viewBox="0 0 12 12"><rect x="1" y="5" width="10" height="2"/></symbol>
+    <symbol id="g-unresolved" viewBox="0 0 12 12"><rect x="0" y="5" width="4" height="2"/><rect x="8" y="5" width="4" height="2"/></symbol>
+    <symbol id="g-pending" viewBox="0 0 12 12"><rect x="1.25" y="1.25" width="9.5" height="9.5" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="6" width="8" height="4"/></symbol>
+    <symbol id="g-not-supplied" viewBox="0 0 12 12"><rect x="1.25" y="1.25" width="9.5" height="9.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2"/></symbol>
+    <symbol id="g-retrieval" viewBox="0 0 12 12"><rect x="1.25" y="1.25" width="9.5" height="9.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 8.5 L8.5 3.5" stroke="currentColor" stroke-width="1.5"/></symbol>
+  </defs>
+</svg>
+
+<div class="adii-banner" role="note">
+  <p class="adii-banner__inner">Invented demonstration data. This specimen is not connected to a
+  backend, and every identifier, timestamp and measurement below is fabricated for design review.</p>
+</div>
+
+<header class="adii-masthead">
+  <div class="adii-masthead__inner">
+    <a class="adii-brand" href="index.html">
+      <svg viewBox="0 0 122 32" role="img" aria-label="ADII" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <rect x="4" y="4" width="4" height="24"/><rect x="4" y="12" width="24" height="4"/>
+        <rect x="12" y="20" width="4" height="8"/><rect x="18" y="24" width="4" height="4"/>
+        <rect x="24" y="20" width="4" height="8"/>
+        <g transform="translate(42 0)" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="butt" stroke-miterlimit="4">
+          <path d="M4 26 L13 6 H17 L26 26"/><path d="M9.4 14 H20.6"/>
+          <path d="M36 4 V28"/><path d="M36 6 H46 A10 10 0 0 1 46 26 H36"/>
+          <path d="M65 4 V28"/><path d="M76 4 V28"/>
+        </g>
+      </svg>
+      <span class="adii-brand__tag">Incident investigation</span>
+    </a>
+
+    <nav class="adii-nav" aria-label="Investigation sections">
+      <a class="adii-nav__link" aria-current="page" href="#main">Investigation</a>
+      <a class="adii-nav__link" href="#claims">Claims</a>
+      <a class="adii-nav__link" href="#change">Proposed change</a>
+      <a class="adii-nav__link" href="#validation">Validation</a>
+      <a class="adii-nav__link" href="states.html">States &amp; identity</a>
+    </nav>
+
+    <div class="adii-btn-group adii-no-print" role="group" aria-label="Display settings">
+      <button class="adii-btn" type="button" id="theme-toggle" aria-pressed="false">Dark theme</button>
+      <button class="adii-btn" type="button" id="density-toggle" aria-pressed="true">Compact rows</button>
+    </div>
+  </div>
+</header>
+
+<div class="adii-page">
+  <p class="adii-print-only">ADII investigation INC-2041 — printed from a design specimen containing invented data.</p>
+
+  <main id="main" class="adii-columns">
+    <div>
+      <!-- ============ INCIDENT SUMMARY ============ -->
+      <section aria-labelledby="h-summary" data-example="invented">
+        <article class="adii-record adii-record--system">
+          <div class="adii-record__head">
+            <h1 class="adii-record__title" id="h-summary">Checkout failures, 04:07–04:52</h1>
+            <p class="adii-record__owner">Asserted by
+              <span class="adii-record__owner-name">adii-investigator</span>
+              (automated agent, run <span class="adii-mono">run_8f21c4</span>)</p>
+          </div>
+
+          <p class="adii-measure">Card authorisation requests to the payments edge returned
+          HTTP 503 for part of the window. The investigation below states what is asserted,
+          what supports each assertion, and what has not been established.</p>
+
+          <dl class="adii-defs adii-mt-md">
+            <dt>Incident window</dt>
+            <dd><span class="adii-mono">2026-03-11T04:07Z</span> to <span class="adii-mono">2026-03-11T04:52Z</span></dd>
+            <dt>Scope</dt>
+            <dd><span class="adii-mono">svc/payments-edge</span>, regions <span class="adii-mono">eu-west-1</span>, <span class="adii-mono">eu-central-1</span></dd>
+            <dt>Claims stated</dt>
+            <dd>3 (1 supported, 1 partially supported, 1 with no retrievable support)</dd>
+            <dt>Investigation state</dt>
+            <dd><span class="adii-state adii-state--unresolved"><svg class="adii-chip__glyph" width="12" height="12" aria-hidden="true"><use href="#g-unresolved"/></svg>UNRESOLVED</span></dd>
+            <dt>Confidence</dt>
+            <dd><span class="adii-state adii-state--not-supplied"><svg class="adii-chip__glyph" width="12" height="12" aria-hidden="true"><use href="#g-not-supplied"/></svg>not supplied</span>
+              <span class="adii-field__hint">No confidence value was returned. The interface does not compute one.</span></dd>
+          </dl>
+
+          <div class="adii-record__meta">
+            <span>Record opened <span class="adii-record__meta-value">2026-03-11T05:03Z</span></span>
+            <span>Last write <span class="adii-record__meta-value">2026-03-11T06:44Z</span></span>
+            <span>Receipt chain <span class="adii-record__meta-value">rcpt_chain_41c</span></span>
+          </div>
+        </article>
+      </section>
+
+      <!-- ============ PROPOSED DISPOSITION ============ -->
+      <section aria-labelledby="h-disposition" data-example="invented" class="adii-mt-xl">
+        <article class="adii-record adii-record--system">
+          <div class="adii-record__head">
+            <h2 class="adii-record__title" id="h-disposition">Proposed disposition</h2>
+            <p class="adii-record__owner">Proposed by
+              <span class="adii-record__owner-name">adii-investigator</span>. Not an approval.</p>
+          </div>
+
+          <ul class="adii-inline-list">
+            <li><span class="adii-chip adii-chip--escalate adii-chip--proposed"><svg class="adii-chip__glyph" width="12" height="12" aria-hidden="true"><use href="#g-escalate"/></svg>ESCALATE</span></li>
+            <li><span class="adii-chip"><svg class="adii-chip__glyph" width="12" height="12" aria-hidden="true"><use href="#g-pending"/></svg>state: proposed, not accepted</span></li>
+          </ul>
+
+          <p class="adii-measure adii-mt-md">
+            <span class="adii-mono">REPAIR</span>, <span class="adii-mono">NO_REPAIR</span> and
+            <span class="adii-mono">ESCALATE</span> are peer outcomes. <span class="adii-mono">ESCALATE</span>
+            is not a worse result than <span class="adii-mono">REPAIR</span> and not a failure to conclude;
+            it is the outcome that routes the decision to a party that holds authority ADII does not hold.
+          </p>
+
+          <div class="adii-callout adii-mt-md">
+            <p class="adii-callout__title">Why this disposition and not a repair</p>
+            <p>The proposed change in “Proposed change” below is blocked on an unresolved authority
+            question, stated in claim C-1. ADII proposes dispositions; it does not apply changes,
+            grant permissions, issue verdicts, or create validators.</p>
+          </div>
+
+          <dl class="adii-defs adii-mt-md">
+            <dt>Authority to accept</dt>
+            <dd><span class="adii-mono">payments-oncall</span> (rota group) — attribution supplied by the backend authority map</dd>
+            <dt>Authority to apply a change</dt>
+            <dd><span class="adii-mono">platform-change-board</span> — attribution supplied by the backend authority map</dd>
+            <dt>ADII's own permission</dt>
+            <dd>state claims, cite evidence, propose a disposition and a change. Nothing else.</dd>
+          </dl>
+        </article>
+      </section>
+
+      <!-- ============ CONTROLS ============ -->
+      <section class="adii-no-print adii-mt-xl" aria-labelledby="h-controls">
+        <div class="adii-section__head">
+          <h2 id="h-controls">Claims</h2>
+          <p class="adii-eyebrow">3 claims in this investigation</p>
+        </div>
+
+        <form class="adii-toolbar" id="claims" onsubmit="return false">
+          <p class="adii-field">
+            <label class="adii-field__label" for="filter-support">Show claims</label>
+            <select class="adii-select" id="filter-support" name="filter-support">
+              <option>All claims</option>
+              <option>With unresolved conditions</option>
+              <option>With no retrievable support</option>
+            </select>
+          </p>
+          <p class="adii-field">
+            <label class="adii-field__label" for="sort-claims">Order by</label>
+            <select class="adii-select" id="sort-claims" name="sort-claims">
+              <option>Claim identifier</option>
+              <option>Time first asserted</option>
+              <option>Number of supplied evidence slots</option>
+            </select>
+          </p>
+          <p class="adii-field">
+            <label class="adii-field__label" for="q">Find in claims</label>
+            <input class="adii-input" id="q" name="q" type="search" placeholder="tls, rollout, cache">
+          </p>
+          <button class="adii-btn" type="submit">Apply filters</button>
+          <button class="adii-btn" type="button" aria-disabled="true" title="Available once an operator accepts the disposition">Accept disposition</button>
+        </form>
+        <p class="adii-field__hint adii-mt-2xs">Accepting requires membership of
+        <span class="adii-mono">payments-oncall</span>. The control stays disabled for other operators.</p>
+      </section>
+
+      <!-- ============ THE DIFFICULT CASE: C-1 ============ -->
+      <section aria-labelledby="h-c1" data-example="invented" class="adii-mt-lg">
+        <article class="adii-record adii-record--system">
+          <div class="adii-record__head">
+            <h3 class="adii-record__title" id="h-c1">Claim C-1</h3>
+            <p class="adii-record__owner">Asserted by
+              <span class="adii-record__owner-name">adii-investigator</span>, 2026-03-11T05:41Z</p>
+          </div>
+
+          <p class="adii-claim__label">Assertion</p>
+          <p class="adii-assertion">A configuration rollout at 04:05Z reduced the TLS session cache on
+          <span class="adii-mono">payments-edge</span> from 100,000 to 1,024 entries, and the resulting
+          handshake load caused the 503 responses observed between 04:07Z and 04:52Z.</p>
+
+          <div class="adii-standoff">
+            <div class="adii-support">
+              <div class="adii-support__head">
+                <h4 class="adii-support__title">Support for C-1</h4>
+                <span class="adii-slots">
+                  <span class="adii-slots__strip" aria-hidden="true">
+                    <span class="adii-slot"></span><span class="adii-slot"></span>
+                    <span class="adii-slot"></span><span class="adii-slot" data-slot="empty"></span>
+                  </span>
+                  <span>3 of 4 evidence slots supplied</span>
+                </span>
+              </div>
+
+              <!-- The three facts that must stay visible together -->
+              <div class="adii-callout">
+                <p class="adii-callout__title">What is established, and what is not</p>
+                <ul class="adii-list-plain">
+                  <li>Three supporting receipts were supplied and retrieved.</li>
+                  <li>All four structural checks returned <span class="adii-mono">PASS</span>.</li>
+                  <li>Authority and freshness are <span class="adii-mono">UNRESOLVED</span>. An intact
+                  receipt does not establish that its contents are true, and passing structural checks
+                  does not establish that an intervention is justified. The two conditions below stay
+                  <span class="adii-mono">UNRESOLVED</span> however many receipts are added.</li>
+                </ul>
+              </div>
+
+              <h5 class="adii-support__subhead">Receipts (3 supplied)</h5>
+
+              <div class="adii-citation">
+                <p class="adii-citation__id">rcpt_9a41f0c2</p>
+                <p class="adii-citation__owner">Emitted by <span class="adii-mono">config-service</span>
+                  (source system). Retrieved by <span class="adii-mono">adii-fetcher</span> at 05:38Z.</p>
+                <blockquote class="adii-citation__quote">Rollout <span class="adii-mono">cfg-7741</span>
+                  set <span class="adii-mono">tls.session_cache_entries</span> to 1024 on 18 hosts.</blockquote>
+                <dl class="adii-citation__fields">
+                  <dt>Digest</dt><dd>sha256:4f1c…a09b</dd>
+                  <dt>Signing key</dt><dd>k_cfg_2026_03</dd>
+                  <dt>Key in frozen set</dt><dd>UNRESOLVED</dd>
+                </dl>
+              </div>
+
+              <div class="adii-citation">
+                <p class="adii-citation__id">rcpt_1d77be55</p>
+                <p class="adii-citation__owner">Emitted by <span class="adii-mono">edge-telemetry</span>
+                  (source system). Retrieved by <span class="adii-mono">adii-fetcher</span> at 05:39Z.</p>
+                <blockquote class="adii-citation__quote">Full TLS handshakes per second rose from 240 to
+                  3,180 between 04:06Z and 04:09Z on the same 18 hosts.</blockquote>
+                <dl class="adii-citation__fields">
+                  <dt>Digest</dt><dd>sha256:b302…7e14</dd>
+                  <dt>Signing key</dt><dd>k_tel_2026_01</dd>
+                  <dt>Key in frozen set</dt><dd>yes</dd>
+                </dl>
+              </div>
+
+              <div class="adii-citation">
+                <p class="adii-citation__id">rcpt_c50ab913</p>
+                <p class="adii-citation__owner">Emitted by <span class="adii-mono">gateway-logs</span>
+                  (source system). Retrieved by <span class="adii-mono">adii-fetcher</span> at 05:40Z.</p>
+                <blockquote class="adii-citation__quote">503 responses on <span class="adii-mono">/authz/card</span>
+                  rose to 61% of requests at 04:12Z and returned to 0.2% at 04:52Z.</blockquote>
+                <dl class="adii-citation__fields">
+                  <dt>Digest</dt><dd>sha256:77de…0c31</dd>
+                  <dt>Signing key</dt><dd>k_gw_2026_01</dd>
+                  <dt>Key in frozen set</dt><dd>yes</dd>
+                </dl>
+              </div>
+
+              <p class="adii-field__hint adii-mt-sm">Fourth slot,
+              <span class="adii-mono">rollback_confirmation</span>:
+              <span class="adii-state adii-state--not-supplied"><svg class="adii-chip__glyph" width="12" height="12" aria-hidden="true"><use href="#g-not-supplied"/></svg>not supplied</span>
+              No record was offered for this slot. This is not the same as a record that failed to retrieve.</p>
+
+              <h5 class="adii-support__subhead">Structural checks</h5>
+              <div class="adii-verdicts">
+                <div class="adii-check adii-check--pass">
+                  <svg class="adii-check__mark" width="12" height="12" aria-hidden="true"><use href="#g-pass"/></svg>
+                  <p class="adii-check__body"><span class="adii-check__name">receipt.schema_valid</span>
+                    <span class="adii-check__verdict">PASS</span>
+                    <span class="adii-check__note">3 of 3 receipts parsed against schema v4.</span></p>
+                </div>
+                <div class="adii-check adii-check--pass">
+                  <svg class="adii-check__mark" width="12" height="12" aria-hidden="true"><use href="#g-pass"/></svg>
+                  <p class="adii-check__body"><span class="adii-check__name">receipt.digest_matches_body</span>
+                    <span class="adii-check__verdict">PASS</span>
+                    <span class="adii-check__note">3 of 3 digests recomputed and matched.</span></p>
+                </div>
+                <div class="adii-check adii-check--pass">
+                  <svg class="adii-check__mark" width="12" height="12" aria-hidden="true"><use href="#g-pass"/></svg>
+                  <p class="adii-check__body"><span class="adii-check__name">chain.continuity</span>
+                    <span class="adii-check__verdict">PASS</span>
+                    <span class="adii-check__note">No gaps in <span class="adii-mono">rcpt_chain_41c</span> between index 0 and 2.</span></p>
+                </div>
+                <div class="adii-check adii-check--pass">
+                  <svg class="adii-check__mark" width="12" height="12" aria-hidden="true"><use href="#g-pass"/></svg>
+                  <p class="adii-check__body"><span class="adii-check__name">signature.format_wellformed</span>
+                    <span class="adii-check__verdict">PASS</span>
+                    <span class="adii-check__note">Encoding and length accepted. This check reads the shape of the signature, not its authority.</span></p>
+                </div>
+              </div>
+
+              <h5 class="adii-support__subhead">Conditions returned by the backend</h5>
+              <dl class="adii-defs">
+                <dt>authority.attestation_key_in_frozen_set</dt>
+                <dd><span class="adii-state adii-state--unresolved"><svg class="adii-chip__glyph" width="12" height="12" aria-hidden="true"><use href="#g-unresolved"/></svg>UNRESOLVED</span>
+                  <span class="adii-field__hint">Key <span class="adii-mono">k_cfg_2026_03</span> is not listed in frozen key set
+                  <span class="adii-mono">fks_payments_v7</span> for scope <span class="adii-mono">svc/payments-edge</span>.
+                  Backend reason: <span class="adii-mono">key_not_in_frozen_set_for_scope</span>.</span></dd>
+                <dt>freshness.attestation_within_window</dt>
+                <dd><span class="adii-state adii-state--unresolved"><svg class="adii-chip__glyph" width="12" height="12" aria-hidden="true"><use href="#g-unresolved"/></svg>UNRESOLVED</span>
+                  <span class="adii-field__hint">No freshness policy is registered for this scope, so the
+                  attestation age could not be compared to a bound. Backend reason:
+                  <span class="adii-mono">no_policy_for_scope</span>.</span></dd>
+                <dt>authority.rollout_approved_by</dt>
+                <dd><span class="adii-state"><svg class="adii-chip__glyph" width="12" height="12" aria-hidden="true"><use href="#g-none"/></svg>not evaluated</span>
+                  <span class="adii-field__hint">Not part of evaluation profile <span class="adii-mono">inc-eval-2026-03.v4</span>.</span></dd>
+              </dl>
+
+              <div class="adii-callout adii-mt-md">
+                <p class="adii-callout__title">Overall evaluation of C-1: FAILED</p>
+                <dl class="adii-defs">
+                  <dt>Criterion</dt>
+                  <dd><span class="adii-mono">authority.attestation_key_in_frozen_set</span></dd>
+                  <dt>Reason</dt>
+                  <dd><span class="adii-mono">key_not_in_frozen_set_for_scope</span></dd>
+                  <dt>Supplied by</dt>
+                  <dd>evaluation profile <span class="adii-mono">inc-eval-2026-03.v4</span> (backend)</dd>
+                </dl>
+                <p class="adii-mt-sm">Both the criterion and the reason were returned
+                by the evaluation profile. Where a backend returns a failure without a criterion, this block
+                reads <span class="adii-mono">criterion: not supplied</span> and no explanation is written in
+                its place.</p>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <!-- ============ C-2: observation-backed, partial ============ -->
+      <section aria-labelledby="h-c2" data-example="invented" class="adii-mt-xl">
+        <article class="adii-record adii-record--system">
+          <div class="adii-record__head">
+            <h3 class="adii-record__title" id="h-c2">Claim C-2</h3>
+            <p class="adii-record__owner">Asserted by
+              <span class="adii-record__owner-name">adii-investigator</span>, 2026-03-11T05:44Z</p>
+          </div>
+
+          <p class="adii-claim__label">Assertion</p>
+          <p class="adii-assertion">Customer-visible checkout failures were confined to card payments;
+          stored-balance checkouts completed normally throughout the window.</p>
+
+          <div class="adii-standoff">
+            <div class="adii-support">
+              <div class="adii-support__head">
+                <h4 class="adii-support__title">Support for C-2</h4>
+                <span class="adii-slots">
+                  <span class="adii-slots__strip" aria-hidden="true">
+                    <span class="adii-slot"></span><span class="adii-slot"></span>
+                    <span class="adii-slot" data-slot="empty"></span>
+                  </span>
+                  <span>2 of 3 evidence slots supplied</span>
+                </span>
+              </div>
+
+              <h5 class="adii-support__subhead adii-support__subhead--first">Observation</h5>
+              <div class="adii-citation">
+                <p class="adii-citation__id">obs_44e1</p>
+                <p class="adii-citation__owner">Observed by <span class="adii-mono">adii-investigator</span>
+                  from <span class="adii-mono">checkout-metrics</span>. An observation is ADII's reading of a
+                  source, not a statement by the source.</p>
+                <blockquote class="adii-citation__quote">Stored-balance checkout success held between 99.1%
+                  and 99.4% across the window; card checkout success fell to 38.6% at 04:12Z.</blockquote>
+                <dl class="adii-citation__fields">
+                  <dt>Source</dt><dd>checkout-metrics/eu-west-1</dd>
+                  <dt>Read at</dt><dd>2026-03-11T05:44Z</dd>
+                  <dt>Receipt</dt><dd>rcpt_2b98af10</dd>
+                </dl>
+              </div>
+
+              <p class="adii-field__hint adii-mt-sm">Third slot,
+              <span class="adii-mono">regional_breakdown</span>:
+              <span class="adii-state adii-state--pending"><svg class="adii-chip__glyph" width="12" height="12" aria-hidden="true"><use href="#g-pending"/></svg>pending</span>
+              A fetch is in flight. Pending is not evidence, and it is not an absence of evidence.</p>
+
+              <h5 class="adii-support__subhead">Structural checks</h5>
+              <div class="adii-verdicts">
+                <div class="adii-check adii-check--pass">
+                  <svg class="adii-check__mark" width="12" height="12" aria-hidden="true"><use href="#g-pass"/></svg>
+                  <p class="adii-check__body"><span class="adii-check__name">observation.source_receipted</span>
+                    <span class="adii-check__verdict">PASS</span>
+                    <span class="adii-check__note">Observation carries receipt <span class="adii-mono">rcpt_2b98af10</span>.</span></p>
+                </div>
+                <div class="adii-check adii-check--none">
+                  <svg class="adii-check__mark" width="12" height="12" aria-hidden="true"><use href="#g-none"/></svg>
+                  <p class="adii-check__body"><span class="adii-check__name">observation.independent_replication</span>
+                    <span class="adii-check__verdict">NOT_EVALUATED</span>
+                    <span class="adii-check__note">No second reader was configured for this source.</span></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <!-- ============ C-3: retrieval failure ============ -->
+      <section aria-labelledby="h-c3" data-example="invented" class="adii-mt-xl">
+        <article class="adii-record adii-record--system">
+          <div class="adii-record__head">
+            <h3 class="adii-record__title" id="h-c3">Claim C-3</h3>
+            <p class="adii-record__owner">Asserted by
+              <span class="adii-record__owner-name">adii-investigator</span>, 2026-03-11T05:47Z</p>
+          </div>
+
+          <p class="adii-claim__label">Assertion</p>
+          <p class="adii-assertion">The same configuration rollout reached the analytics ingest tier eleven
+          minutes later and produced no measurable effect there.</p>
+
+          <div class="adii-standoff">
+            <div class="adii-support">
+              <div class="adii-support__head">
+                <h4 class="adii-support__title">Support for C-3</h4>
+                <span class="adii-slots">
+                  <span class="adii-slots__strip" aria-hidden="true">
+                    <span class="adii-slot" data-slot="empty"></span><span class="adii-slot" data-slot="empty"></span>
+                  </span>
+                  <span>0 of 2 evidence slots supplied</span>
+                </span>
+              </div>
+
+              <div class="adii-transport" role="group" aria-labelledby="t-c3">
+                <p class="adii-transport__title" id="t-c3">Could not retrieve <span class="adii-mono">rcpt_e10c7742</span></p>
+                <p>The evidence store returned <span class="adii-mono">HTTP 504</span> after 3 attempts at
+                05:47Z, 05:49Z and 05:52Z. This establishes that retrieval failed here. It does not establish
+                that the record exists, that it is missing, that its contents are true, or that this claim is
+                unsupported.</p>
+                <p class="adii-mt-sm">
+                  <button class="adii-btn adii-no-print" type="button">Retry retrieval</button>
+                </p>
+              </div>
+
+              <p class="adii-field__hint adii-mt-sm">Support state:
+                <span class="adii-state adii-state--retrieval-failed"><svg class="adii-chip__glyph" width="12" height="12" aria-hidden="true"><use href="#g-retrieval"/></svg>failed to retrieve</span>
+                Claim state:
+                <span class="adii-state adii-state--unresolved"><svg class="adii-chip__glyph" width="12" height="12" aria-hidden="true"><use href="#g-unresolved"/></svg>UNRESOLVED</span>
+              </p>
+
+              <h5 class="adii-support__subhead">Structural checks</h5>
+              <div class="adii-verdicts">
+                <div class="adii-check adii-check--none">
+                  <svg class="adii-check__mark" width="12" height="12" aria-hidden="true"><use href="#g-none"/></svg>
+                  <p class="adii-check__body"><span class="adii-check__name">receipt.schema_valid</span>
+                    <span class="adii-check__verdict">NOT_EVALUATED</span>
+                    <span class="adii-check__note">No record was retrieved to check.</span></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <!-- ============ PROPOSED CHANGE ============ -->
+      <section id="change" aria-labelledby="h-change" data-example="invented" class="adii-mt-xl">
+        <article class="adii-record adii-record--system">
+          <div class="adii-record__head">
+            <h2 class="adii-record__title" id="h-change">Proposed change</h2>
+            <p class="adii-record__owner">Drafted by
+              <span class="adii-record__owner-name">adii-investigator</span>. Not applied, not approved.</p>
+          </div>
+
+          <p class="adii-measure">Restore the TLS session cache size on <span class="adii-mono">svc/payments-edge</span>
+          to its pre-rollout value, and add a lower bound so a future rollout cannot set it below 16,384.</p>
+
+          <div class="adii-change__diff">
+<span class="adii-diff__line--remove"><span class="adii-diff__marker">-</span>tls.session_cache_entries: 1024</span>
+<span class="adii-diff__line--add"><span class="adii-diff__marker">+</span>tls.session_cache_entries: 100000</span>
+<span class="adii-diff__line--add"><span class="adii-diff__marker">+</span>tls.session_cache_entries.min: 16384</span>
+          </div>
+
+          <dl class="adii-defs adii-mt-md">
+            <dt>Target</dt><dd><span class="adii-mono">cfg/payments-edge/tls.yaml</span></dd>
+            <dt>Blocked on</dt>
+            <dd>C-1 condition <span class="adii-mono">authority.attestation_key_in_frozen_set</span>
+              <span class="adii-state adii-state--unresolved"><svg class="adii-chip__glyph" width="12" height="12" aria-hidden="true"><use href="#g-unresolved"/></svg>UNRESOLVED</span></dd>
+            <dt>Who may apply</dt><dd><span class="adii-mono">platform-change-board</span></dd>
+            <dt>Applied</dt><dd>no</dd>
+          </dl>
+
+          <p class="adii-field__hint adii-mt-sm">A change that survives review is
+          still a proposal until a party with authority applies it. This record never changes state on its own.</p>
+        </article>
+      </section>
+
+      <!-- ============ INDEPENDENT VALIDATION ============ -->
+      <section id="validation" aria-labelledby="h-validation" data-example="invented" class="adii-mt-xl">
+        <article class="adii-record adii-record--validator">
+          <div class="adii-record__head">
+            <h2 class="adii-record__title" id="h-validation">Independent validation</h2>
+            <p class="adii-record__owner">Run by
+              <span class="adii-record__owner-name">val-harness-2</span>
+              (separate party, separate credentials)</p>
+          </div>
+
+          <p class="adii-measure">This record is written by a validator, not by ADII. ADII cannot create a
+          validator, run one on its own behalf, or write into this record. Where no validator has run, this
+          section shows an empty state rather than a passing one.</p>
+
+          <div class="adii-verdicts adii-mt-md">
+            <div class="adii-check adii-check--pass">
+              <svg class="adii-check__mark" width="12" height="12" aria-hidden="true"><use href="#g-pass"/></svg>
+              <p class="adii-check__body"><span class="adii-check__name">receipts.independently_refetched</span>
+                <span class="adii-check__verdict">PASS</span>
+                <span class="adii-check__note">2 of 3 receipts refetched from source and matched by digest;
+                1 refetch returned <span class="adii-mono">HTTP 504</span> and was recorded as a retrieval
+                failure, not as a mismatch.</span></p>
+            </div>
+            <div class="adii-check adii-check--fail">
+              <svg class="adii-check__mark" width="12" height="12" aria-hidden="true"><use href="#g-fail"/></svg>
+              <p class="adii-check__body"><span class="adii-check__name">key_registry.scope_match</span>
+                <span class="adii-check__verdict">FAIL</span>
+                <span class="adii-check__note">Key <span class="adii-mono">k_cfg_2026_03</span> resolves in
+                registry <span class="adii-mono">global</span>, not in
+                <span class="adii-mono">fks_payments_v7</span>. Verdict issued by
+                <span class="adii-mono">val-harness-2</span>.</span></p>
+            </div>
+            <div class="adii-check adii-check--none">
+              <svg class="adii-check__mark" width="12" height="12" aria-hidden="true"><use href="#g-none"/></svg>
+              <p class="adii-check__body"><span class="adii-check__name">counterfactual.replay</span>
+                <span class="adii-check__verdict">NOT_EVALUATED</span>
+                <span class="adii-check__note">Replay harness was not available for this scope.</span></p>
+            </div>
+          </div>
+
+          <div class="adii-callout adii-mt-md">
+            <p class="adii-callout__title">Reading these two records together</p>
+            <p>ADII's structural checks passed and the validator's scope check failed. Both are shown as
+            written. The interface does not reconcile them, average them, or let one overwrite the other.</p>
+          </div>
+        </article>
+      </section>
+
+      <!-- ============ COMPARISON ============ -->
+      <section aria-labelledby="h-compare" data-example="invented" class="adii-mt-xl">
+        <div class="adii-section__head">
+          <h2 id="h-compare">Evaluation-profile comparison</h2>
+        </div>
+        <div class="adii-panel">
+          <div class="adii-scroll">
+            <table class="adii-table">
+              <caption>Invented example. Rates are shown with their denominators, evaluation unit,
+                repetition structure and scope, because a bare percentage is not comparable across profiles.</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Profile</th>
+                  <th scope="col">Evaluation unit</th>
+                  <th scope="col">Scope</th>
+                  <th scope="col">Repetitions</th>
+                  <th scope="col" class="adii-num">Resolved</th>
+                  <th scope="col" class="adii-num">Rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="adii-mono">inc-eval-2026-03.v4</span></td>
+                  <td>one claim</td>
+                  <td>svc/payments-edge</td>
+                  <td>1 run per claim, no repeats</td>
+                  <td class="adii-num">2 / 3 claims</td>
+                  <td class="adii-num">66.7%</td>
+                </tr>
+                <tr>
+                  <td><span class="adii-mono">inc-eval-2026-01.v2</span></td>
+                  <td>one condition</td>
+                  <td>all payments services</td>
+                  <td>3 runs per condition, majority taken</td>
+                  <td class="adii-num">41 / 54 conditions</td>
+                  <td class="adii-num">75.9%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="adii-field__hint adii-mt-sm">The two rates count different
+          things over different populations, so 66.7% and 75.9% are not comparable as stated. No combined
+          figure is shown, because the interface has no basis to compute one.</p>
+        </div>
+      </section>
+
+      <!-- ============ FEEDBACK ============ -->
+      <section aria-labelledby="h-feedback" data-example="invented" class="adii-mt-xl">
+        <article class="adii-record adii-record--operator">
+          <div class="adii-record__head">
+            <h2 class="adii-record__title" id="h-feedback">Operator feedback</h2>
+            <p class="adii-record__owner">Written by
+              <span class="adii-record__owner-name">you</span>, stored under your identity</p>
+          </div>
+
+          <p class="adii-measure">Feedback is recorded as a separate statement with its own owner. It does not
+          change a claim, a verdict or a condition, and it is never merged into ADII's assertions.</p>
+
+          <form class="adii-feedback adii-mt-md" onsubmit="return false">
+            <fieldset class="adii-fieldset-plain">
+              <legend class="adii-field__label">Is claim C-1 stated correctly?</legend>
+              <div class="adii-feedback__row adii-mt-2xs">
+                <label><input type="radio" name="c1-verdict" value="agree"> Stated correctly</label>
+                <label><input type="radio" name="c1-verdict" value="disagree"> Overstated</label>
+                <label><input type="radio" name="c1-verdict" value="missing"> Missing evidence I can supply</label>
+              </div>
+            </fieldset>
+
+            <p class="adii-field">
+              <label class="adii-field__label" for="fb-note">What should change, and why</label>
+              <textarea class="adii-input" id="fb-note" name="fb-note" rows="3"
+                placeholder="For example: the rollout reached 18 hosts, but only 6 served card traffic."></textarea>
+              <span class="adii-field__hint" id="fb-help">Recorded verbatim under your identity. Not applied to the claim.</span>
+            </p>
+
+            <div class="adii-feedback__row">
+              <button class="adii-btn adii-btn--primary" type="submit">Record feedback</button>
+              <button class="adii-btn" type="reset">Clear</button>
+            </div>
+          </form>
+        </article>
+      </section>
+    </div>
+
+    <!-- ============ ASIDE ============ -->
+    <aside aria-label="Investigation context">
+      <div class="adii-panel">
+        <h2 class="adii-panel__title">Who owns what</h2>
+        <dl class="adii-defs">
+          <dt>Assertions</dt><dd><span class="adii-mono">adii-investigator</span></dd>
+          <dt>Evidence</dt><dd>source systems named on each receipt</dd>
+          <dt>Verdicts</dt><dd><span class="adii-mono">val-harness-2</span> and the evaluation profile</dd>
+          <dt>Permissions</dt><dd><span class="adii-mono">payments-oncall</span>, <span class="adii-mono">platform-change-board</span></dd>
+          <dt>Feedback</dt><dd>the signed-in operator</dd>
+        </dl>
+        <p class="adii-field__hint adii-mt-sm">Each record repeats its owner in
+        text. The coloured riser on the left edge only restates what the text says.</p>
+      </div>
+
+      <div class="adii-panel adii-mt-lg">
+        <h2 class="adii-panel__title">Absence, as five different states</h2>
+        <ul class="adii-inline-list">
+          <li><span class="adii-state adii-state--not-supplied"><svg class="adii-chip__glyph" width="12" height="12" aria-hidden="true"><use href="#g-not-supplied"/></svg>not supplied</span></li>
+          <li><span class="adii-state"><svg class="adii-chip__glyph" width="12" height="12" aria-hidden="true"><use href="#g-none"/></svg>not evaluated</span></li>
+          <li><span class="adii-state adii-state--pending"><svg class="adii-chip__glyph" width="12" height="12" aria-hidden="true"><use href="#g-pending"/></svg>pending</span></li>
+          <li><span class="adii-state adii-state--retrieval-failed"><svg class="adii-chip__glyph" width="12" height="12" aria-hidden="true"><use href="#g-retrieval"/></svg>failed to retrieve</span></li>
+          <li><span class="adii-state adii-state--unresolved"><svg class="adii-chip__glyph" width="12" height="12" aria-hidden="true"><use href="#g-unresolved"/></svg>UNRESOLVED</span></li>
+        </ul>
+        <p class="adii-field__hint adii-mt-sm">Nothing was offered; nothing was
+        checked; a check is in flight; a fetch failed; a checked question has no answer. They are different
+        facts and never collapse into “no data”.</p>
+      </div>
+
+      <div class="adii-panel adii-mt-lg">
+        <h2 class="adii-panel__title">Freshness probe <span class="adii-eyebrow">(loading state specimen)</span></h2>
+        <div class="adii-loading" aria-busy="true" aria-live="polite">
+          <p class="adii-field__hint">Loading freshness policy for <span class="adii-mono">svc/payments-edge</span>…</p>
+          <span class="adii-skeleton adii-skeleton--wide"></span>
+          <span class="adii-skeleton adii-skeleton--half"></span>
+          <span class="adii-skeleton adii-skeleton--short"></span>
+        </div>
+      </div>
+
+      <div class="adii-panel adii-mt-lg">
+        <h2 class="adii-panel__title">Related incidents</h2>
+        <div class="adii-empty">
+          <p class="adii-empty__title">No related incidents linked</p>
+          <p>Linking is manual. An operator with <span class="adii-mono">payments-oncall</span> membership can
+          attach an incident by identifier.</p>
+          <button class="adii-btn adii-no-print" type="button">Link an incident</button>
+        </div>
+      </div>
+
+      <div class="adii-panel adii-no-print adii-mt-lg">
+        <h2 class="adii-panel__title">Add evidence</h2>
+        <div class="adii-upload">
+          <p class="adii-upload__title" id="up-title">Upload a receipt bundle</p>
+          <p class="adii-upload__hint" id="up-hint">A bundle is added as a new record with your identity as the
+          supplier. Uploading does not change any existing claim, verdict or condition.</p>
+          <p class="adii-field">
+            <label class="adii-field__label" for="bundle">Receipt bundle file</label>
+            <input class="adii-upload__input" id="bundle" name="bundle" type="file"
+              accept=".json,.jsonl,.tar" aria-describedby="up-hint">
+          </p>
+          <ul class="adii-upload__list">
+            <li class="adii-upload__item">
+              <span class="adii-upload__name">rollback-confirm.jsonl</span>
+              <span class="adii-state adii-state--pending"><svg class="adii-chip__glyph" width="12" height="12" aria-hidden="true"><use href="#g-pending"/></svg>pending</span>
+              <span>queued, not yet parsed</span>
+            </li>
+            <li class="adii-upload__item">
+              <span class="adii-upload__name">edge-telemetry-0411.json</span>
+              <span class="adii-state adii-state--retrieval-failed"><svg class="adii-chip__glyph" width="12" height="12" aria-hidden="true"><use href="#g-retrieval"/></svg>failed to retrieve</span>
+              <span>upload aborted at 82%, nothing was stored</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="adii-footer">
+    <p>ADII design specimen. All identifiers, timestamps, digests, rates and names on this page are invented
+    for design review and describe no real system, person or measurement.</p>
+  </footer>
+</div>
+
+<script>
+  // Display preferences only. No data is read, written or sent.
+  (function () {
+    var root = document.documentElement;
+    var themeBtn = document.getElementById('theme-toggle');
+    var densBtn = document.getElementById('density-toggle');
+
+    function currentTheme() {
+      return root.getAttribute('data-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    }
+    function syncTheme() {
+      var dark = currentTheme() === 'dark';
+      themeBtn.setAttribute('aria-pressed', String(dark));
+      themeBtn.textContent = dark ? 'Light theme' : 'Dark theme';
+    }
+    function syncDensity() {
+      var compact = (root.getAttribute('data-density') || 'compact') === 'compact';
+      densBtn.setAttribute('aria-pressed', String(compact));
+      densBtn.textContent = compact ? 'Roomy rows' : 'Compact rows';
+    }
+    themeBtn.addEventListener('click', function () {
+      var next = currentTheme() === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('adii-theme', next); } catch (e) {}
+      syncTheme();
+    });
+    densBtn.addEventListener('click', function () {
+      var next = (root.getAttribute('data-density') || 'compact') === 'compact' ? 'roomy' : 'compact';
+      root.setAttribute('data-density', next);
+      try { localStorage.setItem('adii-density', next); } catch (e) {}
+      syncDensity();
+    });
+    syncTheme();
+    syncDensity();
+  })();
+</script>
+</body>
+</html>

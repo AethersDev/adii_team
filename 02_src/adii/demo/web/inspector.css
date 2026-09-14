@@ -1,0 +1,41 @@
+/* ADII run inspector — the page-specific rules over the design system.
+   tokens.css, base.css and components.css are the identity handoff (03_assets/identity),
+   copied here by 02_src/scripts/sync_identity.py. This file adds only layout for the
+   run list, the trace and the comparison. Every value is a token; every device is one of
+   the system's three. Nothing here is a colour. */
+
+.adii-masthead .adii-btn-group { margin-left: auto; }
+
+/* The run list: one row per archived run; the selected row is the system's selected
+   surface, and the label is a link because a link is what accent means. */
+.run {
+  display: grid;
+  gap: var(--adii-space-3xs);
+  padding: var(--adii-row-pad-y) var(--adii-space-sm);
+  border-bottom: 1px solid var(--adii-border-subtle);
+}
+.run[aria-current="true"] { background: var(--adii-surface-selected); }
+.run__label { font-size: var(--adii-text-sm); overflow-wrap: anywhere; }
+.run__outcome { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adii-space-sm); }
+.run__compare { font-size: var(--adii-text-meta); margin-left: auto; }
+
+/* The trace: every event in order, each a native disclosure over its payload. */
+.trace { list-style: none; padding: 0; }
+.trace li { border-bottom: 1px solid var(--adii-border-subtle); }
+.trace__event summary {
+  display: flex; gap: var(--adii-space-sm); align-items: baseline;
+  padding: var(--adii-space-2xs) 0; cursor: pointer; list-style: none;
+  font-family: var(--adii-font-mono); font-size: var(--adii-text-meta); color: var(--adii-ink-2);
+}
+.trace__event summary::-webkit-details-marker { display: none; }
+.trace__event[open] summary { color: var(--adii-ink-1); }
+.trace__n { color: var(--adii-ink-3); font-variant-numeric: tabular-nums; flex: none; }
+.trace__kind { color: var(--adii-ink-3); flex: none; }
+.trace__head { min-width: 0; overflow-wrap: anywhere; }
+/* The status word, not a tick: OK is the contract's status, and a tick is valence. */
+.trace__status { margin-left: auto; color: var(--adii-ink-3); font-size: var(--adii-text-micro); }
+.trace__payload { margin: var(--adii-space-2xs) 0 var(--adii-space-sm); font-size: var(--adii-text-meta); }
+
+/* Two runs of one incident, side by side: each side is the whole chain over its record. */
+.compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adii-space-xl); align-items: start; }
+@media (max-width: 64rem) { .compare { grid-template-columns: 1fr; } }

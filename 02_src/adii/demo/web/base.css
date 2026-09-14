@@ -1,0 +1,330 @@
+/* ADII base layer. Depends on tokens.css. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--adii-surface-0);
+  color: var(--adii-ink-1);
+  font-family: var(--adii-font-ui);
+  font-size: var(--adii-text-body);
+  line-height: var(--adii-leading-normal);
+  font-synthesis-weight: none;
+}
+
+/* ---- Headings ---------------------------------------------------------
+ * Interface headings are sans. The serif face is reserved for assertion
+ * text (.adii-assertion) and is never used for chrome, so "set in serif"
+ * always means "this is a claim", and never means "this is important".
+ */
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-weight: var(--adii-weight-strong);
+  line-height: var(--adii-leading-tight);
+  letter-spacing: var(--adii-tracking-tight);
+  text-wrap: balance;
+}
+
+h1 { font-size: var(--adii-text-h1); }
+h2 { font-size: var(--adii-text-h2); }
+h3 { font-size: var(--adii-text-h3); }
+h4 { font-size: var(--adii-text-body); }
+
+p {
+  margin: 0;
+  max-width: var(--adii-measure);
+}
+
+p + p {
+  margin-top: var(--adii-space-sm);
+}
+
+ul,
+ol {
+  margin: 0;
+  padding-left: var(--adii-space-lg);
+}
+
+dl,
+dd,
+dt,
+figure {
+  margin: 0;
+}
+
+code,
+kbd,
+samp,
+pre {
+  font-family: var(--adii-font-mono);
+  font-size: 0.9375em;
+}
+
+pre {
+  margin: 0;
+  overflow-x: auto;
+}
+
+a {
+  color: var(--adii-accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  color: var(--adii-accent-hover);
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--adii-border-subtle);
+  margin: var(--adii-space-lg) 0;
+}
+
+img,
+svg {
+  vertical-align: middle;
+}
+
+/* ---- Focus ------------------------------------------------------------
+ * One focus treatment everywhere, measured against every surface it can
+ * land on (see CONTRAST_REPORT.md). Never remove it.
+ */
+:focus-visible {
+  outline: var(--adii-focus-width) solid var(--adii-focus-ring);
+  outline-offset: var(--adii-focus-offset);
+  border-radius: var(--adii-radius-1);
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ---- Utilities -------------------------------------------------------- */
+.adii-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.adii-skip {
+  position: absolute;
+  left: var(--adii-space-sm);
+  top: -3rem;
+  z-index: 10;
+  padding: var(--adii-space-sm) var(--adii-space-md);
+  background: var(--adii-surface-1);
+  color: var(--adii-ink-1);
+  border: var(--adii-rule-width) solid var(--adii-border-strong);
+  transition: top var(--adii-motion-fast) var(--adii-ease);
+}
+
+.adii-skip:focus {
+  top: var(--adii-space-sm);
+}
+
+.adii-mono {
+  font-family: var(--adii-font-mono);
+  font-size: 0.9375em;
+  overflow-wrap: anywhere;
+}
+
+.adii-measure { max-width: var(--adii-measure); }
+.adii-measure-narrow { max-width: var(--adii-measure-narrow); }
+
+.adii-stack > * + * { margin-top: var(--adii-space-md); }
+.adii-stack-sm > * + * { margin-top: var(--adii-space-sm); }
+.adii-stack-lg > * + * { margin-top: var(--adii-space-xl); }
+
+/* ---- Page frame ------------------------------------------------------- */
+.adii-page {
+  max-width: 76rem;
+  margin: 0 auto;
+  padding: var(--adii-space-lg) var(--adii-space-md) var(--adii-space-3xl);
+}
+
+.adii-columns {
+  display: grid;
+  gap: var(--adii-space-lg);
+  grid-template-columns: 1fr;
+  align-items: start;
+}
+
+@media (min-width: 48rem) {
+  .adii-page { padding-inline: var(--adii-space-lg); }
+  .adii-columns { gap: var(--adii-space-xl); }
+}
+
+@media (min-width: 64rem) {
+  .adii-columns {
+    grid-template-columns: minmax(0, 1fr) 21rem;
+  }
+}
+
+/* ---- Motion ----------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---- Print ------------------------------------------------------------
+ * Print forces the light token set so every component keeps its meaning on
+ * paper, and status text stays visible because it is real DOM text.
+ */
+@media print {
+  :root {
+    --adii-surface-0: #ffffff;
+    --adii-surface-1: #ffffff;
+    --adii-surface-2: #ffffff;
+    --adii-surface-3: #ffffff;
+    --adii-surface-selected: #ffffff;
+    --adii-surface-hover: #ffffff;
+    --adii-ink-1: #000000;
+    --adii-ink-2: #1a1a1a;
+    --adii-ink-3: #2b2b2b;
+    --adii-border-subtle: #999999;
+    --adii-border-default: #555555;
+    --adii-border-strong: #000000;
+    --adii-accent: #000000;
+    --adii-disp-repair-bg: #ffffff;
+    --adii-disp-no-repair-bg: #ffffff;
+    --adii-disp-escalate-bg: #ffffff;
+    --adii-disp-repair-fg: #000000;
+    --adii-disp-no-repair-fg: #000000;
+    --adii-disp-escalate-fg: #000000;
+    --adii-disp-repair-border: #000000;
+    --adii-disp-no-repair-border: #000000;
+    --adii-disp-escalate-border: #000000;
+    --adii-absent-bg: #ffffff;
+    --adii-absent-fg: #000000;
+    --adii-absent-border: #000000;
+    --adii-unresolved-bg: #ffffff;
+    --adii-unresolved-fg: #000000;
+    --adii-unresolved-border: #000000;
+    --adii-transport-bg: #ffffff;
+    --adii-transport-fg: #000000;
+    --adii-transport-border: #000000;
+    --adii-transport-hatch: #777777;
+    --adii-eval-pass-fg: #000000;
+    --adii-eval-fail-fg: #000000;
+    --adii-eval-none-fg: #000000;
+  }
+
+  @page {
+    margin: 14mm;
+  }
+
+  body {
+    background: #ffffff;
+    font-size: 10pt;
+  }
+
+  .adii-no-print { display: none !important; }
+  .adii-print-only { display: block !important; }
+
+  .adii-page { max-width: none; padding: 0; }
+
+  .adii-columns { display: block; }
+  .adii-columns > * + * { margin-top: 8mm; }
+
+  .adii-record,
+  .adii-claim,
+  .adii-callout,
+  .adii-verdicts {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  h1, h2, h3 { break-after: avoid; }
+
+  /* Citations must remain resolvable on paper. */
+  .adii-citation a[href]::after {
+    content: " <" attr(href) ">";
+    font-family: var(--adii-font-mono);
+    font-size: 0.85em;
+    overflow-wrap: anywhere;
+  }
+}
+
+.adii-print-only { display: none; }
+
+/* ---- Spacing utilities ------------------------------------------------
+ * The only utilities in the system. Everything else is a component class.
+ * Added so specimens do not need inline styles.
+ */
+.adii-mt-2xs { margin-top: var(--adii-space-2xs); }
+.adii-mt-sm { margin-top: var(--adii-space-sm); }
+.adii-mt-md { margin-top: var(--adii-space-md); }
+.adii-mt-lg { margin-top: var(--adii-space-lg); }
+.adii-mt-xl { margin-top: var(--adii-space-xl); }
+.adii-mb-sm { margin-bottom: var(--adii-space-sm); }
+.adii-mb-md { margin-bottom: var(--adii-space-md); }
+.adii-mb-lg { margin-bottom: var(--adii-space-lg); }
+
+.adii-fieldset-plain { border: 0; padding: 0; margin: 0; }
+
+.adii-list-plain {
+  margin: 0;
+  display: grid;
+  gap: var(--adii-space-2xs);
+}
+
+/* Specimen-only helpers (identity sheet). */
+.adii-logo-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--adii-space-lg);
+  min-height: 8.75rem;
+  margin-bottom: var(--adii-space-sm);
+  flex-wrap: wrap;
+}
+
+.adii-logo-row--mid {
+  min-height: 3.75rem;
+  align-items: center;
+}
+
+/* Reversal demo: must stay dark in both themes, so these two values are
+   literal rather than tokens. */
+.adii-swatch--reversed {
+  background: #131a1f;
+  color: #f4f6f7;
+  border-color: #131a1f;
+}
+
+.adii-diagram {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--adii-border-subtle);
+}
+
+/* ---- Type utilities --------------------------------------------------- */
+.adii-type-h1 { font-size: var(--adii-text-h1); line-height: var(--adii-leading-tight); }
+.adii-type-h2 { font-size: var(--adii-text-h2); line-height: var(--adii-leading-tight); }
+.adii-type-h3 { font-size: var(--adii-text-h3); line-height: var(--adii-leading-snug); }
+.adii-type-body { font-size: var(--adii-text-body); }
+.adii-type-sm { font-size: var(--adii-text-sm); }
+.adii-type-meta { font-size: var(--adii-text-meta); color: var(--adii-ink-3); }
