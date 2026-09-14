@@ -572,7 +572,7 @@ def test_accumulated_result_content_causes_different_next_tool_call():
 
 
 @pytest.mark.parametrize(
-    ("submission", "expected"),
+    ("submission", "expected", "requires_observation"),
     [
         (
             {
@@ -584,6 +584,7 @@ def test_accumulated_result_content_causes_different_next_tool_call():
                 root_cause_id=None,
                 root_cause_summary="The source data reflects a legitimate change.",
             ),
+            True,
         ),
         (
             {
@@ -596,6 +597,7 @@ def test_accumulated_result_content_causes_different_next_tool_call():
                 root_cause_id="missing-authority",
                 root_cause_summary="An authoritative receipt is unavailable.",
             ),
+            False,
         ),
         (
             {
@@ -612,27 +614,46 @@ def test_accumulated_result_content_causes_different_next_tool_call():
                 repair_id="repair-normalization",
                 patch={"stg_orders.sql": "amount_cents / 100"},
             ),
+            True,
         ),
     ],
 )
-def test_valid_decision_is_constructed_traced_and_returned(submission, expected):
-    provider = ScriptedProvider(
-        [DECISION_PREFIX + json.dumps(submission, sort_keys=True)]
+def test_valid_decision_is_constructed_traced_and_returned(
+    submission,
+    expected,
+    requires_observation,
+):
+    decision_submission = DECISION_PREFIX + json.dumps(submission, sort_keys=True)
+    script = (
+        [tool_call_response(), decision_submission]
+        if requires_observation
+        else [decision_submission]
     )
+    provider = ScriptedProvider(script)
     executor = FakeToolExecutor()
 
-    decision, trace = run(incident(), provider, executor, max_turns=1)
+    decision, trace = run(incident(), provider, executor, max_turns=len(script))
 
     assert decision == expected
-    assert executor.calls == []
-    assert provider.received_observations == (None,)
-    assert provider.received_context == ((),)
-    assert len(trace) == 1
-    assert trace[0].sequence == 0
-    assert trace[0].kind == "decision_submitted"
-    assert trace[0].payload == {
+    if requires_observation:
+        result = executor.results[0]
+        assert provider.received_observations == (None, result)
+        assert provider.received_context == ((), (result,))
+        assert provider.received_context[1][0] is result
+        assert [event.kind for event in trace] == [
+            "tool_call",
+            "tool_result",
+            "decision_submitted",
+        ]
+    else:
+        assert executor.calls == []
+        assert provider.received_observations == (None,)
+        assert provider.received_context == ((),)
+        assert [event.kind for event in trace] == ["decision_submitted"]
+    assert [event.sequence for event in trace] == list(range(len(trace)))
+    assert trace[-1].payload == {
         "incident_id": "incident-phase-2",
-        "turn_index": 0,
+        "turn_index": len(script) - 1,
         "disposition": expected.disposition.value,
         "root_cause_id": expected.root_cause_id,
         "root_cause_summary": expected.root_cause_summary,
@@ -753,7 +774,9 @@ def test_contract_invalid_decision_is_rejected_without_duplicating_invariants(
 
 
 def test_decision_consumes_one_turn_and_stops_provider_immediately():
-    provider = ScriptedProvider([decision_response(), "unused response"])
+    provider = ScriptedProvider(
+        [decision_response(disposition="ESCALATE"), "unused response"]
+    )
     executor = FakeToolExecutor()
 
     decision, trace = run(incident(), provider, executor, max_turns=1)
@@ -765,7 +788,9 @@ def test_decision_consumes_one_turn_and_stops_provider_immediately():
 
 
 def test_decision_on_final_permitted_turn_succeeds():
-    provider = ScriptedProvider(["ordinary", decision_response()])
+    provider = ScriptedProvider(
+        ["ordinary", decision_response(disposition="ESCALATE")]
+    )
 
     decision, trace = run(
         incident(),
@@ -818,9 +843,101 @@ def test_accumulated_state_is_available_before_decision_and_not_changed_by_it():
 
 
 def test_repeated_decision_runs_are_deterministic():
-    script = [decision_response()]
+    script = [decision_response(disposition="ESCALATE")]
 
     first = run(incident(), ScriptedProvider(script), FakeToolExecutor(), max_turns=1)
     second = run(incident(), ScriptedProvider(script), FakeToolExecutor(), max_turns=1)
 
     assert first == second
+
+
+def test_escalate_with_prior_tool_result_is_accepted():
+    provider = ScriptedProvider(
+        [tool_call_response(), decision_response(disposition="ESCALATE")]
+    )
+    executor = FakeToolExecutor()
+
+    decision, trace = run(incident(), provider, executor, max_turns=2)
+
+    result = executor.results[0]
+    assert decision is not None
+    assert decision.disposition is Disposition.ESCALATE
+    assert provider.received_observations == (None, result)
+    assert provider.received_context == ((), (result,))
+    assert provider.received_context[1][0] is result
+    assert trace[-1].kind == "decision_submitted"
+
+
+@pytest.mark.parametrize(
+    ("disposition", "decision_fields"),
+    [
+        (
+            "REPAIR",
+            {
+                "repair_id": "repair-1",
+                "patch": {"stg_orders.sql": "bounded repair"},
+            },
+        ),
+        ("NO_REPAIR", {}),
+    ],
+)
+def test_evidence_required_decision_without_observations_is_rejected_and_continues(
+    disposition,
+    decision_fields,
+):
+    provider = ScriptedProvider(
+        [
+            decision_response(disposition=disposition, **decision_fields),
+            STOP_SIGNAL,
+        ]
+    )
+    executor = FakeToolExecutor()
+
+    decision, trace = run(incident(), provider, executor, max_turns=2)
+
+    assert decision is None
+    assert executor.calls == []
+    assert executor.results == []
+    assert provider.received_observations == (None, None)
+    assert provider.received_context == ((), ())
+    assert [event.kind for event in trace] == [
+        "decision_rejected",
+        "loop_stopped",
+    ]
+    assert [event.sequence for event in trace] == [0, 1]
+    assert [event.payload["turn_index"] for event in trace] == [0, 1]
+    assert trace[0].payload == {
+        "incident_id": "incident-phase-2",
+        "turn_index": 0,
+        "reason": f"{disposition} requires at least one observed tool result",
+    }
+
+
+def test_evidence_gate_rejection_does_not_change_state_before_retry():
+    submission = decision_response()
+    provider = ScriptedProvider([submission, tool_call_response(), submission])
+    executor = FakeToolExecutor()
+
+    decision, trace = run(incident(), provider, executor, max_turns=3)
+
+    result = executor.results[0]
+    assert decision is not None
+    assert decision.disposition is Disposition.NO_REPAIR
+    assert executor.calls == [
+        ToolCall(
+            call_id="tool-call-1",
+            name="fake_tool",
+            arguments={"value": "hello"},
+        )
+    ]
+    assert provider.received_observations == (None, None, result)
+    assert provider.received_context == ((), (), (result,))
+    assert provider.received_context[2][0] is result
+    assert [event.kind for event in trace] == [
+        "decision_rejected",
+        "tool_call",
+        "tool_result",
+        "decision_submitted",
+    ]
+    assert [event.sequence for event in trace] == [0, 1, 2, 3]
+    assert [event.payload["turn_index"] for event in trace] == [0, 1, 1, 2]

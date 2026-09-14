@@ -97,6 +97,26 @@ def run(
                 )
                 continue
 
+            if (
+                decision.disposition in (Disposition.REPAIR, Disposition.NO_REPAIR)
+                and not state.observations
+            ):
+                trace.append(
+                    TraceEvent(
+                        sequence=len(trace),
+                        kind="decision_rejected",
+                        payload={
+                            "incident_id": incident.incident_id,
+                            "turn_index": turn_index,
+                            "reason": (
+                                f"{decision.disposition.value} requires at least one "
+                                "observed tool result"
+                            ),
+                        },
+                    )
+                )
+                continue
+
             trace.append(
                 TraceEvent(
                     sequence=len(trace),
