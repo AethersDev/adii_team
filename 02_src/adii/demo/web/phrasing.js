@@ -56,7 +56,6 @@ const PHRASING = {
     accepted: "The validator rebuilt from frozen inputs and accepted the repair.",
     rejected: "The validator rebuilt from frozen inputs and rejected the repair.",
     notInvoked: "No repair was proposed, so there was nothing to validate.",
-    neverReached: "The run ended before a decision was submitted, so the validator was never invoked.",
   },
 
   /* ── trace steps: one sentence per event kind, from its payload ────────

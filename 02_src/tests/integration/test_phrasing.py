@@ -99,7 +99,7 @@ def test_the_readme_lists_every_sentence_the_page_adds():
     readme = (ROOT / "02_src" / "adii" / "demo" / "README.md").read_text(encoding="utf-8")
     source = (WEB / "phrasing.js").read_text(encoding="utf-8")
     for key in ("submitted", "bound_hit", "model_failure", "infrastructure_failure",
-                "notInvoked", "neverReached", "incident_received", "tool_call", "tool_result",
+                "notInvoked", "incident_received", "tool_call", "tool_result",
                 "decision_submitted", "validation_completed"):
         assert key in source, f"phrasing.js lost {key}"
         assert f"`{key}`" in readme, f"README does not list the {key} sentence"

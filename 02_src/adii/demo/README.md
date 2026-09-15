@@ -46,8 +46,8 @@ record contains them. Strike any line below and the page stops saying it.
 | `infrastructure_failure` | "Something in the runtime failed — a defect of ours, not the model's — and the run stopped without a decision." |
 | the record's `detail` | always shown beside the sentence, verbatim, so the projection never replaces the source |
 | `accepted` / `rejected` | "The validator rebuilt from frozen inputs and accepted (rejected) the repair." |
-| `notInvoked` | "No repair was proposed, so there was nothing to validate." |
-| `neverReached` | "The run ended before a decision was submitted, so the validator was never invoked." |
+| `notInvoked` | "No repair was proposed, so there was nothing to validate." — only a REPAIR carries a repair, and the record refuses a verdict without one |
+| a run with no decision | no validation section is drawn at all; "Why there is no decision" says the run ended first, which the record's own invariant establishes: it refuses a verdict without a decision |
 | `incident_received` | "The investigator received incident *id*." |
 | `tool_call` | "It asked the tool layer to run *name* with *arguments*." |
 | `tool_result` | "The tool layer answered / refused / rejected the arguments to *name*", with the row or column count, or the error, quoted |

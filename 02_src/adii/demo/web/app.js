@@ -335,7 +335,8 @@ function story(r, compact = false) {
       el("p", null, plain("not evaluated", "g-none")),
       el("p", "adii-field__hint adii-mt-sm", PHRASING.validation.notInvoked)));
   }
-  /* no decision → the validator was never reached; the ending section already says so */
+  /* no decision → no validation section: the record refuses a verdict without a decision,
+   * and "Why there is no decision" already says the run ended first */
 
   out.append(el("details", "adii-panel tech",
     el("summary", null, "Technical details: how exactly this run was executed"),
