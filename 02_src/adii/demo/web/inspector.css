@@ -1,41 +1,59 @@
 /* ADII run inspector — the page-specific rules over the design system.
    tokens.css, base.css and components.css are the identity handoff (03_assets/identity),
-   copied here by 02_src/scripts/sync_identity.py. This file adds only layout for the
-   run list, the trace and the comparison. Every value is a token; every device is one of
-   the system's three. Nothing here is a colour. */
+   copied here by 02_src/scripts/sync_identity.py. This file adds layout only. Every value
+   is a token; every device is one of the system's three. Nothing here is a colour. */
 
 .adii-masthead .adii-btn-group { margin-left: auto; }
+.adii-nav { margin-left: 0; }
+.adii-nav__sep { color: var(--adii-ink-3); padding: 0 var(--adii-space-2xs); }
 
-/* The run list: one row per archived run; the selected row is the system's selected
-   surface, and the label is a link because a link is what accent means. */
-.run {
-  display: grid;
-  gap: var(--adii-space-3xs);
-  padding: var(--adii-row-pad-y) var(--adii-space-sm);
-  border-bottom: 1px solid var(--adii-border-subtle);
-}
-.run[aria-current="true"] { background: var(--adii-surface-selected); }
-.run__label { font-size: var(--adii-text-sm); overflow-wrap: anywhere; }
-.run__outcome { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adii-space-sm); }
-.run__compare { font-size: var(--adii-text-meta); margin-left: auto; }
+/* ── the front door ───────────────────────────────────────────────── */
+.door { display: grid; gap: var(--adii-space-lg); }
+.door__lede { font-size: var(--adii-text-lede); line-height: var(--adii-leading-prose); max-width: var(--adii-measure); }
+.incidents { display: grid; gap: var(--adii-space-md); grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); }
+.incident { display: grid; gap: var(--adii-space-sm); }
+.incident__alert { max-width: var(--adii-measure); }
+.incident__facts { display: grid; gap: var(--adii-space-2xs); font-size: var(--adii-text-sm); color: var(--adii-ink-2); }
+.incident__facts b { color: var(--adii-ink-1); font-weight: var(--adii-weight-medium); }
 
-/* The trace: every event in order, each a native disclosure over its payload. */
-.trace { list-style: none; padding: 0; }
-.trace li { border-bottom: 1px solid var(--adii-border-subtle); }
-.trace__event summary {
-  display: flex; gap: var(--adii-space-sm); align-items: baseline;
-  padding: var(--adii-space-2xs) 0; cursor: pointer; list-style: none;
-  font-family: var(--adii-font-mono); font-size: var(--adii-text-meta); color: var(--adii-ink-2);
-}
-.trace__event summary::-webkit-details-marker { display: none; }
-.trace__event[open] summary { color: var(--adii-ink-1); }
-.trace__n { color: var(--adii-ink-3); font-variant-numeric: tabular-nums; flex: none; }
-.trace__kind { color: var(--adii-ink-3); flex: none; }
-.trace__head { min-width: 0; overflow-wrap: anywhere; }
-/* The status word, not a tick: OK is the contract's status, and a tick is valence. */
-.trace__status { margin-left: auto; color: var(--adii-ink-3); font-size: var(--adii-text-micro); }
-.trace__payload { margin: var(--adii-space-2xs) 0 var(--adii-space-sm); font-size: var(--adii-text-meta); }
+/* how to create a run: discoverable on every screen, never a disabled button */
+.howto { display: grid; gap: var(--adii-space-sm); }
+.howto pre { padding: var(--adii-space-sm) var(--adii-space-md); background: var(--adii-surface-2); border: 1px solid var(--adii-border-subtle); border-radius: var(--adii-radius-1); font-size: var(--adii-text-sm); white-space: pre-wrap; overflow-wrap: anywhere; }
 
-/* Two runs of one incident, side by side: each side is the whole chain over its record. */
+/* ── the incident's runs ───────────────────────────────────────────── */
+.runs { display: grid; gap: var(--adii-space-2xs); }
+.run { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--adii-space-sm); align-items: center; padding: var(--adii-row-pad-y) var(--adii-space-sm); border-bottom: 1px solid var(--adii-border-subtle); }
+.run__main { display: grid; gap: var(--adii-space-3xs); min-width: 0; }
+.run__outcome { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adii-space-sm); font-size: var(--adii-text-sm); }
+.run__when { font-size: var(--adii-text-meta); color: var(--adii-ink-3); }
+.run__open { white-space: nowrap; }
+@media (max-width: 30rem) { .run { grid-template-columns: 1fr; } }
+
+/* ── one run: the story, top to bottom ─────────────────────────────── */
+.scripted { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adii-space-sm); max-width: var(--adii-measure); }
+.story { display: grid; gap: var(--adii-space-lg); }
+.story__nav { display: flex; flex-wrap: wrap; gap: var(--adii-space-sm); align-items: center; }
+.story__nav .adii-eyebrow { margin-right: auto; }
+
+/* the investigation as steps: a sentence per event, the raw event behind a disclosure */
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--adii-space-2xs); counter-reset: step; }
+.step { display: grid; grid-template-columns: 2ch minmax(0, 1fr); gap: var(--adii-space-sm); align-items: baseline; padding: var(--adii-space-xs) 0; border-bottom: 1px solid var(--adii-border-subtle); }
+.step__n { color: var(--adii-ink-3); font-family: var(--adii-font-mono); font-size: var(--adii-text-meta); font-variant-numeric: tabular-nums; }
+.step__body { min-width: 0; display: grid; gap: var(--adii-space-2xs); }
+.step__text { max-width: var(--adii-measure); }
+.step__raw summary { cursor: pointer; font-size: var(--adii-text-meta); color: var(--adii-ink-3); list-style: none; }
+.step__raw summary::-webkit-details-marker { display: none; }
+.step__raw summary::before { content: "▸ "; }
+.step__raw[open] summary::before { content: "▾ "; }
+.step__raw pre { margin-top: var(--adii-space-2xs); padding: var(--adii-space-sm); background: var(--adii-surface-2); border: 1px solid var(--adii-border-subtle); border-radius: var(--adii-radius-1); font-size: var(--adii-text-meta); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* technical details: one disclosure, closed by default, at the end */
+.tech summary { cursor: pointer; font-weight: var(--adii-weight-strong); font-size: var(--adii-text-sm); list-style: none; }
+.tech summary::-webkit-details-marker { display: none; }
+.tech summary::before { content: "▸ "; color: var(--adii-ink-3); }
+.tech[open] summary::before { content: "▾ "; }
+.tech .adii-defs { margin-top: var(--adii-space-md); }
+
+/* two runs of one incident, side by side */
 .compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adii-space-xl); align-items: start; }
 @media (max-width: 64rem) { .compare { grid-template-columns: 1fr; } }

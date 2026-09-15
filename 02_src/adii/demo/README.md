@@ -10,18 +10,67 @@ python -m adii.demo                                                     # → ht
 
 No install. No dependencies. Standard library only.
 
-## What it renders
+## What it renders, and for whom
+
+Three screens, for someone who did not build ADII. The front door opens on the incidents:
+what ADII is, one card per incident with the alert in the operator's words, how many runs,
+and the latest outcome with exactly the authority it has — a run with no decision says so,
+and is never drawn as a failure or a success. An incident's page lists every run of it,
+newest first, each ended in its own way; nothing nominates the newest as the best. A run's
+page reads top to bottom in a fixed order: what was reported, how the run ended, what the
+investigator did, what it decided or why there is no decision, what the validator said,
+and, closed by default, the technical details. A section the record cannot fill is left
+out, never drawn empty. Two runs of one incident can be put side by side.
 
 Exactly one shape: `adii.run_record/v1`, defined in
 [../reporting/record.py](../reporting/record.py). A record in any other shape gets a
-contract-mismatch state, never a guess, and the page invents no field — if it is on screen,
-it is in the record.
+contract-mismatch state, never a guess, and the page invents no field — if it is on
+screen, it is in the record, or it is one of the sentences below.
 
-A run is drawn as a chain of records, each with a written owner: the operator's alert, the
-investigator's disposition and assertion, its proposed change, the validator's verdict. The
-coloured riser on a record only repeats the owner the text names. A run that ended without
-a decision — a model failure, a bound, an infrastructure failure — is labelled in the loop's
-own terms, achromatic, and nothing about it is coloured as a verdict.
+The page cannot start a run, because a page that can start a run can spend money. It says
+so, and it shows the command that does, on every screen.
+
+## Every sentence the page adds
+
+Everything the page says beyond quoting the record lives in `web/phrasing.js`, and each
+entry is a deterministic projection of record fields: it composes what the record states
+and adds no cause, no judgement and no guess. `test_phrasing.py` pins every entry against
+the committed records, and fails on words such as "could not" or "insufficient" unless the
+record contains them. Strike any line below and the page stops saying it.
+
+| entry | sentence, from these fields |
+|---|---|
+| `submitted` | "The investigator committed to *disposition*." |
+| `bound_hit` | "The investigator reached a bound it set after *tool_calls* tool calls and stopped without a decision." |
+| `model_failure` | "The model failed and the run stopped without a decision." |
+| `infrastructure_failure` | "Something in the runtime failed — a defect of ours, not the model's — and the run stopped without a decision." |
+| the record's `detail` | always shown beside the sentence, verbatim, so the projection never replaces the source |
+| `accepted` / `rejected` | "The validator rebuilt from frozen inputs and accepted (rejected) the repair." |
+| `notInvoked` | "No repair was proposed, so there was nothing to validate." — only a REPAIR carries a repair, and the record refuses a verdict without one |
+| a run with no decision | no validation section is drawn at all; "Why there is no decision" says the run ended first, which the record's own invariant establishes: it refuses a verdict without a decision |
+| `incident_received` | "The investigator received incident *id*." |
+| `tool_call` | "It asked the tool layer to run *name* with *arguments*." |
+| `tool_result` | "The tool layer answered / refused / rejected the arguments to *name*", with the row or column count, or the error, quoted |
+| `decision_submitted` | "The investigator committed to *disposition*." |
+| `validation_completed` | "The validator accepted (rejected) the repair." |
+| product copy | what ADII is, that the page is read-only, and the commands that create a run or the six specimens — UI text about the product, never about a particular run |
+| `scripted` | "Scripted investigator · development demonstration, not a model result" — shown on every run and counted on every incident card whose record has `configuration.model` null, so a screenshot can never pass for a model result |
+
+## Development specimens
+
+`python -m adii.examples.specimens` archives six hand-authored incidents with ten scripted
+runs — restore what is missing, remove what is duplicated, fix a wrong relationship, a
+legitimate change, evidence that cannot settle it, an action that is not ADII's to take —
+and the endings a real archive holds: a bound, a rejected repair, a failed tool, a failed
+model. They exist so the interface can be designed and tested against something that looks
+like a product. Every run goes through the real runtime over the real tool layer; every
+record is the same `adii.run_record/v1` a live run writes; every record says it was scripted.
+They carry no evaluation claim and are not the development catalogue proposed in
+[docs/development_catalog.md](../../docs/development_catalog.md), which is compiled from
+private material under a decision record. See `02_src/adii/examples/specimens.py`.
+
+Every step sentence is reversible to its event: the raw payload sits under a disclosure
+beside it, so the prose can never become a second source of truth.
 
 ## The design system
 
@@ -34,14 +83,11 @@ violet means interactive and nothing else. The rules the handoff states in prose
 here: dispositions are peers, verdict colour appears only in the validator's row, absence
 and endings are achromatic, and nothing a model wrote is ever parsed as markup.
 
-## The run list, filters and compare
+## Compare
 
-The list in the rail grows with the archive: label, incident, model, outcome, cost and when
-the record was written, newest first, each row carrying its disposition mark. Two filters
-narrow it by incident and by model. Every row of the same incident as the run on screen
-offers **compare**, which puts the two records side by side, each drawn by the same
-renderer over its own record — that is how two models get tested against each other. A
-comparison deep-links as `#label,label`.
+Every run of an incident but the latest offers "Compare with latest", which draws both
+records side by side, each by the same renderer over its own record — how two models get
+tested against each other.
 
 ## What it is not
 
@@ -79,7 +125,8 @@ GET /api/runs              one row per archived run, newest first; an unreadable
 GET /api/runs/{label}      the record, verbatim
 ```
 
-Deep-link to a run with `#label`, or to a comparison with `#label,label`.
+Routes are the URL hash: `#` the incidents, `#i/<incident>` one incident's runs,
+`#r/<label>` one run, `#r/<label>,<label>` two runs of one incident side by side.
 
 ## Verify
 

@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="/inspector.css">
 </head>
 <body>
-<a class="adii-skip" href="#view">Skip to the run</a>
+<a class="adii-skip" href="#view">Skip to content</a>
 
 <!-- Glyph sprite from the design system. Every glyph is decorative: the adjacent DOM text
      carries the meaning, so every use is aria-hidden. -->
@@ -28,7 +28,7 @@
 
 <header class="adii-masthead">
   <div class="adii-masthead__inner">
-    <span class="adii-brand">
+    <a class="adii-brand" href="#" id="brand">
       <svg viewBox="0 0 122 32" role="img" aria-label="ADII" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
         <rect x="4" y="4" width="4" height="24"/><rect x="4" y="12" width="24" height="4"/>
         <rect x="12" y="20" width="4" height="8"/><rect x="18" y="24" width="4" height="4"/>
@@ -40,7 +40,8 @@
         </g>
       </svg>
       <span class="adii-brand__tag">Run inspector</span>
-    </span>
+    </a>
+    <nav class="adii-nav" aria-label="Where you are" id="crumbs"></nav>
     <div class="adii-btn-group adii-no-print" role="group" aria-label="Display settings">
       <button class="adii-btn" type="button" id="theme-toggle" aria-pressed="true">Light theme</button>
       <button class="adii-btn" type="button" id="density-toggle" aria-pressed="true">Roomy rows</button>
@@ -49,34 +50,10 @@
 </header>
 
 <main class="adii-page">
-  <div class="adii-columns">
-    <article id="view" class="adii-stack-lg"></article>
-    <aside class="adii-stack-lg">
-      <section class="adii-panel" aria-labelledby="runs-title">
-        <div class="adii-section__head">
-          <h2 class="adii-panel__title" id="runs-title">Runs</h2>
-          <span class="adii-eyebrow" id="runcount"></span>
-        </div>
-        <div class="adii-toolbar adii-mb-md">
-          <div class="adii-field">
-            <label class="adii-field__label" for="f-incident">Incident</label>
-            <select class="adii-select" id="f-incident"></select>
-          </div>
-          <div class="adii-field">
-            <label class="adii-field__label" for="f-model">Model</label>
-            <select class="adii-select" id="f-model"></select>
-          </div>
-        </div>
-        <ol class="adii-list-plain" id="runs"></ol>
-      </section>
-      <section class="adii-panel" aria-labelledby="trace-title">
-        <h2 class="adii-panel__title" id="trace-title">Trace</h2>
-        <ol class="adii-list-plain trace" id="steps"></ol>
-      </section>
-    </aside>
-  </div>
+  <div id="view" class="adii-stack-lg"></div>
   <footer class="adii-footer" id="foot"></footer>
 </main>
+<script src="/phrasing.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>

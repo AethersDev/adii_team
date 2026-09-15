@@ -1,16 +1,18 @@
-/* ADII run inspector — the operational surface over the run archive.
+/* ADII run inspector — the read-only surface over the run archive.
  *
- * ONE renderer for every record. There is deliberately no renderRepair(), renderBoundHit()
- * or similar: the record changes, the renderer does not. It renders `adii.run_record/v1`
- * and nothing else — a record in any other shape gets the contract-mismatch state, never a
- * guess — and it invents no field: everything on the page is in the record.
+ * Three screens, one route each, all from the URL hash: the front door (#), which opens on
+ * the incidents; an incident's runs (#i/<incident>); and one run as a story (#r/<label>),
+ * or two runs of one incident side by side (#r/<label>,<label>). The hierarchy on every
+ * run page is fixed — incident, run, investigation, decision, validation, technical
+ * details — and a section the record cannot fill is left out, never drawn empty.
  *
- * The page is drawn in the identity's grammar (03_assets/identity/DESIGN_SYSTEM.md). A
- * record is a container with a written owner, and its coloured riser only repeats the
- * text. The three dispositions are chips that are peers. Verdict rows belong to the
- * validator and to nothing else. How a run ended, and everything absent, is achromatic.
- * Dark by default; violet means interactive and nothing else. Two runs of one incident can
- * be put side by side — how models get tested — each side the same renderer over its record.
+ * ONE renderer for every record. It renders `adii.run_record/v1` and nothing else — a record
+ * in any other shape gets the contract-mismatch state, never a guess — and it invents no
+ * field: everything on the page is in the record, or is one of the sentences in
+ * phrasing.js, each a deterministic projection of record fields, each tested.
+ *
+ * The page cannot start a run. A page that can start a run can spend money. It says so, and
+ * it says how a run is started, on every screen.
  *
  * No innerHTML anywhere. Every string here is model-written the day a live provider runs,
  * and a report that executes what the model wrote is inherited defect D12. Text nodes
@@ -18,18 +20,11 @@
 const SCHEMA = "adii.run_record/v1";
 const INVESTIGATOR = "ADII, the investigator";
 const VALIDATOR = "the validator, not ADII";
-const GLOSS = {
-  REPAIR: "A specific fault exists and the evidence justifies a specific fix.",
-  NO_REPAIR: "The pipeline is sound. The metric moved because the business moved.",
-  ESCALATE: "The available evidence cannot justify either call. The run completed.",
-};
-/* chip class and glyph per disposition — three peers */
 const CHIP = {
   REPAIR: ["adii-chip--repair", "g-repair"],
   NO_REPAIR: ["adii-chip--no-repair", "g-no-repair"],
   ESCALATE: ["adii-chip--escalate", "g-escalate"],
 };
-const ALL = "*";   /* the filter value that matches every run */
 
 /* ── helpers ────────────────────────────────────────────────────────── */
 const $ = (id) => document.getElementById(id);
@@ -41,18 +36,15 @@ const el = (tag, cls, ...kids) => {
   n.append(...kids);
   return n;
 };
-
-const link = (cls, text, href) => {
-  const a = el("a", cls, text);
-  a.href = href;
-  return a;
-};
+const link = (cls, text, href) => { const a = el("a", cls, text); a.href = href; return a; };
+const mono = (text) => el("span", "adii-mono", text);
+const when = (iso) => (iso ? `${iso.slice(0, 16).replace("T", " ")} UTC` : "");
 
 /* A glyph from the sprite in index.html. Decorative: the text beside it carries the meaning. */
-function glyph(id) {
+function glyph(id, cls = "adii-chip__glyph") {
   const NS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(NS, "svg");
-  svg.setAttribute("class", "adii-chip__glyph");
+  svg.setAttribute("class", cls);
   svg.setAttribute("width", "12");
   svg.setAttribute("height", "12");
   svg.setAttribute("aria-hidden", "true");
@@ -61,17 +53,22 @@ function glyph(id) {
   svg.append(use);
   return svg;
 }
-
 function chip(disposition) {
   const [cls, id] = CHIP[disposition];
   return el("span", `adii-chip ${cls}`, glyph(id), disposition);
 }
-
 /* Achromatic: how a run ended and what is absent are nobody's verdict. */
 const plain = (text, id) => el("span", "adii-state", glyph(id), text);
-const mono = (text) => el("span", "adii-mono", text);
-const cost = (usd) => `$${Number(usd).toFixed(4)}`;
-const when = (iso) => (iso ? `${iso.slice(0, 16).replace("T", " ")}Z` : "");   /* written in UTC */
+
+/* the outcome of a run-list row, with the authority it inherits and nothing more */
+function outcome(row) {
+  if (row.error) return plain("unreadable", "g-unresolved");
+  if (row.disposition) {
+    return el("span", "run__outcome", chip(row.disposition),
+      row.validation ? `${row.validation === "ACCEPT" ? "accepted" : "rejected"} by the validator` : "");
+  }
+  return plain(PHRASING.outcome[row.termination]?.() ?? row.termination, "g-unresolved");
+}
 
 async function load(url) {
   const res = await fetch(url);
@@ -87,9 +84,9 @@ function guard(target, task) {
     again.type = "button";
     again.onclick = () => guard(target, task);
     target.replaceChildren(el("div", "adii-transport",
-      el("p", "adii-transport__title", "The run did not load"),
+      el("p", "adii-transport__title", "The page did not load"),
       el("p", null, `${err.message}. This establishes that the request failed here. It does ` +
-        "not establish anything about the archive or the run."),
+        "not establish anything about the archive or any run."),
       el("p", "adii-mt-sm", again)));
   });
 }
@@ -124,276 +121,270 @@ function preferences() {
   };
   sync();
 }
-
 function remember(key, value) {
   try { localStorage.setItem(key, value); } catch (e) { /* not persisted; still applied */ }
 }
 
 /* ── state, boot and routing ────────────────────────────────────────── */
-/* The run list as /api/runs returned it, the run on screen, and the run beside it. The URL
- * hash is the route: #label, or #label,label for two runs of one incident side by side. */
-const state = { runs: [], primary: null, against: null };
+const state = { runs: [] };   /* the run list as /api/runs returned it */
 
 preferences();
 window.addEventListener("hashchange", () => guard($("view"), route));
-guard($("view"), boot);
-
-async function boot() {
-  state.runs = await load("/api/runs");
-  if (!state.runs.length) {
-    $("runcount").replaceChildren("none");
-    $("view").replaceChildren(el("div", "adii-empty",
-      el("p", "adii-empty__title", "No runs archived yet"),
-      el("p", null, "Runs are launched from the command line and appear here once archived. " +
-        "To see one now:"),
-      el("code", "adii-mono", "python -m adii.runtime --incident demo-learning-001 --provider fake")));
-    return;
-  }
-  filters();
-  runList();
-  await route();
-}
+guard($("view"), async () => { state.runs = await load("/api/runs"); await route(); });
 
 async function route() {
-  const [a, b] = location.hash.slice(1).split(",");
-  const primary = state.runs.find((r) => r.label === a) || state.runs[0];
-  const against = state.runs.find((r) => r.label === b && r.label !== primary.label
-    && !r.error && r.incident_id === primary.incident_id) || null;
-  state.primary = primary;
-  state.against = against;
-  markSelected();
-  if (primary.error) return refused("The archive could not read this record", `${primary.error}.`);
-  const first = await load(`/api/runs/${primary.label}`);
-  if (first.schema !== SCHEMA) return mismatch(first.schema);
-  if (!against) return render(first);
-  const second = await load(`/api/runs/${against.label}`);
-  if (second.schema !== SCHEMA) return mismatch(second.schema);
-  renderCompare(first, second);
-}
-
-/* ── the run list: every archived run, filtered by incident and by model ─ */
-function filters() {
-  const readable = state.runs.filter((r) => !r.error);
-  const fill = (id, key, everything, missing) => {
-    const values = [...new Set(readable.map((r) => r[key] ?? ""))];
-    $(id).replaceChildren(option(ALL, everything), ...values.map((v) => option(v, v || missing)));
-    $(id).onchange = runList;
-  };
-  fill("f-incident", "incident_id", "Every incident", "no incident");
-  fill("f-model", "model", "Every model", "no model");
-}
-
-function option(value, text) {
-  const o = el("option", null, text);
-  o.value = value;
-  return o;
-}
-
-function runList() {
-  const incident = $("f-incident").value, model = $("f-model").value;
-  const visible = state.runs.filter((r) => !r.error
-    && (incident === ALL || r.incident_id === incident)
-    && (model === ALL || (r.model ?? "") === model)
-    || r.error && incident === ALL && model === ALL);
-  $("runs").replaceChildren(...visible.map(row));
-  $("runcount").replaceChildren(`${visible.length} of ${state.runs.length}`);
-  if (state.primary) markSelected();
-}
-
-function row(r) {
-  const li = el("li", "run");
-  li.dataset.label = r.label;
-  li.append(link("run__label adii-mono", r.label, `#${r.label}`));
-  if (r.error) {
-    li.append(el("span", "run__meta adii-type-meta", `unreadable — ${r.error}`));
-    return li;
+  const hash = location.hash.slice(1);
+  const [kind, rest] = hash.includes("/") ? hash.split("/", 2) : ["", ""];
+  if (kind === "i") return incidentPage(decodeURIComponent(rest));
+  if (kind === "r") {
+    const [a, b] = rest.split(",").map(decodeURIComponent);
+    return runPage(a, b);
   }
-  const outcome = r.disposition ? chip(r.disposition) : plain(r.termination, "g-unresolved");
-  li.append(
-    el("span", "run__meta adii-type-meta",
-      `${r.incident_id} · ${r.model || "no model"} · ${cost(r.api_cost_usd)} · ${when(r.written_at)}`),
-    el("span", "run__outcome", outcome, r.validation ? mono(r.validation) : ""));
-  return li;
+  return frontDoor();
 }
 
-/* The selected row, and a compare link on every other row of the same incident. */
-function markSelected() {
-  const { primary, against } = state;
-  document.querySelectorAll("#runs .run").forEach((li) => {
-    const label = li.dataset.label;
-    const run = state.runs.find((r) => r.label === label);
-    li.setAttribute("aria-current", String(label === primary.label));
-    li.querySelector(".run__compare")?.remove();
-    if (run.error || label === primary.label || run.incident_id !== primary.incident_id) return;
-    const compare = link("run__compare", against && label === against.label
-      ? "shown beside" : "compare", `#${primary.label},${label}`);
-    compare.title = "Side by side with the run on screen";
-    li.querySelector(".run__outcome").append(compare);
-  });
+function crumbs(...items) {
+  const nav = $("crumbs");
+  nav.replaceChildren(...items.flatMap(([text, href], i) => [
+    i ? el("span", "adii-nav__sep", "/") : "",
+    href ? link("adii-nav__link", text, href) : el("span", "adii-nav__link", text)]));
 }
 
-/* ── refusals: a record this page will not interpret ────────────────── */
-function refused(title, ...why) {
-  $("steps").replaceChildren();
-  $("view").replaceChildren(el("div", "adii-callout",
-    el("p", "adii-callout__title", title),
-    el("p", null, ...why, " Nothing below is interpreted.")));
-}
-
-/* A record in a shape this page does not read. Refused, not guessed at. */
-function mismatch(schema) {
-  refused("This record is in a shape this inspector does not read",
-    "It declares ", mono(String(schema)), " and this page renders ", mono(SCHEMA), ".");
-}
-
-/* ── the single renderer ────────────────────────────────────────────── */
-function render(r) {
-  renderRail(r);
-  $("view").replaceChildren(runRecord(r), provenance(r));
-  foot(r);
-}
-
-/* Two runs of one incident. Each side is the same renderer over its own record; the rail
- * shows the trace of the run on the left and says so. */
-function renderCompare(a, b) {
-  renderRail(a);
-  $("view").replaceChildren(
-    el("div", "adii-section__head",
-      el("h2", "adii-type-h3", `Two runs of ${a.context.incident_id}, side by side`),
-      link("adii-btn adii-no-print", "Close comparison", `#${a.label}`)),
-    el("div", "compare", side(a), side(b)));
-  foot(a);
-}
-
-function side(r) {
-  return el("section", "adii-stack-lg", el("h3", "adii-mono", r.label), runRecord(r), provenance(r));
-}
-
-function foot(r) {
-  $("foot").replaceChildren("Read-only view of ", mono(r.schema),
-    " records in 01_data/runs. Runs are launched from the command line; nothing on this " +
-    "page can spend money.");
+function foot(text) {
+  $("foot").replaceChildren(text);
   window.scrollTo({ top: 0 });
+  /* The page measures itself once rendered, so a browser test can assert it never scrolls
+   * sideways at any width. Two integers on the root element; nothing else reads them.
+   * Synchronous: a headless dump under a virtual-time budget may never paint a frame. */
+  document.documentElement.dataset.measured =
+    `${document.documentElement.scrollWidth},${document.documentElement.clientWidth}`;
 }
 
-/* the trace: every event in order, each a native disclosure over its payload */
-function headline(e) {
-  const p = e.payload;
-  switch (e.kind) {
-    case "incident_received": return p.incident_id;
-    case "tool_call": case "tool_result": return p.name;
-    case "decision_submitted": return p.disposition;
-    case "validation_completed": return p.accepted ? "ACCEPT" : "REJECT";
-    default: return "";
+/* how a run is created — on every screen, never a disabled button */
+function howto() {
+  return el("section", "adii-panel howto",
+    el("h2", "adii-panel__title", "Creating a run"),
+    el("p", "adii-type-sm", PHRASING.product.readOnly),
+    el("p", "adii-type-sm", "To investigate an incident and archive the run, then see it here:"),
+    el("pre", null, `${PHRASING.product.createRun}\n${PHRASING.product.thenOpen}`),
+    el("p", "adii-type-sm", PHRASING.product.specimensWhat),
+    el("pre", null, PHRASING.product.specimens));
+}
+
+/* A run with no model was scripted. Said wherever such a run is shown, so a screenshot can
+ * never pass for a model result. Projected from one record field: configuration.model. */
+const scriptedNote = (model) => (model === null || model === undefined
+  ? el("p", "adii-field__hint scripted", plain("scripted", "g-none"), " ", PHRASING.product.scripted)
+  : "");
+
+/* ── the front door: what ADII is, and the incidents ────────────────── */
+function incidents() {
+  const byId = new Map();
+  for (const r of state.runs) {
+    if (r.error) continue;
+    if (!byId.has(r.incident_id)) byId.set(r.incident_id, []);
+    byId.get(r.incident_id).push(r);
   }
+  return byId;
 }
 
-function renderRail(r) {
-  $("trace-title").replaceChildren(state.against ? `Trace · ${r.label}` : "Trace");
-  $("steps").replaceChildren(...r.trace.map((e) => el("li", null, el("details", "trace__event",
-    el("summary", null,
-      el("span", "trace__n", String(e.sequence).padStart(2, "0")),
-      el("span", "trace__kind", e.kind),
-      el("span", "trace__head", headline(e)),
-      el("span", "trace__status", e.payload.status || "")),
-    el("pre", "adii-change__diff trace__payload", JSON.stringify(e.payload, null, 2))))));
+async function frontDoor() {
+  crumbs(["Incidents"]);
+  const cards = [];
+  const byActivity = [...incidents()].sort(([, a], [, b]) =>
+    (b[0].written_at || "").localeCompare(a[0].written_at || ""));   /* most recent activity first */
+  for (const [incident, runs] of byActivity) {
+    const latest = runs[0];                          /* the list is newest first */
+    const first = await load(`/api/runs/${latest.label}`);
+    cards.push(el("article", "adii-record adii-record--operator incident",
+      el("div", "adii-record__head",
+        el("h3", "adii-record__title", incident),
+        el("p", "adii-record__owner", "Reported by the operator")),
+      el("p", "incident__alert", first.schema === SCHEMA ? first.context.alert : "(record not readable)"),
+      el("div", "incident__facts",
+        el("span", null, el("b", null, String(runs.length)), ` recorded run${runs.length === 1 ? "" : "s"}`
+          + (runs.every((r) => r.model === null || r.model === undefined) ? ", all scripted" : "")),
+        el("span", null, "Latest: ", outcome(latest), " · ", when(latest.written_at))),
+      el("p", null, link("adii-btn", "View the investigation history", `#i/${encodeURIComponent(incident)}`))));
+  }
+  const unreadable = state.runs.filter((r) => r.error).length;
+  $("view").replaceChildren(el("div", "door",
+    el("div", null,
+      el("h1", null, "ADII"),
+      el("p", "adii-eyebrow", PHRASING.product.name),
+      el("p", "door__lede adii-mt-sm", PHRASING.product.what)),
+    el("section", null,
+      el("div", "adii-section__head", el("h2", null, "Incidents"),
+        el("span", "adii-eyebrow", cards.length
+          ? `${cards.length} incident${cards.length === 1 ? "" : "s"}, ${state.runs.length - unreadable} run${state.runs.length - unreadable === 1 ? "" : "s"}` +
+            (unreadable ? `, ${unreadable} unreadable` : "")
+          : "none archived yet")),
+      cards.length ? el("div", "incidents", ...cards)
+        : el("div", "adii-empty",
+            el("p", "adii-empty__title", "No runs archived yet"),
+            el("p", null, "An incident appears here once the runtime has investigated it and archived the run."))),
+    howto()));
+  foot("Read-only. Runs are launched from the command line; nothing on this page can spend money.");
 }
 
-/* ── records: a container with a written owner ──────────────────────── */
-function record(owner, title, ownerLine, ...kids) {
-  return el("article", `adii-record adii-record--${owner}`,
-    el("div", "adii-record__head",
-      el("h3", "adii-record__title", title),
-      el("p", "adii-record__owner", ownerLine)),
-    ...kids);
+/* ── an incident: every run of it, in time order, each in its own words ── */
+async function incidentPage(incident) {
+  const runs = incidents().get(incident);
+  if (!runs) return refused("No such incident", `Nothing in the archive is labelled ${incident}.`);
+  crumbs(["Incidents", "#"], [incident]);
+  const first = await load(`/api/runs/${runs[0].label}`);
+  $("view").replaceChildren(
+    el("article", "adii-record adii-record--operator",
+      el("div", "adii-record__head",
+        el("h1", "adii-record__title", incident),
+        el("p", "adii-record__owner", "Reported by the operator")),
+      el("p", "adii-claim__label", "What was reported"),
+      el("p", "adii-measure", first.schema === SCHEMA ? first.context.alert : "(record not readable)")),
+    el("section", null,
+      el("div", "adii-section__head", el("h2", null, "Runs"),
+        el("span", "adii-eyebrow", `${runs.length}, newest first · each ended in its own way`)),
+      el("div", "runs", ...runs.map((r) => el("div", "run",
+        el("div", "run__main",
+          el("span", "adii-mono adii-type-sm", r.label),
+          el("span", "run__when", `${when(r.written_at)} · ${r.provider ?? "provider not recorded"} · ${r.model ?? "no model"}`),
+          outcome(r)),
+        el("div", "run__open",
+          link("adii-btn", "Open", `#r/${encodeURIComponent(r.label)}`),
+          " ",
+          runs.length > 1 && r !== runs[0] ? link("adii-btn", "Compare with latest",
+            `#r/${encodeURIComponent(runs[0].label)},${encodeURIComponent(r.label)}`) : ""))))),
+    howto());
+  foot("Read-only. Runs are launched from the command line; nothing on this page can spend money.");
 }
 
-const meta = (...pairs) => el("div", "adii-record__meta", ...pairs.map(([k, v]) =>
-  el("span", null, `${k} `, el("span", "adii-record__meta-value", v))));
+/* ── one run, as a story; or two of one incident, side by side ──────── */
+async function runPage(label, against) {
+  const row = state.runs.find((r) => r.label === label);
+  if (!row) return refused("No such run", `Nothing in the archive is labelled ${label}.`);
+  if (row.error) return refused("The archive could not read this record", `${row.error}.`);
+  const a = await load(`/api/runs/${label}`);
+  if (a.schema !== SCHEMA) return mismatch(a.schema);
+  const other = against && state.runs.find((r) => r.label === against && !r.error
+    && r.incident_id === row.incident_id);
+  crumbs(["Incidents", "#"], [a.context.incident_id, `#i/${encodeURIComponent(a.context.incident_id)}`],
+    [other ? "Two runs, side by side" : label]);
+  if (!other) {
+    $("view").replaceChildren(story(a), howto());
+  } else {
+    const b = await load(`/api/runs/${against}`);
+    if (b.schema !== SCHEMA) return mismatch(b.schema);
+    $("view").replaceChildren(
+      el("div", "story__nav",
+        el("span", "adii-eyebrow", `Two runs of ${a.context.incident_id}, side by side`),
+        link("adii-btn", "Close comparison", `#r/${encodeURIComponent(label)}`)),
+      el("div", "compare", story(a, true), story(b, true)));
+  }
+  foot(`Read-only view of an ${SCHEMA} record. Runs are launched from the command line; nothing on this page can spend money.`);
+}
 
-const defs = (...pairs) => el("dl", "adii-defs", ...pairs.flatMap(([k, v]) =>
-  [el("dt", null, k), el("dd", null, mono(v))]));
-
-/* ── the run record — only what the runtime archived ─────────────────── */
-function runRecord(r) {
+/* The hierarchy is fixed: incident, run, investigation, decision (or why there is none),
+ * validation, technical details. A section the record cannot fill is left out. */
+function story(r, compact = false) {
   const c = r.context, d = r.decision, cfg = r.configuration;
   const ran = `${cfg.provider ?? "provider not recorded"} · ${cfg.model ?? "no model"}`;
-  const out = el("div", "adii-stack-lg");
+  const out = el("div", "story");
 
-  out.append(record("operator", c.incident_id, `Reported by the operator. Received by ${INVESTIGATOR}.`,
-    el("p", "adii-claim__label", "Alert"),
+  out.append(scriptedNote(cfg.model));
+  out.append(record("operator", compact ? r.label : c.incident_id,
+    compact ? `Run of ${c.incident_id}` : "Reported by the operator",
+    el("p", "adii-claim__label", "What was reported"),
     el("p", "adii-measure", c.alert),
     meta(["As of", c.as_of],
          ["May write", c.permitted_write_paths.length ? c.permitted_write_paths.join(", ") : "nothing"])));
 
+  out.append(record("system", "How the run ended", `Reported by ${r.termination === "infrastructure_failure" ? "the runtime" : INVESTIGATOR} · ${ran}`,
+    el("p", "adii-measure", PHRASING.ended[r.termination]?.(r) ?? r.termination),
+    el("p", "adii-field__hint adii-mt-2xs", "In the record's words: ", mono(r.detail))));
+
+  out.append(record("system", "What the investigator did", `Recorded by the runtime as it happened · ${r.trace.length} step${r.trace.length === 1 ? "" : "s"}`,
+    el("ol", "steps", ...r.trace.map((e) => el("li", "step",
+      el("span", "step__n", String(e.sequence + 1)),
+      el("div", "step__body",
+        el("p", "step__text", PHRASING.step[e.kind]?.(e.payload) ?? `${e.kind}`),
+        el("details", "step__raw", el("summary", null, `raw event · ${e.kind}`),
+          el("pre", null, JSON.stringify(e.payload, null, 2)))))))));
+
   if (d) {
-    out.append(record("system", "Disposition", `Asserted by ${INVESTIGATOR} · ${ran}`,
+    out.append(record("system", "What it decided", `Asserted by ${INVESTIGATOR}`,
       el("p", null, chip(d.disposition)),
-      el("p", "adii-field__hint adii-measure-narrow adii-mt-2xs", GLOSS[d.disposition]),
-      el("p", "adii-claim__label adii-mt-md", "Assertion"),
+      el("p", "adii-field__hint adii-measure-narrow adii-mt-2xs", PHRASING.disposition[d.disposition]),
+      el("p", "adii-claim__label adii-mt-md", "In its own words"),
       el("p", "adii-assertion", d.root_cause_summary),
       d.root_cause_id ? meta(["Root cause", d.root_cause_id]) : ""));
+    if (d.repair_id) {
+      out.append(record("system", "The change it proposed", `Proposed by ${INVESTIGATOR}. Not applied by anyone.`,
+        defs(["Repair", d.repair_id]),
+        ...Object.entries(d.patch).flatMap(([path, body]) => [
+          el("p", "adii-claim__label adii-mt-md", path),
+          el("div", "adii-change__diff", ...body.replace(/\n$/, "").split("\n").map((line) =>
+            el("span", "adii-diff__line", el("span", "adii-diff__marker", " "), line, "\n")))])));
+    }
   } else {
-    const by = r.termination === "infrastructure_failure" ? "the runtime" : INVESTIGATOR;
-    out.append(record("system", "Run ended", `Reported by ${by} · ${ran}`,
-      el("p", null, plain(r.termination, "g-unresolved")),
-      el("p", "adii-measure adii-mt-sm", r.detail),
-      el("p", "adii-field__hint adii-mt-sm", "No decision was submitted.")));
-  }
-
-  if (d && d.repair_id) {
-    out.append(record("system", "Proposed change", `Proposed by ${INVESTIGATOR}. Not applied.`,
-      defs(["Repair", d.repair_id]),
-      ...Object.entries(d.patch).flatMap(([path, body]) => [
-        el("p", "adii-claim__label adii-mt-md", path),
-        el("div", "adii-change__diff", ...body.replace(/\n$/, "").split("\n").map((line) =>
-          el("span", "adii-diff__line", el("span", "adii-diff__marker", " "), line, "\n")))])));
+    out.append(record("system", "Why there is no decision", `Reported by ${INVESTIGATOR}`,
+      el("p", "adii-measure", "The run ended before the investigator committed to a disposition, " +
+        "so there is no decision to show and nothing was proposed.")));
   }
 
   if (r.validation) {
-    const v = r.validation;
-    const verdict = v.accepted ? "ACCEPT" : "REJECT";
-    out.append(record("validator", "Independent validation", `Asserted by ${VALIDATOR}.`,
-      el("div", "adii-verdicts", el("div", `adii-check adii-check--${v.accepted ? "pass" : "fail"}`,
-        checkMark(v.accepted ? "g-pass" : "g-fail"),
+    const v = r.validation, verdict = v.accepted ? "ACCEPT" : "REJECT";
+    out.append(record("validator", "What the validator said", `Asserted by ${VALIDATOR}`,
+      el("p", "adii-measure", v.accepted ? PHRASING.validation.accepted : PHRASING.validation.rejected),
+      el("div", "adii-verdicts adii-mt-md", el("div", `adii-check adii-check--${v.accepted ? "pass" : "fail"}`,
+        glyph(v.accepted ? "g-pass" : "g-fail", "adii-check__mark"),
         el("p", "adii-check__body",
           el("span", "adii-check__name", "candidate repair"), " ",
           el("span", "adii-check__verdict", verdict), " ",
           el("span", "adii-check__note", v.report)))),
       el("p", "adii-claim__label adii-mt-md", "Checks run"),
       el("ul", "adii-inline-list", ...v.checks_run.map((check) => el("li", null, mono(check))))));
-  } else {
-    out.append(record("validator", "Independent validation", `Held by ${VALIDATOR}.`,
+  } else if (d) {
+    out.append(record("validator", "Validation", `Held by ${VALIDATOR}`,
       el("p", null, plain("not evaluated", "g-none")),
-      el("p", "adii-field__hint adii-mt-sm", d
-        ? "No repair was proposed, so there is nothing to validate."
-        : "The run ended before a decision was submitted.")));
+      el("p", "adii-field__hint adii-mt-sm", PHRASING.validation.notInvoked)));
   }
+  /* no decision → no validation section: the record refuses a verdict without a decision,
+   * and "Why there is no decision" already says the run ended first */
+
+  out.append(el("details", "adii-panel tech",
+    el("summary", null, "Technical details: how exactly this run was executed"),
+    defs(["schema", r.schema], ["label", r.label], ["termination", r.termination],
+         ["detail", r.detail],
+         ...flat("", r.provenance), ...flat("configuration", r.configuration), ...flat("", r.counters))));
   return out;
 }
 
-function checkMark(id) {
-  const mark = glyph(id);
-  mark.setAttribute("class", "adii-check__mark");
-  return mark;
+/* ── refusals: something this page will not interpret ───────────────── */
+function refused(title, why) {
+  crumbs(["Incidents", "#"]);
+  $("view").replaceChildren(el("div", "adii-callout",
+    el("p", "adii-callout__title", title),
+    el("p", null, `${why} Nothing below is interpreted.`)),
+    el("p", "adii-mt-md", link("adii-btn", "Back to the incidents", "#")));
+}
+function mismatch(schema) {
+  refused("This record is in a shape this inspector does not read",
+    `It declares ${schema} and this page renders ${SCHEMA}.`);
 }
 
-/* What the archive knows about the run itself: identity, how it ended, what it cost, what
- * it ran under, and where the record came from. Counters are telemetry's, from the trace.
- * Nested configuration — requested and effective, one day — flattens to dotted keys. */
+/* ── records: a container with a written owner ──────────────────────── */
+function record(owner, title, ownerLine, ...kids) {
+  return el("article", `adii-record adii-record--${owner}`,
+    el("div", "adii-record__head",
+      el("h2", "adii-record__title", title),
+      el("p", "adii-record__owner", ownerLine)),
+    ...kids);
+}
+const meta = (...pairs) => el("div", "adii-record__meta", ...pairs.map(([k, v]) =>
+  el("span", null, `${k} `, el("span", "adii-record__meta-value", v))));
+const defs = (...pairs) => el("dl", "adii-defs", ...pairs.flatMap(([k, v]) =>
+  [el("dt", null, k), el("dd", null, mono(v))]));
 const flat = (prefix, value) => Object.entries(value ?? {}).flatMap(([k, v]) => {
   const key = prefix ? `${prefix}.${k}` : k;
   if (v && typeof v === "object" && !Array.isArray(v)) return flat(key, v);
   return [[key, v === null ? "null" : Array.isArray(v) ? v.join(", ") : String(v)]];
 });
-
-function provenance(r) {
-  const rows = [
-    ["schema", r.schema], ["label", r.label], ["termination", r.termination],
-    ["detail", r.detail],
-    ...flat("", r.provenance), ...flat("configuration", r.configuration), ...flat("", r.counters),
-  ];
-  return el("section", "adii-panel",
-    el("h2", "adii-panel__title", "Provenance, configuration and cost"),
-    defs(...rows));
-}
