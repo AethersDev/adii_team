@@ -1,0 +1,15 @@
+{
+  "schema_version": "1",
+  "answer_key_filename": "demo-learning-001.answer.json",
+  "answer_key_digest": "a7d195fabc284661ff41bb5f2d57d2c74db019a8f68815f3e403048e814eb4fc",
+  "required_tool_calls": [
+    {
+      "tool": "get_schema",
+      "argument_contains": "stg_orders"
+    },
+    {
+      "tool": "run_sql",
+      "argument_contains": "amount_cents"
+    }
+  ]
+}
