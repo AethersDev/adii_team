@@ -20,7 +20,12 @@ const PHRASING = {
     readOnly: "This inspector is read-only. It shows runs the runtime archived and can start " +
       "none: a page that can start a run can spend money.",
     createRun: "python -m adii.runtime --incident demo-learning-001 --provider fake",
+    specimens: "python -m adii.examples.specimens",
+    specimensWhat: "Six development incidents with scripted example runs — made up, no model, " +
+      "no evaluation claim:",
     thenOpen: "python -m adii.demo",
+    /* shown wherever a record's model is null: a scripted run, never a model result */
+    scripted: "Scripted investigator · development demonstration, not a model result",
   },
 
   /* ── dispositions: the contract's own definitions ─────────────────── */

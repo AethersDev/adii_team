@@ -166,8 +166,16 @@ function howto() {
     el("h2", "adii-panel__title", "Creating a run"),
     el("p", "adii-type-sm", PHRASING.product.readOnly),
     el("p", "adii-type-sm", "To investigate an incident and archive the run, then see it here:"),
-    el("pre", null, `${PHRASING.product.createRun}\n${PHRASING.product.thenOpen}`));
+    el("pre", null, `${PHRASING.product.createRun}\n${PHRASING.product.thenOpen}`),
+    el("p", "adii-type-sm", PHRASING.product.specimensWhat),
+    el("pre", null, PHRASING.product.specimens));
 }
+
+/* A run with no model was scripted. Said wherever such a run is shown, so a screenshot can
+ * never pass for a model result. Projected from one record field: configuration.model. */
+const scriptedNote = (model) => (model === null || model === undefined
+  ? el("p", "adii-field__hint scripted", plain("scripted", "g-none"), " ", PHRASING.product.scripted)
+  : "");
 
 /* ── the front door: what ADII is, and the incidents ────────────────── */
 function incidents() {
@@ -183,7 +191,9 @@ function incidents() {
 async function frontDoor() {
   crumbs(["Incidents"]);
   const cards = [];
-  for (const [incident, runs] of incidents()) {
+  const byActivity = [...incidents()].sort(([, a], [, b]) =>
+    (b[0].written_at || "").localeCompare(a[0].written_at || ""));   /* most recent activity first */
+  for (const [incident, runs] of byActivity) {
     const latest = runs[0];                          /* the list is newest first */
     const first = await load(`/api/runs/${latest.label}`);
     cards.push(el("article", "adii-record adii-record--operator incident",
@@ -192,7 +202,8 @@ async function frontDoor() {
         el("p", "adii-record__owner", "Reported by the operator")),
       el("p", "incident__alert", first.schema === SCHEMA ? first.context.alert : "(record not readable)"),
       el("div", "incident__facts",
-        el("span", null, el("b", null, String(runs.length)), ` recorded run${runs.length === 1 ? "" : "s"}`),
+        el("span", null, el("b", null, String(runs.length)), ` recorded run${runs.length === 1 ? "" : "s"}`
+          + (runs.every((r) => r.model === null || r.model === undefined) ? ", all scripted" : "")),
         el("span", null, "Latest: ", outcome(latest), " · ", when(latest.written_at))),
       el("p", null, link("adii-btn", "View the investigation history", `#i/${encodeURIComponent(incident)}`))));
   }
@@ -278,6 +289,7 @@ function story(r, compact = false) {
   const ran = `${cfg.provider ?? "provider not recorded"} · ${cfg.model ?? "no model"}`;
   const out = el("div", "story");
 
+  out.append(scriptedNote(cfg.model));
   out.append(record("operator", compact ? r.label : c.incident_id,
     compact ? `Run of ${c.incident_id}` : "Reported by the operator",
     el("p", "adii-claim__label", "What was reported"),

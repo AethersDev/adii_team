@@ -30,6 +30,7 @@
 @media (max-width: 30rem) { .run { grid-template-columns: 1fr; } }
 
 /* ── one run: the story, top to bottom ─────────────────────────────── */
+.scripted { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adii-space-sm); max-width: var(--adii-measure); }
 .story { display: grid; gap: var(--adii-space-lg); }
 .story__nav { display: flex; flex-wrap: wrap; gap: var(--adii-space-sm); align-items: center; }
 .story__nav .adii-eyebrow { margin-right: auto; }

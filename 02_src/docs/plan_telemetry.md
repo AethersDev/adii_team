@@ -205,6 +205,12 @@ git history, so "reserve first" is true in the execution graph and not only in p
 - **Screenshots** of real runs into `03_assets/screenshots/` for the presentation.
 - **Housekeeping** that only D notices: GitHub handles in `CODEOWNERS`, the generated docs
   staying generated, `current_status.md` regenerated with every package that grows.
+- **Frontend specimens**, 15 Sep: `python -m adii.examples.specimens` archives six
+  hand-authored development incidents with ten scripted runs, produced through the real
+  runtime and B's tools, every record marked scripted with no model and no evaluation
+  claim. They exist so the inspector is designed against a portfolio, not one fixture.
+  They are not the development catalogue ([development_catalog.md](development_catalog.md))
+  and are replaced or supplemented by it once its rows resolve.
 - **The identity and design system** lives in `03_assets/identity/`, delivered as an
   archive only — a loose SVG from a chat arrives stamped with a content credential and
   files go missing. The inspector's stylesheet is a synced copy; the specimens there are

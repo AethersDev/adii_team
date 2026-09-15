@@ -93,6 +93,15 @@ def test_no_projection_asserts_a_cause_the_record_does_not_state(name):
     assert not hits, f"a projection asserts a cause the record does not state: {hits}"
 
 
+def test_a_run_without_a_model_is_always_marked_scripted():
+    """Projected from one field, configuration.model, so no screenshot of a scripted run
+    can pass for a model result."""
+    expected = "Scripted investigator · development demonstration, not a model result"
+    assert phrase("product", "scripted", {}) == expected
+    source = (WEB / "app.js").read_text(encoding="utf-8")
+    assert "scriptedNote(cfg.model)" in source, "the run page does not show the scripted note"
+
+
 def test_the_readme_lists_every_sentence_the_page_adds():
     """The dictionary is reviewable because the README names every entry. A new entry
     without a README line is a sentence the team never saw."""
@@ -100,6 +109,6 @@ def test_the_readme_lists_every_sentence_the_page_adds():
     source = (WEB / "phrasing.js").read_text(encoding="utf-8")
     for key in ("submitted", "bound_hit", "model_failure", "infrastructure_failure",
                 "notInvoked", "incident_received", "tool_call", "tool_result",
-                "decision_submitted", "validation_completed"):
+                "decision_submitted", "validation_completed", "scripted"):
         assert key in source, f"phrasing.js lost {key}"
         assert f"`{key}`" in readme, f"README does not list the {key} sentence"

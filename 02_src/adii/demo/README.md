@@ -53,7 +53,21 @@ record contains them. Strike any line below and the page stops saying it.
 | `tool_result` | "The tool layer answered / refused / rejected the arguments to *name*", with the row or column count, or the error, quoted |
 | `decision_submitted` | "The investigator committed to *disposition*." |
 | `validation_completed` | "The validator accepted (rejected) the repair." |
-| product copy | what ADII is, that the page is read-only, and the command that creates a run — UI text about the product, never about a particular run |
+| product copy | what ADII is, that the page is read-only, and the commands that create a run or the six specimens — UI text about the product, never about a particular run |
+| `scripted` | "Scripted investigator · development demonstration, not a model result" — shown on every run and counted on every incident card whose record has `configuration.model` null, so a screenshot can never pass for a model result |
+
+## Development specimens
+
+`python -m adii.examples.specimens` archives six hand-authored incidents with ten scripted
+runs — restore what is missing, remove what is duplicated, fix a wrong relationship, a
+legitimate change, evidence that cannot settle it, an action that is not ADII's to take —
+and the endings a real archive holds: a bound, a rejected repair, a failed tool, a failed
+model. They exist so the interface can be designed and tested against something that looks
+like a product. Every run goes through the real runtime over the real tool layer; every
+record is the same `adii.run_record/v1` a live run writes; every record says it was scripted.
+They carry no evaluation claim and are not the development catalogue proposed in
+[docs/development_catalog.md](../../docs/development_catalog.md), which is compiled from
+private material under a decision record. See `02_src/adii/examples/specimens.py`.
 
 Every step sentence is reversible to its event: the raw payload sits under a disclosure
 beside it, so the prose can never become a second source of truth.
