@@ -33,6 +33,9 @@ EXECUTES = ("innerHTML", "outerHTML", "insertAdjacentHTML", "document.write", "s
             "eval(", "new Function", "createContextualFragment")
 
 
+SCRIPTS = ("app.js", "phrasing.js")
+
+
 def code(script: str) -> str:
     """The script without its block comments, which are allowed to name what they forbid."""
     return re.sub(r"/\*.*?\*/", "", (WEB / script).read_text(encoding="utf-8"), flags=re.S)
@@ -81,9 +84,9 @@ def test_the_view_layer_never_executes_what_it_renders():
     """The day a live provider runs, every string in a record is model-written, and a
     report that executes what the model wrote is inherited defect D12. Text nodes cannot
     execute; every name in EXECUTES can."""
-    script = code("app.js")
-    used = [name for name in EXECUTES if name in script]
-    assert not used, f"app.js turns strings into markup or code with {used}"
+    for name in SCRIPTS:
+        used = [door for door in EXECUTES if door in code(name)]
+        assert not used, f"{name} turns strings into markup or code with {used}"
 
 
 def test_a_dead_backend_is_a_rendered_state_not_a_blank_page():
@@ -92,6 +95,7 @@ def test_a_dead_backend_is_a_rendered_state_not_a_blank_page():
     guard() renders the transport-failure state."""
     text = code("app.js")
     assert text.count("fetch(") == 1, "app.js calls fetch outside load(); go through load()"
+    assert "fetch(" not in code("phrasing.js"), "phrasing.js is a dictionary; it fetches nothing"
     assert "guard(" in text, "app.js boots without guard(); a failed load renders nothing"
     assert "adii-transport" in text, "a dead backend must render as a retrieval failure"
 
@@ -109,3 +113,15 @@ def test_absence_and_endings_are_achromatic_and_verdicts_are_the_validators():
     script = code("app.js")
     assert "adii-state" in script and "g-unresolved" in script
     assert script.count("adii-check--") == 1, "verdict rows outside the validator's record"
+
+
+def test_every_sentence_the_page_adds_comes_from_the_dictionary():
+    """app.js may quote the record and lay it out. The sentences it adds — how a run ended,
+    what a step did, what ADII is — come from phrasing.js, one reviewable place. A prose
+    sentence assembled in app.js is a sentence the team never saw in the dictionary."""
+    script = code("app.js")
+    for key in ("PHRASING.ended", "PHRASING.step", "PHRASING.outcome", "PHRASING.product",
+                "PHRASING.validation", "PHRASING.disposition"):
+        assert key in script, f"app.js does not read {key}"
+    assert "The investigator reached" not in script and "The model failed" not in script, (
+        "an ending sentence is written in app.js instead of phrasing.js")
