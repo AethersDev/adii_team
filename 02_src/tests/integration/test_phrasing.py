@@ -22,8 +22,11 @@ RECORDS = {
     "model": WALKTHROUGH / "endings" / "model-failure" / "record.json",
     "infra": WALKTHROUGH / "endings" / "infrastructure-failure" / "record.json",
 }
-# Words that assert a cause the record does not state. None may appear in a projection.
-FORBIDDEN = ("could not", "couldn't", "insufficient", "stuck", "gave up", "unable", "confused")
+# Words that assert a cause the record does not state, or that link the steps to the
+# decision as if one followed from the other — a scripted investigator conditions on
+# nothing, so the page may only say what happened, then what was submitted.
+FORBIDDEN = ("could not", "couldn't", "insufficient", "stuck", "gave up", "unable", "confused",
+             "because", "therefore", "based on", "concluded", "evidence showed", "so it decided")
 
 
 def node() -> str:
@@ -39,8 +42,10 @@ def phrase(kind: str, key: str, record: dict) -> str:
               f"const r = {json.dumps(record)};\n"
               f"const f = PHRASING[{kind!r}][{key!r}];\n"
               "process.stdout.write(typeof f === 'function' ? f(r) : f);")
+    # UTF-8 on both ends: the projections carry an em dash and a middle dot, and Windows
+    # would otherwise decode node's output as cp1252.
     return subprocess.run([node(), "-e", script], capture_output=True, text=True,
-                          check=True, timeout=30).stdout
+                          encoding="utf-8", check=True, timeout=30).stdout
 
 
 def load(name: str) -> dict:

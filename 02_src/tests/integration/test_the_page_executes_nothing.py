@@ -120,7 +120,10 @@ HARNESS = """<!doctype html><meta charset="utf-8"><title>harness</title><body>
 // can see them. Test scaffolding; never shipped.
 const q = new URLSearchParams(location.search);
 const frame = document.createElement("iframe");
-frame.width = q.get("w"); frame.height = "2400"; frame.style.border = "0";
+// Tall enough that the inner document never scrolls, and scrolling off besides: an inner
+// scrollbar takes 17px of width on Windows and would make the measured width a lie.
+frame.width = q.get("w"); frame.height = "12000"; frame.style.border = "0";
+frame.setAttribute("scrolling", "no");
 frame.src = "/#" + q.get("route");
 document.body.append(frame);
 const poll = setInterval(() => {
