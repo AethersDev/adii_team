@@ -113,7 +113,11 @@ def build_judge_prompt(decision: dict, validation: dict, answer_key: dict) -> st
     _require_fields(decision, REQUIRED_DECISION_FIELDS, "decision")
     _require_fields(validation, REQUIRED_VALIDATION_FIELDS, "validation")
     _require_fields(answer_key, REQUIRED_ANSWER_KEY_FIELDS, "answer_key")
-    _require_fields(answer_key["repair_must_satisfy"], REQUIRED_REPAIR_RULE_FIELDS, "answer_key['repair_must_satisfy']")
+    _require_fields(
+        answer_key["repair_must_satisfy"],
+        REQUIRED_REPAIR_RULE_FIELDS,
+        "answer_key['repair_must_satisfy']",
+    )
 
     repair_rules = answer_key["repair_must_satisfy"]
     repair_requirements = "\n".join(
@@ -163,9 +167,13 @@ def parse_judge_reply(reply: str) -> tuple[str, str]:
     # followed by whitespace or punctuation, not more letters — otherwise
     # "Correctish" or "Incorrectly-worded, actually correct" silently
     # parses as a clean verdict instead of failing loudly.
-    if lowered == "correct" or lowered.startswith(("correct ", "correct,", "correct.", "correct:", "correct-", "correct—")):
+    if lowered == "correct" or lowered.startswith(
+        ("correct ", "correct,", "correct.", "correct:", "correct-", "correct—")
+    ):
         verdict = "correct"
-    elif lowered == "incorrect" or lowered.startswith(("incorrect ", "incorrect,", "incorrect.", "incorrect:", "incorrect-", "incorrect—")):
+    elif lowered == "incorrect" or lowered.startswith(
+        ("incorrect ", "incorrect,", "incorrect.", "incorrect:", "incorrect-", "incorrect—")
+    ):
         verdict = "incorrect"
     else:
         raise ValueError(f"judge reply did not start with a clean verdict: {text!r}")
@@ -174,7 +182,9 @@ def parse_judge_reply(reply: str) -> tuple[str, str]:
     return verdict, reasoning
 
 
-def judge_repair(decision: dict, validation: dict, answer_key: dict, provider: JudgeProvider) -> dict:
+def judge_repair(
+    decision: dict, validation: dict, answer_key: dict, provider: JudgeProvider
+) -> dict:
     """Run the full judge step: build the prompt, call the provider, parse the reply.
 
     Returns {"verdict": "correct"|"incorrect", "reasoning": str, "prompt": str} —

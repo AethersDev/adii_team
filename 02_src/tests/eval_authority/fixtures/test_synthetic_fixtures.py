@@ -10,7 +10,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from adii.evaluation.scoring import score_decision
 
 HERE = Path(__file__).resolve().parents[3] / "adii" / "evaluation" / "fixtures"

@@ -13,10 +13,12 @@ Uses tmp_path throughout — never touches the real answer key files.
 import json
 
 import pytest
-
 from adii.evaluation.freeze import freeze_answer_key
 from adii.evaluation.grounding import build_grounding_key
-from adii.evaluation.receipt_artefacts import get_receipt_artefact, get_receipt_artefact_with_grounding
+from adii.evaluation.receipt_artefacts import (
+    get_receipt_artefact,
+    get_receipt_artefact_with_grounding,
+)
 
 ANSWER_KEY = {"schema_version": "1", "incident_id": "t-1", "correct_disposition": "REPAIR"}
 
@@ -47,7 +49,9 @@ class TestGetReceiptArtefact:
         # if it were still the frozen one.
         answer_key_path = write_answer_key(tmp_path)
         freeze_answer_key(answer_key_path)
-        answer_key_path.write_text(json.dumps(dict(ANSWER_KEY, correct_disposition="ESCALATE")), encoding="utf-8")
+        answer_key_path.write_text(
+            json.dumps(dict(ANSWER_KEY, correct_disposition="ESCALATE")), encoding="utf-8"
+        )
 
         with pytest.raises(ValueError, match="changed since it was frozen"):
             get_receipt_artefact(answer_key_path)
@@ -73,7 +77,9 @@ class TestGetReceiptArtefactWithGrounding:
     def test_bound_pair_produces_two_entries(self, tmp_path):
         answer_key_path = write_answer_key(tmp_path)
         freeze_answer_key(answer_key_path)
-        grounding = build_grounding_key(answer_key_path, [{"tool": "run_sql", "argument_contains": "x"}])
+        grounding = build_grounding_key(
+            answer_key_path, [{"tool": "run_sql", "argument_contains": "x"}]
+        )
         grounding_path = tmp_path / "incident.grounding.json"
         grounding_path.write_text(json.dumps(grounding), encoding="utf-8")
 
@@ -107,7 +113,9 @@ class TestGetReceiptArtefactWithGrounding:
         grounding_path.write_text(json.dumps(grounding), encoding="utf-8")
 
         (tmp_path / "incident.answer.json.sha256").unlink()
-        answer_key_path.write_text(json.dumps(dict(ANSWER_KEY, correct_disposition="NO_REPAIR")), encoding="utf-8")
+        answer_key_path.write_text(
+            json.dumps(dict(ANSWER_KEY, correct_disposition="NO_REPAIR")), encoding="utf-8"
+        )
         freeze_answer_key(answer_key_path)  # re-frozen at a new digest
 
         with pytest.raises(ValueError, match="changed since this grounding key was authored"):

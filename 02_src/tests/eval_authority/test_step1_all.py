@@ -12,7 +12,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from adii.evaluation.judge import build_judge_prompt, judge_repair, parse_judge_reply
 from adii.evaluation.scoring import (
     decide_route,
@@ -85,11 +84,17 @@ class TestRepairValidationGate:
 
     def test_accepted_repair_passes(self, key_drill):
         case = key_drill["test_fixtures"]["case_plausible_alternative"]
-        assert score_repair_validation(case["decision"]["disposition"], case["validation"]) == "correct"
+        assert (
+            score_repair_validation(case["decision"]["disposition"], case["validation"])
+            == "correct"
+        )
 
     def test_rejected_repair_fails_despite_correct_root_cause(self, key_drill):
         case = key_drill["test_fixtures"]["case_real_error"]
-        assert score_repair_validation(case["decision"]["disposition"], case["validation"]) == "incorrect"
+        assert (
+            score_repair_validation(case["decision"]["disposition"], case["validation"])
+            == "incorrect"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -182,7 +187,9 @@ class TestScoreDecisionWholeStep:
         def judge_that_must_not_run(decision, validation, answer_key):
             raise AssertionError("a rejected validation must settle before the judge is asked")
 
-        result = score_decision(case["decision"], case["validation"], key_drill, judge=judge_that_must_not_run)
+        result = score_decision(
+            case["decision"], case["validation"], key_drill, judge=judge_that_must_not_run
+        )
         assert result["verdict"] == "incorrect"
         assert result["settled_by"] == "deterministic"
 
@@ -219,9 +226,15 @@ def test_step1_acceptance_all_three_cases_get_the_right_final_verdict(key_001, k
     real_error = key_drill["test_fixtures"]["case_real_error"]
 
     results = {
-        "exact_match": score_decision(exact_match_decision, exact_match_validation, key_001, judge=real_judge),
-        "plausible_alternative": score_decision(plausible["decision"], plausible["validation"], key_drill, judge=real_judge),
-        "real_error": score_decision(real_error["decision"], real_error["validation"], key_drill, judge=real_judge),
+        "exact_match": score_decision(
+            exact_match_decision, exact_match_validation, key_001, judge=real_judge
+        ),
+        "plausible_alternative": score_decision(
+            plausible["decision"], plausible["validation"], key_drill, judge=real_judge
+        ),
+        "real_error": score_decision(
+            real_error["decision"], real_error["validation"], key_drill, judge=real_judge
+        ),
     }
 
     assert results["exact_match"]["verdict"] == "correct"

@@ -12,7 +12,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from adii.evaluation.judge import judge_repair
 from adii.evaluation.scoring import score_decision
 from adii.evaluation.validation_wiring import (
@@ -120,7 +119,9 @@ class TestStep2Wiring:
             "repair_id": key_001["repair_must_satisfy"]["reference_repair_id"],
             "patch": {"transforms/stg_orders.sql": "amount_cents / 100.0 AS amount_usd"},
         }
-        validation = get_validation_for(decision, fake_validator_accepts_everything_structurally_sound)
+        validation = get_validation_for(
+            decision, fake_validator_accepts_everything_structurally_sound
+        )
 
         result = score_decision(decision, validation, key_001, judge=real_judge)
         assert result["verdict"] == "correct"
@@ -128,20 +129,28 @@ class TestStep2Wiring:
 
     def test_real_error_is_rejected_by_the_validator_before_the_judge_is_needed(self, key_drill):
         case = key_drill["test_fixtures"]["case_real_error"]
-        validation = get_validation_for(case["decision"], fake_validator_accepts_everything_structurally_sound)
+        validation = get_validation_for(
+            case["decision"], fake_validator_accepts_everything_structurally_sound
+        )
 
         assert validation["accepted"] is False
 
         def judge_that_must_not_run(decision, validation, answer_key):
             raise AssertionError("a validator rejection must settle the case first")
 
-        result = score_decision(case["decision"], validation, key_drill, judge=judge_that_must_not_run)
+        result = score_decision(
+            case["decision"], validation, key_drill, judge=judge_that_must_not_run
+        )
         assert result["verdict"] == "incorrect"
         assert result["settled_by"] == "deterministic"
 
-    def test_plausible_alternative_is_accepted_by_the_validator_then_goes_to_the_judge(self, key_drill):
+    def test_plausible_alternative_is_accepted_by_the_validator_then_goes_to_the_judge(
+        self, key_drill
+    ):
         case = key_drill["test_fixtures"]["case_plausible_alternative"]
-        validation = get_validation_for(case["decision"], fake_validator_accepts_everything_structurally_sound)
+        validation = get_validation_for(
+            case["decision"], fake_validator_accepts_everything_structurally_sound
+        )
 
         assert validation["accepted"] is True
 
@@ -167,7 +176,8 @@ def test_step2_acceptance_the_validator_is_the_only_source_of_validation_now(key
     ]
     keys = [key_001, key_drill, key_drill]
 
-    for decision, key in zip(cases, keys):
-        validation = get_validation_for(decision, fake_validator_accepts_everything_structurally_sound)
+    for decision, key in zip(cases, keys, strict=True):
+        validation = get_validation_for(
+            decision, fake_validator_accepts_everything_structurally_sound)
         result = score_decision(decision, validation, key, judge=real_judge)
         assert result["verdict"] in ("correct", "incorrect")

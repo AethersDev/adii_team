@@ -69,7 +69,9 @@ def load_versioned_answer_key(path: Path) -> dict:
     data = json.loads(path.read_text(encoding="utf-8"))
 
     if not isinstance(data, dict):
-        raise ValueError(f"{path.name}: answer key must be a JSON object, got {type(data).__name__}")
+        raise ValueError(
+            f"{path.name}: answer key must be a JSON object, got {type(data).__name__}"
+        )
 
     if "schema_version" not in data:
         raise ValueError(
@@ -99,7 +101,10 @@ def load_versioned_answer_key(path: Path) -> dict:
         raise ValueError(f"{path.name}: missing required field(s) {sorted(missing)}")
 
     if not isinstance(data["incident_id"], str) or not data["incident_id"]:
-        raise ValueError(f"{path.name}: \"incident_id\" must be a non-empty string, got {data['incident_id']!r}")
+        raise ValueError(
+            f"{path.name}: \"incident_id\" must be a non-empty string, "
+            f"got {data['incident_id']!r}"
+        )
 
     if data["correct_disposition"] not in VALID_DISPOSITIONS:
         raise ValueError(

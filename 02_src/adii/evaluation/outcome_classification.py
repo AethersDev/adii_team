@@ -68,7 +68,12 @@ def classify_outcome(decision: dict, validation: dict | None, answer_key: dict, 
     settled_by = scored["settled_by"]
 
     def result(category: str, sub_kind: str | None) -> dict:
-        return {"category": category, "sub_kind": sub_kind, "verdict": verdict, "settled_by": settled_by}
+        return {
+            "category": category,
+            "sub_kind": sub_kind,
+            "verdict": verdict,
+            "settled_by": settled_by,
+        }
 
     if verdict == "unresolved":
         return result("failure", FailureSubKind.UNRESOLVED)
@@ -86,7 +91,9 @@ def classify_outcome(decision: dict, validation: dict | None, answer_key: dict, 
         if correct_disposition != "REPAIR":
             return result("failure", FailureSubKind.UNWARRANTED_REPAIR)
 
-        root_cause_matches = decision.get("root_cause_id") == answer_key.get("correct_root_cause_id")
+        root_cause_matches = decision.get("root_cause_id") == answer_key.get(
+            "correct_root_cause_id"
+        )
         if not root_cause_matches:
             return result("false_repair", None)
 

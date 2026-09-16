@@ -11,7 +11,6 @@ archived record is fed through it for the first time.
 import json
 
 import pytest
-
 from adii.evaluation.evaluation_report import SCHEMA, build_evaluation_report, to_json
 
 ANSWER_KEY = {
@@ -36,7 +35,9 @@ def submitted_run_record(decision: dict, validation: dict | None) -> dict:
         "validation": validation,
         "counters": {"tool_calls": 2, "model_turns": 3, "api_cost_usd": 0.0, "latency_ms": 100},
         "configuration": {},
-        "provenance": {"origin": "test", "written_at": "2026-09-15T00:00:00Z", "source_revision": None},
+        "provenance": {
+            "origin": "test", "written_at": "2026-09-15T00:00:00Z", "source_revision": None
+        },
     }
 
 
@@ -46,14 +47,16 @@ def non_submitted_run_record(termination: str) -> dict:
         "label": "run-013",
         "termination": termination,
         "detail": "budget exhausted",
-        "context": {"incident_id": "demo-learning-001", "alert": "x", "as_of": "2026-09-15T00:00:00Z",
-                    "permitted_write_paths": []},
+        "context": {"incident_id": "demo-learning-001", "alert": "x",
+                    "as_of": "2026-09-15T00:00:00Z", "permitted_write_paths": []},
         "trace": [],
         "decision": None,
         "validation": None,
         "counters": {"tool_calls": 0, "model_turns": 0, "api_cost_usd": 0.0, "latency_ms": 0},
         "configuration": {},
-        "provenance": {"origin": "test", "written_at": "2026-09-15T00:00:00Z", "source_revision": None},
+        "provenance": {
+            "origin": "test", "written_at": "2026-09-15T00:00:00Z", "source_revision": None
+        },
     }
 
 
@@ -75,8 +78,10 @@ class TestSubmittedRuns:
         }
 
     def test_escalate_run_that_should_have_repaired_is_unnecessary_escalation(self):
-        decision = {"disposition": "ESCALATE", "root_cause_id": None, "root_cause_summary": "not enough evidence",
-                    "repair_id": None, "patch": {}}
+        decision = {
+            "disposition": "ESCALATE", "root_cause_id": None,
+            "root_cause_summary": "not enough evidence", "repair_id": None, "patch": {},
+        }
         report = build_evaluation_report(submitted_run_record(decision, None), ANSWER_KEY)
 
         assert report["category"] == "unnecessary_escalation"
@@ -105,7 +110,9 @@ class TestSubmittedRuns:
 
 
 class TestNonSubmittedRuns:
-    @pytest.mark.parametrize("termination", ["model_failure", "bound_hit", "infrastructure_failure"])
+    @pytest.mark.parametrize(
+        "termination", ["model_failure", "bound_hit", "infrastructure_failure"]
+    )
     def test_non_submitted_run_is_not_evaluable_not_a_guessed_category(self, termination):
         report = build_evaluation_report(non_submitted_run_record(termination), ANSWER_KEY)
 

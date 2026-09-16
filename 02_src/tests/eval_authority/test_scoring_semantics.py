@@ -25,7 +25,6 @@ from pathlib import Path
 from typing import ClassVar
 
 import pytest
-
 from adii.evaluation.freeze import load_frozen_answer_key
 
 EVALUATION_DIR = Path(__file__).resolve().parents[2] / "adii" / "evaluation"
@@ -85,8 +84,8 @@ class TestFrozenStatementsAreEchoedByTheCodeItself:
     wording."""
 
     def test_r1_no_partial_credit_is_stated_in_score_disposition(self):
-        assert "one, right or wrong" in resolve("adii.evaluation.scoring.score_disposition").__doc__ or \
-            "Nothing in between" in resolve("adii.evaluation.scoring.score_disposition").__doc__
+        doc = resolve("adii.evaluation.scoring.score_disposition").__doc__
+        assert "one, right or wrong" in doc or "Nothing in between" in doc
 
     def test_r2_validation_gate_is_stated_in_score_repair_validation(self):
         doc = resolve("adii.evaluation.scoring.score_repair_validation").__doc__
@@ -133,12 +132,16 @@ class TestBehaviorMatchesTheFrozenRuleContent:
     def test_r3_claims_never_auto_pass_on_only_one_match(self):
         assert "never auto-passed on a match of only one" in RULES_BY_ID["R3"]["statement"]
         from adii.evaluation.scoring import decide_route
-        decision = {"disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "SOMETHING_ELSE"}
+        decision = {
+            "disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "SOMETHING_ELSE"
+        }
         assert decide_route(decision, {"accepted": True}, self.ANSWER_KEY) == "needs_judge_review"
 
     def test_r6_claims_never_silently_scored(self):
         assert "never silently scored" in RULES_BY_ID["R6"]["statement"]
         from adii.evaluation.scoring import score_decision
-        decision = {"disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "SOMETHING_ELSE"}
+        decision = {
+            "disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "SOMETHING_ELSE"
+        }
         result = score_decision(decision, {"accepted": True}, self.ANSWER_KEY, judge=None)
         assert result == {"verdict": "unresolved", "settled_by": "none"}

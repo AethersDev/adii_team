@@ -12,7 +12,6 @@ tests below assert that by construction (same inputs into score_decision
 directly vs. through classify_outcome must agree on the verdict).
 """
 import pytest
-
 from adii.evaluation.outcome_classification import CATEGORIES, FailureSubKind, classify_outcome
 from adii.evaluation.scoring import score_decision
 
@@ -68,8 +67,12 @@ class TestFalseRepair:
         def judge_says_incorrect(decision, validation, answer_key):
             return {"verdict": "incorrect", "reasoning": "genuinely different, wrong cause"}
 
-        decision = {"disposition": "REPAIR", "root_cause_id": "WRONG_CAUSE", "repair_id": "REPAIR_A"}
-        result = classify_outcome(decision, {"accepted": True}, ANSWER_KEY_REPAIR, judge=judge_says_incorrect)
+        decision = {
+            "disposition": "REPAIR", "root_cause_id": "WRONG_CAUSE", "repair_id": "REPAIR_A"
+        }
+        result = classify_outcome(
+            decision, {"accepted": True}, ANSWER_KEY_REPAIR, judge=judge_says_incorrect
+        )
         assert result["category"] == "false_repair"
         assert result["sub_kind"] is None
 
@@ -77,7 +80,9 @@ class TestFalseRepair:
         # Without a judge to confirm the root cause is genuinely wrong
         # (versus a harmless id/summary mismatch), this must not be
         # guessed as false_repair — it is exactly the UNRESOLVED shape.
-        decision = {"disposition": "REPAIR", "root_cause_id": "WRONG_CAUSE", "repair_id": "REPAIR_A"}
+        decision = {
+            "disposition": "REPAIR", "root_cause_id": "WRONG_CAUSE", "repair_id": "REPAIR_A"
+        }
         result = classify_outcome(decision, {"accepted": True}, ANSWER_KEY_REPAIR, judge=None)
         assert result["category"] == "failure"
         assert result["sub_kind"] == FailureSubKind.UNRESOLVED
@@ -87,7 +92,9 @@ class TestRepairRejection:
     def test_correct_root_cause_but_rejected_validation_is_repair_rejection(self):
         # Diagnosis right, patch wrong — validation caught it before
         # anything was applied. Less severe than false_repair.
-        decision = {"disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "SOME_OTHER_REPAIR"}
+        decision = {
+            "disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "SOME_OTHER_REPAIR"
+        }
         result = classify_outcome(decision, {"accepted": False}, ANSWER_KEY_REPAIR)
         assert result["category"] == "repair_rejection"
         assert result["sub_kind"] is None
@@ -126,7 +133,9 @@ class TestFailureWithSubKinds:
         assert result["sub_kind"] is None
 
     def test_needs_judge_review_with_no_judge_is_failure_with_unresolved_subkind(self):
-        decision = {"disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "SOMETHING_ELSE"}
+        decision = {
+            "disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "SOMETHING_ELSE"
+        }
         result = classify_outcome(decision, {"accepted": True}, ANSWER_KEY_REPAIR, judge=None)
         assert result["category"] == "failure"
         assert result["sub_kind"] == FailureSubKind.UNRESOLVED
@@ -138,8 +147,12 @@ class TestJudgeRoutedCases:
         def judge_says_correct(decision, validation, answer_key):
             return {"verdict": "correct", "reasoning": "valid alternative"}
 
-        decision = {"disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "SOMETHING_ELSE"}
-        result = classify_outcome(decision, {"accepted": True}, ANSWER_KEY_REPAIR, judge=judge_says_correct)
+        decision = {
+            "disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "SOMETHING_ELSE"
+        }
+        result = classify_outcome(
+            decision, {"accepted": True}, ANSWER_KEY_REPAIR, judge=judge_says_correct
+        )
         assert result["category"] == "success"
 
     def test_judge_rejecting_an_alternative_repair_is_repair_rejection(self):
@@ -149,8 +162,12 @@ class TestJudgeRoutedCases:
         def judge_says_incorrect(decision, validation, answer_key):
             return {"verdict": "incorrect", "reasoning": "does not satisfy repair_must_satisfy"}
 
-        decision = {"disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "SOMETHING_ELSE"}
-        result = classify_outcome(decision, {"accepted": True}, ANSWER_KEY_REPAIR, judge=judge_says_incorrect)
+        decision = {
+            "disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "SOMETHING_ELSE"
+        }
+        result = classify_outcome(
+            decision, {"accepted": True}, ANSWER_KEY_REPAIR, judge=judge_says_incorrect
+        )
         assert result["category"] == "repair_rejection"
 
 
@@ -159,10 +176,18 @@ class TestConsistencyWithScoreDecision:
     underlying verdict — it only adds a label on top."""
 
     @pytest.mark.parametrize("decision,validation,answer_key", [
-        ({"disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "REPAIR_A"}, {"accepted": True}, ANSWER_KEY_REPAIR),
+        (
+            {"disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "REPAIR_A"},
+            {"accepted": True},
+            ANSWER_KEY_REPAIR,
+        ),
         ({"disposition": "NO_REPAIR"}, None, ANSWER_KEY_REPAIR),
         ({"disposition": "ESCALATE"}, None, ANSWER_KEY_ESCALATE),
-        ({"disposition": "REPAIR", "root_cause_id": "X", "repair_id": "Y"}, {"accepted": False}, ANSWER_KEY_REPAIR),
+        (
+            {"disposition": "REPAIR", "root_cause_id": "X", "repair_id": "Y"},
+            {"accepted": False},
+            ANSWER_KEY_REPAIR,
+        ),
     ])
     def test_verdict_matches_score_decision_exactly(self, decision, validation, answer_key):
         direct = score_decision(decision, validation, answer_key)
@@ -172,14 +197,30 @@ class TestConsistencyWithScoreDecision:
 
 class TestCategoryIsAlwaysOneOfTheSixOfficialNames:
     @pytest.mark.parametrize("decision,validation,answer_key", [
-        ({"disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "REPAIR_A"}, {"accepted": True}, ANSWER_KEY_REPAIR),
+        (
+            {"disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "REPAIR_A"},
+            {"accepted": True},
+            ANSWER_KEY_REPAIR,
+        ),
         ({"disposition": "NO_REPAIR"}, None, ANSWER_KEY_NO_REPAIR),
         ({"disposition": "ESCALATE"}, None, ANSWER_KEY_ESCALATE),
         ({"disposition": "ESCALATE"}, None, ANSWER_KEY_REPAIR),
-        ({"disposition": "REPAIR", "root_cause_id": "WRONG", "repair_id": "REPAIR_A"}, {"accepted": True}, ANSWER_KEY_REPAIR),
-        ({"disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "OTHER"}, {"accepted": False}, ANSWER_KEY_REPAIR),
+        (
+            {"disposition": "REPAIR", "root_cause_id": "WRONG", "repair_id": "REPAIR_A"},
+            {"accepted": True},
+            ANSWER_KEY_REPAIR,
+        ),
+        (
+            {"disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "OTHER"},
+            {"accepted": False},
+            ANSWER_KEY_REPAIR,
+        ),
         ({"disposition": "NO_REPAIR"}, None, ANSWER_KEY_REPAIR),
-        ({"disposition": "REPAIR", "root_cause_id": "X", "repair_id": "Y"}, {"accepted": True}, ANSWER_KEY_NO_REPAIR),
+        (
+            {"disposition": "REPAIR", "root_cause_id": "X", "repair_id": "Y"},
+            {"accepted": True},
+            ANSWER_KEY_NO_REPAIR,
+        ),
     ])
     def test_category_is_in_the_official_six(self, decision, validation, answer_key):
         result = classify_outcome(decision, validation, answer_key)

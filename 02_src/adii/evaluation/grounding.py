@@ -70,7 +70,9 @@ def build_grounding_key(answer_key_path: Path, required_tool_calls: list[dict]) 
     for predicate in required_tool_calls:
         missing = {"tool", "argument_contains"} - set(predicate)
         if missing:
-            raise ValueError(f"tool call predicate {predicate!r} is missing field(s) {sorted(missing)}")
+            raise ValueError(
+                f"tool call predicate {predicate!r} is missing field(s) {sorted(missing)}"
+            )
 
     return {
         "schema_version": GROUNDING_SCHEMA_VERSION,
@@ -113,7 +115,9 @@ def load_grounding_key(grounding_key_path: Path, answer_key_dir: Path | None = N
             f"the known grounding schema version {GROUNDING_SCHEMA_VERSION!r}"
         )
 
-    answer_key_dir = Path(answer_key_dir) if answer_key_dir is not None else grounding_key_path.parent
+    answer_key_dir = (
+        Path(answer_key_dir) if answer_key_dir is not None else grounding_key_path.parent
+    )
     answer_key_path = answer_key_dir / data["answer_key_filename"]
 
     if not answer_key_path.exists():

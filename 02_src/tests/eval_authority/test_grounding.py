@@ -14,7 +14,6 @@ files in this directory.
 import json
 
 import pytest
-
 from adii.evaluation.freeze import freeze_answer_key
 from adii.evaluation.grounding import build_grounding_key, check_grounding, load_grounding_key
 
@@ -31,7 +30,9 @@ class TestBuildingAGroundingKey:
     def test_cannot_ground_an_unfrozen_answer_key(self, tmp_path):
         answer_key_path = write_answer_key(tmp_path)
         with pytest.raises(FileNotFoundError, match="frozen digest"):
-            build_grounding_key(answer_key_path, [{"tool": "run_sql", "argument_contains": "amount_cents"}])
+            build_grounding_key(
+                answer_key_path, [{"tool": "run_sql", "argument_contains": "amount_cents"}]
+            )
 
     def test_grounding_a_frozen_key_binds_its_current_digest(self, tmp_path):
         answer_key_path = write_answer_key(tmp_path)
@@ -55,7 +56,9 @@ class TestLoadingAGroundingKey:
     def test_a_correctly_bound_pair_loads(self, tmp_path):
         answer_key_path = write_answer_key(tmp_path)
         freeze_answer_key(answer_key_path)
-        grounding = build_grounding_key(answer_key_path, [{"tool": "run_sql", "argument_contains": "x"}])
+        grounding = build_grounding_key(
+            answer_key_path, [{"tool": "run_sql", "argument_contains": "x"}]
+        )
         grounding_path = tmp_path / "incident.grounding.json"
         grounding_path.write_text(json.dumps(grounding), encoding="utf-8")
 
@@ -97,7 +100,9 @@ class TestLoadingAGroundingKey:
         # mismatch, never silently pair the grounding key with new content.
         answer_key_path = write_answer_key(tmp_path)
         freeze_answer_key(answer_key_path)
-        grounding = build_grounding_key(answer_key_path, [{"tool": "run_sql", "argument_contains": "x"}])
+        grounding = build_grounding_key(
+            answer_key_path, [{"tool": "run_sql", "argument_contains": "x"}]
+        )
         grounding_path = tmp_path / "incident.grounding.json"
         grounding_path.write_text(json.dumps(grounding), encoding="utf-8")
 
@@ -122,7 +127,11 @@ class TestLoadingAGroundingKey:
         grounding_path = tmp_path / "incident.grounding.json"
         grounding_path.write_text(json.dumps(grounding), encoding="utf-8")
 
-        different_scenario = {"schema_version": "1", "incident_id": "totally-different", "correct_disposition": "ESCALATE"}
+        different_scenario = {
+            "schema_version": "1",
+            "incident_id": "totally-different",
+            "correct_disposition": "ESCALATE",
+        }
         key_a_path.unlink()
         (key_a_path.parent / (key_a_path.name + ".sha256")).unlink()
         key_a_path.write_text(json.dumps(different_scenario), encoding="utf-8")
@@ -164,7 +173,9 @@ class TestAuthoritiesFreezeIndependently:
         # .sha256 file (C2's own pin) must not be what grounding relies on.
         answer_key_path = write_answer_key(tmp_path)
         freeze_answer_key(answer_key_path)
-        grounding = build_grounding_key(answer_key_path, [{"tool": "run_sql", "argument_contains": "x"}])
+        grounding = build_grounding_key(
+            answer_key_path, [{"tool": "run_sql", "argument_contains": "x"}]
+        )
         grounding_path = tmp_path / "incident.grounding.json"
         grounding_path.write_text(json.dumps(grounding), encoding="utf-8")
 

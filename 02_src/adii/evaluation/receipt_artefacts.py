@@ -44,13 +44,16 @@ def get_receipt_artefact(answer_key_path: Path) -> dict:
     to be unpinned or altered.
     """
     answer_key_path = Path(answer_key_path)
-    load_frozen_answer_key(answer_key_path)  # raises if unfrozen or mutated; digest below is then trustworthy
+    # raises if unfrozen or mutated; digest below is then trustworthy
+    load_frozen_answer_key(answer_key_path)
     digest = digest_path_for(answer_key_path).read_text(encoding="utf-8").strip()
 
     return {"kind": "answer_key", "path": answer_key_path.name, "digest": digest}
 
 
-def get_receipt_artefact_with_grounding(answer_key_path: Path, grounding_key_path: Path) -> list[dict]:
+def get_receipt_artefact_with_grounding(
+    answer_key_path: Path, grounding_key_path: Path
+) -> list[dict]:
     """Return receipt-ready entries for a bound answer-key/grounding-key pair.
 
     Returns a list of two entries: the answer key's own (from
@@ -70,7 +73,8 @@ def get_receipt_artefact_with_grounding(answer_key_path: Path, grounding_key_pat
     answer_key_path = Path(answer_key_path)
     grounding_key_path = Path(grounding_key_path)
 
-    load_grounding_key(grounding_key_path, answer_key_dir=answer_key_path.parent)  # raises if the pairing is broken
+    # raises if the pairing is broken
+    load_grounding_key(grounding_key_path, answer_key_dir=answer_key_path.parent)
 
     answer_key_entry = get_receipt_artefact(answer_key_path)
     grounding_key_entry = {

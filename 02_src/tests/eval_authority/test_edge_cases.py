@@ -11,7 +11,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from adii.evaluation.judge import build_judge_prompt, judge_repair, parse_judge_reply
 from adii.evaluation.scoring import (
     decide_route,
@@ -41,7 +40,9 @@ def key_001():
 
 @pytest.fixture(scope="module")
 def key_escalate():
-    return json.loads((EVALUATION_FIXTURES / "synthetic-escalate-001.answer.json").read_text(encoding="utf-8"))
+    return json.loads(
+        (EVALUATION_FIXTURES / "synthetic-escalate-001.answer.json").read_text(encoding="utf-8")
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -109,7 +110,9 @@ class TestPartialConflicts:
         }
         assert decide_route(decision, {"accepted": True}, key_001) == "correct"
 
-    def test_right_disposition_wrong_repair_and_rejected_validation_fails_on_validation_first(self, key_001):
+    def test_right_disposition_wrong_repair_and_rejected_validation_fails_on_validation_first(
+        self, key_001
+    ):
         # Two independent reasons to fail at once (repair_id differs AND
         # validation was rejected) — validation gating must win before the
         # repair-id branch is ever reached, so this never reaches
@@ -137,7 +140,9 @@ class TestEscalatePaths:
         case = key_escalate["test_fixtures"]["case_correct_escalate"]
         assert decide_route(case["decision"], case["validation"], key_escalate) == "correct"
 
-    def test_escalate_never_consults_validation_even_if_one_is_supplied_by_mistake(self, key_escalate):
+    def test_escalate_never_consults_validation_even_if_one_is_supplied_by_mistake(
+        self, key_escalate
+    ):
         # If an ESCALATE decision is accompanied by a validation dict (it
         # shouldn't be, but a buggy caller might), score_repair_validation
         # must still short-circuit to "correct" on this axis rather than
@@ -193,7 +198,10 @@ class TestMalformedInput:
 
     def test_answer_key_missing_correct_root_cause_id_raises(self):
         decision = {"disposition": "REPAIR"}
-        answer_key = {"correct_disposition": "REPAIR", "repair_must_satisfy": {"reference_repair_id": "X"}}
+        answer_key = {
+            "correct_disposition": "REPAIR",
+            "repair_must_satisfy": {"reference_repair_id": "X"},
+        }
         with pytest.raises(ValueError, match="correct_root_cause_id"):
             decide_route(decision, {"accepted": True}, answer_key)
 

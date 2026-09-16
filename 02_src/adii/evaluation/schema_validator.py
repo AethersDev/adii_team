@@ -64,13 +64,21 @@ def _validate_field(field: str, value, field_schema: dict) -> list[str]:
         errors.append(f"{field!r} must equal {field_schema['const']!r}, got {value!r}")
 
     if "type" in field_schema and not _check_type(value, field_schema["type"]):
-        errors.append(f"{field!r} must be of type {field_schema['type']!r}, got {type(value).__name__}")
+        errors.append(
+            f"{field!r} must be of type {field_schema['type']!r}, got {type(value).__name__}"
+        )
 
     if "enum" in field_schema and value not in field_schema["enum"]:
         errors.append(f"{field!r} must be one of {field_schema['enum']}, got {value!r}")
 
-    if "minLength" in field_schema and isinstance(value, str) and len(value) < field_schema["minLength"]:
-        errors.append(f"{field!r} must have length >= {field_schema['minLength']}, got {len(value)}")
+    if (
+        "minLength" in field_schema
+        and isinstance(value, str)
+        and len(value) < field_schema["minLength"]
+    ):
+        errors.append(
+            f"{field!r} must have length >= {field_schema['minLength']}, got {len(value)}"
+        )
 
     return errors
 

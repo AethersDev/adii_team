@@ -77,7 +77,10 @@ def build_evaluation_report(run_record: dict, answer_key: dict, judge=None) -> d
             "run_label": label,
             "incident_id": incident_id,
             "category": NON_SUBMITTED_CATEGORY,
-            "reason": f"termination was {run_record['termination']!r}, not 'submitted' — no decision to evaluate",
+            "reason": (
+                f"termination was {run_record['termination']!r}, "
+                "not 'submitted' — no decision to evaluate"
+            ),
         }
 
     decision = run_record["decision"]

@@ -21,13 +21,15 @@ import pytest
 _CONTRACTS_CORE = Path(__file__).resolve().parents[2] / "adii" / "contracts" / "core.py"
 
 if not _CONTRACTS_CORE.exists():
-    pytest.skip("adii.contracts.core not found in 02_src — skipping contract consistency check", allow_module_level=True)
+    pytest.skip(
+        "adii.contracts.core not found in 02_src — skipping contract consistency check",
+        allow_module_level=True,
+    )
 
-from adii.contracts import Disposition, InvestigationDecision, ValidationResult
-
-from adii.evaluation.judge import build_judge_prompt
-from adii.evaluation.outcome_classification import classify_outcome
-from adii.evaluation.scoring import score_decision
+from adii.contracts import Disposition, InvestigationDecision, ValidationResult  # noqa: E402
+from adii.evaluation.judge import build_judge_prompt  # noqa: E402
+from adii.evaluation.outcome_classification import classify_outcome  # noqa: E402
+from adii.evaluation.scoring import score_decision  # noqa: E402
 
 
 def decision_to_dict(decision: InvestigationDecision) -> dict:
@@ -45,7 +47,11 @@ def decision_to_dict(decision: InvestigationDecision) -> dict:
 
 
 def validation_to_dict(validation: ValidationResult) -> dict:
-    return {"accepted": validation.accepted, "report": validation.report, "checks_run": list(validation.checks_run)}
+    return {
+        "accepted": validation.accepted,
+        "report": validation.report,
+        "checks_run": list(validation.checks_run),
+    }
 
 
 ANSWER_KEY = {
@@ -71,7 +77,9 @@ class TestRealInvestigationDecisionShapeMatchesScoringAssumptions:
         )
         validation = ValidationResult(accepted=True, report="rebuilt cleanly", checks_run=("x",))
 
-        result = score_decision(decision_to_dict(decision), validation_to_dict(validation), ANSWER_KEY)
+        result = score_decision(
+            decision_to_dict(decision), validation_to_dict(validation), ANSWER_KEY
+        )
         assert result == {"verdict": "correct", "settled_by": "deterministic"}
 
     def test_a_real_no_repair_decision_scores_cleanly(self):
@@ -115,7 +123,9 @@ class TestRealInvestigationDecisionShapeMatchesScoringAssumptions:
         )
         validation = ValidationResult(accepted=True, report="structurally sound")
 
-        prompt = build_judge_prompt(decision_to_dict(decision), validation_to_dict(validation), ANSWER_KEY)
+        prompt = build_judge_prompt(
+            decision_to_dict(decision), validation_to_dict(validation), ANSWER_KEY
+        )
         assert "real summary" in prompt
         assert "A_DIFFERENT_REPAIR_ID" in prompt
 
@@ -133,7 +143,9 @@ class TestRealInvestigationDecisionShapeMatchesScoringAssumptions:
         # decision always carries both) is backed by a construction-time
         # guarantee upstream, not just a convention this code hopes holds.
         with pytest.raises(ValueError, match="must carry a repair_id and a patch"):
-            InvestigationDecision(disposition=Disposition.REPAIR, root_cause_id="X", root_cause_summary="y")
+            InvestigationDecision(
+                disposition=Disposition.REPAIR, root_cause_id="X", root_cause_summary="y"
+            )
 
     def test_validation_report_cannot_be_empty_from_the_contract_either(self):
         # judge.py's _require_fields checks "report" is present; the

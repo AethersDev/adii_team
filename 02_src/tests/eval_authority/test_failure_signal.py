@@ -35,7 +35,9 @@ class TestBuildFailureSignal:
         decision = {"disposition": "NO_REPAIR"}
         signal = build_failure_signal("inc-1", 3, decision, None, ANSWER_KEY)
 
-        assert set(signal) == {"incident_id", "repeat_index", "category", "sub_kind", "verdict", "settled_by"}
+        assert set(signal) == {
+            "incident_id", "repeat_index", "category", "sub_kind", "verdict", "settled_by",
+        }
         assert signal["category"] == "failure"
         assert signal["repeat_index"] == 3
 
@@ -44,7 +46,9 @@ class TestBuildFailureSignal:
             return {"verdict": "correct", "reasoning": "valid alternative"}
 
         decision = {"disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "OTHER"}
-        signal = build_failure_signal("inc-1", 0, decision, {"accepted": True}, ANSWER_KEY, judge=judge_says_correct)
+        signal = build_failure_signal(
+            "inc-1", 0, decision, {"accepted": True}, ANSWER_KEY, judge=judge_says_correct
+        )
 
         assert signal["category"] == "success"
         assert signal["settled_by"] == "judge"
@@ -61,7 +65,10 @@ class TestBuildFailureSignal:
 class TestBuildGridBatch:
     def test_r_repeats_in_produces_exactly_r_records_out(self):
         runs = [
-            ({"disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "REPAIR_A"}, {"accepted": True}),
+            (
+                {"disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "REPAIR_A"},
+                {"accepted": True},
+            ),
             ({"disposition": "NO_REPAIR"}, None),
             ({"disposition": "ESCALATE"}, None),
         ]
@@ -74,7 +81,10 @@ class TestBuildGridBatch:
     def test_repeat_order_is_preserved_not_sorted_by_outcome(self):
         runs = [
             ({"disposition": "NO_REPAIR"}, None),  # failure
-            ({"disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "REPAIR_A"}, {"accepted": True}),  # success
+            (
+                {"disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "REPAIR_A"},
+                {"accepted": True},
+            ),  # success
         ]
         batch = build_grid_batch("inc-1", runs, ANSWER_KEY)
 
@@ -87,8 +97,14 @@ class TestBuildGridBatch:
         # repeats in the same batch are still built.
         runs = [
             ({"disposition": "NO_REPAIR"}, None),  # failure: missed a real defect
-            ({"disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "REPAIR_A"}, {"accepted": True}),
-            ({"disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "REPAIR_A"}, {"accepted": True}),
+            (
+                {"disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "REPAIR_A"},
+                {"accepted": True},
+            ),
+            (
+                {"disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "REPAIR_A"},
+                {"accepted": True},
+            ),
         ]
         batch = build_grid_batch("inc-1", runs, ANSWER_KEY)
 

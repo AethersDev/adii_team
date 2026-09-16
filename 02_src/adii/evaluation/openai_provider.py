@@ -14,8 +14,6 @@ from __future__ import annotations
 
 import os
 
-from openai import OpenAI
-
 DEFAULT_MODEL = "gpt-4o-mini"
 
 
@@ -23,7 +21,11 @@ def make_openai_provider(model: str = DEFAULT_MODEL, api_key: str | None = None)
     """Return a JudgeProvider (str -> str) backed by the OpenAI API.
 
     Reads OPENAI_API_KEY from the environment if api_key is not given.
+    Imports the openai SDK lazily, on call, so adii.evaluation itself never
+    depends on a provider SDK just because this seam exists.
     """
+    from openai import OpenAI
+
     client = OpenAI(api_key=api_key or os.environ["OPENAI_API_KEY"])
 
     def provider(prompt: str) -> str:

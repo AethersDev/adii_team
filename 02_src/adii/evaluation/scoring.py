@@ -110,7 +110,11 @@ def decide_route(decision: dict, validation: dict | None, answer_key: dict) -> s
         return "correct"
 
     _require_fields(answer_key, ("correct_root_cause_id", "repair_must_satisfy"), "answer_key")
-    _require_fields(answer_key["repair_must_satisfy"], ("reference_repair_id",), "answer_key['repair_must_satisfy']")
+    _require_fields(
+        answer_key["repair_must_satisfy"],
+        ("reference_repair_id",),
+        "answer_key['repair_must_satisfy']",
+    )
 
     root_cause_matches = decision.get("root_cause_id") == answer_key["correct_root_cause_id"]
     reference_repair_id = answer_key["repair_must_satisfy"]["reference_repair_id"]

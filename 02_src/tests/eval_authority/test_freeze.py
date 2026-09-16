@@ -11,7 +11,6 @@ in this directory, so this suite cannot accidentally freeze or corrupt them.
 import json
 
 import pytest
-
 from adii.evaluation.freeze import (
     compute_digest,
     digest_path_for,

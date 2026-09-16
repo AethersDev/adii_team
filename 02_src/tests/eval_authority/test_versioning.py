@@ -8,7 +8,6 @@ Uses tmp_path throughout — never touches the real answer key files.
 import json
 
 import pytest
-
 from adii.evaluation.versioning import (
     CURRENT_VERSION,
     SCHEMA_FIELDS_BY_VERSION,

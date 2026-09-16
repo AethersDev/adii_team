@@ -54,13 +54,17 @@ def rebuild_and_check_identities(world: dict, patch: dict) -> dict:
                 f"stated intent was to remove {sorted(expected_removed_ids)} — "
                 f"count alone cannot tell these apart, identity can"
             ),
-            "checks_run": ["record_count_preserved_for_survivors", "removed_identity_matches_intent"],
+            "checks_run": [
+                "record_count_preserved_for_survivors", "removed_identity_matches_intent"
+            ],
         }
 
     return {
         "accepted": True,
         "report": f"rebuild accepts: {len(surviving_ids)} records survive, matching intent exactly",
-        "checks_run": ["record_count_preserved_for_survivors", "removed_identity_matches_intent"],
+        "checks_run": [
+            "record_count_preserved_for_survivors", "removed_identity_matches_intent"
+        ],
     }
 
 

@@ -16,7 +16,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from adii.evaluation.schema_validator import is_valid, validate_against_schema
 from adii.evaluation.versioning import load_versioned_answer_key
 
@@ -90,13 +89,21 @@ def code_path_accepts(document: dict, tmp_path) -> bool:
 class TestPublishedSchemaAndCodeAgree:
     @pytest.mark.parametrize("label,document", VALID_DOCUMENTS)
     def test_valid_document_accepted_by_both(self, label, document, tmp_path):
-        assert is_valid(document, PUBLISHED_SCHEMA), f"{label}: schema rejected a document it should accept"
-        assert code_path_accepts(document, tmp_path), f"{label}: code rejected a document it should accept"
+        assert is_valid(document, PUBLISHED_SCHEMA), (
+            f"{label}: schema rejected a document it should accept"
+        )
+        assert code_path_accepts(document, tmp_path), (
+            f"{label}: code rejected a document it should accept"
+        )
 
     @pytest.mark.parametrize("label,document", INVALID_DOCUMENTS)
     def test_invalid_document_rejected_by_both(self, label, document, tmp_path):
-        assert not is_valid(document, PUBLISHED_SCHEMA), f"{label}: schema accepted a document it should reject"
-        assert not code_path_accepts(document, tmp_path), f"{label}: code accepted a document it should reject"
+        assert not is_valid(document, PUBLISHED_SCHEMA), (
+            f"{label}: schema accepted a document it should reject"
+        )
+        assert not code_path_accepts(document, tmp_path), (
+            f"{label}: code accepted a document it should reject"
+        )
 
     def test_every_real_answer_key_in_this_directory_is_schema_valid(self):
         # The published schema must actually describe the real files, not
