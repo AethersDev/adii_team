@@ -109,7 +109,7 @@ packaging migration at the deadline.
   adii/reporting/            telemetry — traces, artifacts, reports
   adii/runtime/              one incident end to end — the harness that owns the trace
   adii/examples/             the walkthrough, and one produced record per ending
-  adii/demo/                 the run inspector over the archive; starts runs only against a local model
+  adii/demo/                 ADII's page over the archive; starts runs only against a local model
   tests/contract/            the contracts are pinned here
   tests/architecture/        the boundaries, as tests that fail the build
   tests/unit/  integration/  everything else, including the browser check on the inspector

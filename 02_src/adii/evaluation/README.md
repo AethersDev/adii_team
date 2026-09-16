@@ -86,10 +86,24 @@ invalidate everything we report?
 
 *Enforced by* `test_the_investigator_cannot_reach_the_judge`.
 
+## Scoring an archived run
+
+```bash
+python -m adii.evaluation --run <label> --key 02_src/adii/evaluation/fixtures/<incident>.answer.json
+```
+
+The record the runtime wrote is read through the runtime's own reader and scored as it
+is — every field `build_evaluation_report` reads is in `RunRecord.to_json()` under the
+same name, so there is no adapter. The key must be frozen (`freeze.py`); it must name the
+run's incident; a REPAIR nobody checked (`checks_run` empty — the runtime's placeholder
+until a validator exists) is refused rather than filed as a rejection; and the report
+lands once, as `evaluation_report.json` beside the record, in the archive's `evaluation`
+retention class. Each refusal is a registered guard.
+
 ## How to test it
 
 ```bash
-pytest 02_src/tests -k evaluation
+pytest 02_src/tests -k "evaluation or scoring"
 ```
 
 ## Related

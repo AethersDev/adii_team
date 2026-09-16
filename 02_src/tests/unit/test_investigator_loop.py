@@ -671,6 +671,36 @@ def test_valid_decision_is_constructed_traced_and_returned(
     }
 
 
+@pytest.mark.parametrize(
+    "response",
+    [
+        decision_response(patch=None),
+        decision_response() + "</DECISION>",
+        decision_response(patch=None) + "</DECISION>\n",
+    ],
+)
+def test_a_decision_with_no_patch_or_a_closed_tag_is_the_decision_it_states(response):
+    """What a chat model writes: `"patch": null` for a decision that changes nothing, and
+    the tag it opened closed behind the JSON. Neither is a different decision."""
+    provider = ScriptedProvider([tool_call_response(), response])
+    executor = FakeToolExecutor()
+
+    decision, trace = run(incident(), provider, executor, max_turns=2)
+
+    assert decision is not None
+    assert decision.disposition is Disposition.NO_REPAIR and decision.patch == {}
+    assert [event.kind for event in trace][-1] == "decision_submitted"
+
+
+def test_a_tool_call_with_a_closed_tag_is_dispatched():
+    provider = ScriptedProvider([tool_call_response() + "</TOOL_CALL>", STOP_SIGNAL])
+    executor = FakeToolExecutor()
+
+    run(incident(), provider, executor, max_turns=2)
+
+    assert len(executor.calls) == 1
+
+
 def test_stop_still_returns_none_decision():
     decision, trace = run(
         incident(),

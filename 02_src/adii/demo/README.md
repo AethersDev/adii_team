@@ -1,7 +1,9 @@
-# The run inspector
+# The page: investigate, watch, read, answer
 
-**Read-only over the run archive.** Every run the runtime archives appears here: the trace,
-the decision, the verdict, what it cost, and where the record came from.
+**ADII's one page.** Its first screen is the action — pick an incident, Investigate — when
+the operator started the server with a local model; below it, the investigation history:
+every run the runtime archived, with the trace, the decision, the verdict, what it cost,
+and where the record came from. Without a model the page is read-only over that history.
 
 ```bash
 python -m adii.runtime --incident demo-learning-001 --provider scripted   # produce and archive one run
@@ -12,11 +14,14 @@ No install. No dependencies. Standard library only.
 
 ## What it renders, and for whom
 
-Three screens, for someone who did not build ADII. The front door opens on the incidents:
-what ADII is, one card per incident with the alert in the operator's words, how many runs,
-and the latest outcome with exactly the authority it has — a run with no decision says so,
-and is never drawn as a failure or a success. An incident's page lists every run of it,
-newest first, each ended in its own way; nothing nominates the newest as the best. A run's
+Three screens, for someone who did not build ADII. The front door opens on what ADII is
+and, when the operator started the server with a model, on the action: pick an incident,
+Investigate, with one line saying what it runs with and whether something is running now.
+Below that, the investigation history: one card per incident with the alert in the
+operator's words, how many runs, and the latest outcome with exactly the authority it has
+— a run with no decision says so, and is never drawn as a failure or a success. An
+incident's page lists every run of it, newest first; nothing nominates the newest as the
+best. A run's
 page reads top to bottom in a fixed order: what was reported, how the run ended, what the
 investigator did, what it decided or why there is no decision, what the validator said,
 and, closed by default, the technical details. A section the record cannot fill is left
@@ -76,17 +81,19 @@ record contains them. Strike any line below and the page stops saying it.
 | `model_failure` | "The model failed and the run stopped without a decision." |
 | `infrastructure_failure` | "Something in the runtime failed — a defect of ours, not the model's — and the run stopped without a decision." |
 | the record's `detail` | always shown beside the sentence, verbatim, so the projection never replaces the source |
-| `accepted` / `rejected` | "The validator accepted the repair." / "The validator did not accept the repair." — what `accepted` states and nothing about how; the validator's own report sits beside it |
+| `accepted` / `rejected` / `unchecked` | "The validator accepted the repair." / "The validator did not accept the repair." / "No validator checked the repair." — what `accepted` and `checks_run` state and nothing about how; the validator's own report sits beside it |
 | `notInvoked` | "No repair was proposed, so there was nothing to validate." — only a REPAIR carries a repair, and the record refuses a verdict without one |
 | a run with no decision | no validation section is drawn at all; "Why there is no decision" says the run ended first, which the record's own invariant establishes: it refuses a verdict without a decision |
-| `headline` per termination | "Decided: *disposition* — accepted (not accepted) by the validator", "Stopped at the turn limit, no decision", "Stopped by a model failure, no decision", "Stopped by a failure of ours, no decision" — the page's first line, from the same fields |
+| `verdict` | "accepted by the validator" when `accepted`; "not accepted by the validator" when not, after checks; "not checked by a validator" when `checks_run` is empty — the record's placeholder verdict disclaims any finding, and the page never turns it into one |
+| `headline` per termination | "Decided: *disposition* — *verdict*", "Stopped at its limit, no decision", "Stopped: the model failed, no decision", "Stopped: a failure of ours, no decision" — the page's first line, from the same fields; the same words label every list and card (`outcome`) |
 | `asked` | "Asked the tool layer to run *name* with *arguments*" |
 | `answered` | "The tool layer answered with *n* rows / columns", "refused: *error*", "rejected the arguments: *error*", "failed: *error* — a defect of ours" — the tool layer's own status, quoted |
 | `wrote` | "The model wrote, instead of acting:" followed by its words, verbatim, as text |
-| `decided` / `validated` | "Committed to *disposition*", "The validator accepted (did not accept) the repair" |
+| `decided` / `validated` | "Committed to *disposition*", "The validator accepted (did not accept) the repair", "No validator checked the repair" |
 | `unanswered` | "The run ended before this call was answered" |
-| product copy | what ADII is, that the page is read-only, and the commands that create a run or the six specimens — UI text about the product, never about a particular run |
+| product copy | what ADII is; the launcher's context (the model it runs with, one at a time; whether something is running now, from the list the page loaded); the history count; the footers (read-only, or what runs here — and that nothing is sent to an outside service); the commands that create a run or the six specimens — UI text about the product, never about a particular run |
 | `scripted` | "Scripted investigator · development demonstration, not a model result" — shown on every run and counted on every incident card whose record has `configuration.model` null, so a screenshot can never pass for a model result |
+| `success` / `correct_abstention` / `unnecessary_escalation` / `false_repair` / `repair_rejection` / `failure` / `not_evaluable` | one sentence per category the evaluation authority may score — "The decision matched the answer key.", "The decision to escalate matched the answer key.", "The decision escalated where the answer key names a call.", "A repair was proposed for a root cause the answer key does not name.", "The repair named the answer key's root cause and was not accepted by the validator.", "The decision did not match the answer key.", "No decision was submitted, so there was nothing to score." — from `evaluation/outcome_classification.py`'s definitions; the category, verdict and who settled it are shown beside it, verbatim from `evaluation_report.json` |
 
 ## Development specimens
 
@@ -161,6 +168,8 @@ GET /api/runs              one row per archived run, newest first; an unreadable
 GET /api/runs/{label}      the record, verbatim
 GET /api/runs/{label}/trace     the live trace of a run in progress, whether it finished, and
                            whether it is still running
+GET /api/runs/{label}/evaluation   the evaluation authority's report, verbatim, once the run
+                           has been scored (python -m adii.evaluation); 404 until then
 GET /api/incidents         the incidents a run can be started on
 GET /api/launch            whether runs may be started from the page, and against what
 POST /api/runs             start a run — only when the server was started with --model (403),
@@ -173,7 +182,7 @@ else — which is the shape a form on some other site would arrive in. Every res
 carries `ADII-Code`, the newest change to the page's files; a tab whose script is older
 reloads itself once, so an open tab never runs stale code over a current archive.
 
-Routes are the URL hash: `#` the incidents, `#i/<incident>` one incident's runs,
+Routes are the URL hash: `#` the front door, `#i/<incident>` one incident's runs,
 `#r/<label>` one run, `#r/<label>,<label>` two runs of one incident side by side.
 
 ## Verify

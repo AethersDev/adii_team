@@ -1,0 +1,33 @@
+{
+  "schema_version": "1",
+  "incident_id": "revenue-after-deploy",
+  "authored_by": "the runtime's author, from the specimen's own scripted truth — a smoke of the scoring path, not an independent key",
+  "authored_at": "2026-09-16",
+  "source_of_truth": "02_src/adii/examples/specimens.py, REVENUE_AFTER_DEPLOY: a development specimen. It carries no evaluation claim and is never eligible for blind evaluation; this key inherits both.",
+  "purpose": "The first key for an incident the runtime can investigate, so the whole path — a real investigator over real tools, the record, the score, the report beside the record — runs end to end on this machine. Any number scored against it is a smoke of the path and is never reported as an ADII result.",
+
+  "correct_disposition": "NO_REPAIR",
+  "correct_root_cause_id": "DISTRIBUTOR_CONTRACTS_ENDED",
+  "root_cause_explanation": "Two distributors, Northwind and Harbor, ended their contracts on 2026-03-07; together they carried 45% of revenue (distributors.share_of_revenue 0.27 + 0.18). Revenue fell on 2026-03-08 and stayed down. The release deployed that morning, v2.3.1, touched checkout UI copy only — no pricing or pipeline change (deploys.touches). The pipeline is reporting a real decline correctly.",
+
+  "repair_must_satisfy": {
+    "description": "Not applicable: nothing is broken, so no repair should be proposed. A REPAIR here is a diagnosis error, not a repair-quality error.",
+    "reference_repair_id": null,
+    "reference_patch_effect": null,
+    "alternative_repairs_are_acceptable_if": [],
+    "must_be_validated": false,
+    "validation_requirement": "N/A — a NO_REPAIR decision carries no ValidationResult to check."
+  },
+
+  "why_not_repair": "There is no defect: revenue_daily reports the real effect of two contracts ending. Changing transforms/revenue_daily.sql would hide a true signal; rolling back v2.3.1 would change nothing, since the release touched no pricing or pipeline code.",
+  "why_not_escalate": "Everything needed to explain the drop is reachable through the two tools: the daily series, the distributors table with contract_end dates and revenue shares, and the deploy record naming what the release touched. Nothing is missing that would justify abstaining.",
+
+  "scoring_notes": {
+    "disposition_match": "exact match required: NO_REPAIR",
+    "root_cause_match": "not scored by the deterministic path for NO_REPAIR (decide_route checks disposition only); recorded here so a reader can compare the investigator's root_cause_id by eye",
+    "repair_match": "not applicable"
+  },
+
+  "frozen": true,
+  "freeze_note": "Frozen on authoring, 2026-09-16, so the run that scores against it can name it by digest. A correction is a new key, never an edit."
+}

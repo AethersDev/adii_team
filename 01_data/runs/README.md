@@ -31,8 +31,10 @@ so. A person may leave `feedback.jsonl` beside a finished run, from the inspecto
 
 What is kept, by name: `receipt.json`, `trace.jsonl` and `record.json` are **evidence** —
 what the run left of itself; `feedback.jsonl` is an **annotation** — what someone said
-about it afterwards. The manifest attests and preservation copies all four, each in its
-class; a file under any other name in a run folder is listed by verification, not archived.
+about it afterwards; `evaluation_report.json` is an **evaluation** — what the authority
+said against a key the run never saw (`python -m adii.evaluation --run <label> --key
+PATH`). The manifest attests and preservation copies all five, each in its class; a file
+under any other name in a run folder is listed by verification, not archived.
 
 To produce a run:
 

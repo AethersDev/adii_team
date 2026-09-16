@@ -60,7 +60,7 @@ that proposes a repair never gets to say whether the repair was accepted.
 | Reporting | `02_src/adii/reporting/` | traces, run artifacts, human-readable output |
 | Runtime | `02_src/adii/runtime/` | one incident end to end: investigator, validation, archive, report |
 | Examples | `02_src/adii/examples/` | the runnable walkthrough, and one produced record per ending |
-| Inspector | `02_src/adii/demo/` | the run inspector: archived runs, served read-only |
+| The page | `02_src/adii/demo/` | ADII's one page: investigate (against a local model, when the operator allows it), watch, read the archive, answer |
 | Run archive | `01_data/runs/` | one record per run, what the inspector reads |
 | Design system | `03_assets/identity/` | the identity handoff; the inspector's stylesheet is a synced copy of its `css/` |
 | Demo data | `01_data/demo/` | the team-visible operational world (a work order today) |
@@ -221,7 +221,7 @@ the validator. If a behaviour is not in the trace it writes, it did not happen.
 
 ## demo/
 
-**PURPOSE** The run inspector. Every archived run, served to a browser read-only: the
+**PURPOSE** ADII's one page. Every archived run, served to a browser: the
 trace, the decision, the verdict, the cost, and where the record came from.
 
 **INPUT** The run archive in `01_data/runs/`, one `record.json` per run.
