@@ -1,5 +1,7 @@
-"""The run inspector: the archive of real runs, served to a browser, read-only.
+"""ADII's one page: investigate, watch, read, answer.
 
-No model, no database, no agent in this process. It shows what the runtime archived, so
-the day a provider call produces a run, the run is on screen.
+The archive of real runs, served to a browser. Read-only by default — no model, no
+database, no agent in this process — and, when the operator starts the server with a local
+model, the place a run is started and watched. It shows what the runtime archived, so the
+day a provider call produces a run, the run is on screen.
 """

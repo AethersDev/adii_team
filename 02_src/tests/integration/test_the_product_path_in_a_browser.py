@@ -115,11 +115,13 @@ def test_a_stranger_starts_watches_reads_and_answers_a_run_in_the_browser(tmp_pa
     assert flow.get("step") == "done", f"the flow stopped at {flow.get('step')!r}: {flow}"
     label = flow["label"]
     assert label.startswith("orders-missing-day-")
-    assert flow["seen"] == "running,starting", flow      # watched, not just shown the end
+    # watched, not just shown the end. ("Starting…" lasts only from the click to the
+    # navigation, so whether a tick lands in that window is timing, not a property.)
+    assert "running" in flow["seen"].split(","), flow
     assert flow["unchanged"] == "true"
     text = dom[dom.index('<pre id="text">'):]
     assert "Decided: ESCALATE" in text and "What it concluded" in text
-    assert "The investigation, turn by turn" in text and "Investigate an incident" in text
+    assert "The investigation, turn by turn" in text and "One investigation at a time." in text
     assert "Sam" in text and "why it stopped" in text     # shown back, verbatim
     assert "did not load" not in text
     kept = (archive / label / "feedback.jsonl").read_text(encoding="utf-8").splitlines()

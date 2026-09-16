@@ -14,6 +14,7 @@ Chrome, and a skipped browser check is a check nobody ran.
 """
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
@@ -35,7 +36,7 @@ WALKTHROUGH = Path(__file__).resolve().parents[3] / "01_data" / "walkthrough"
 
 PAYLOAD = ("<img src=x onerror=\"document.title='EXECUTED'\">"
            "<script>document.title='EXECUTED'</script>")
-TITLE = "ADII — Run inspector"
+TITLE = "ADII — Autonomous Data Incident Investigator"
 INSTALLED = {
     "darwin": ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"],
     "win32": [r"C:\Program Files\Google\Chrome\Application\chrome.exe",
@@ -139,7 +140,7 @@ const poll = setInterval(() => {
 
 
 @pytest.mark.parametrize(("width", "route"), [
-    (1440, "r/accepted"), (1440, "r/bound-hit"), (1440, ""),
+    (1440, "r/accepted"), (1440, "r/bound-hit"), (1440, "r/unchecked"), (1440, ""),
     (390, "r/accepted"), (390, "r/bound-hit"), (390, ""),
 ])
 def test_every_screen_fits_the_viewport_at_desktop_and_phone_width(tmp_path, monkeypatch,
@@ -150,10 +151,17 @@ def test_every_screen_fits_the_viewport_at_desktop_and_phone_width(tmp_path, mon
     exact width, through a same-origin harness, not asserted from CSS."""
     binary = chrome()
     archive = tmp_path / "archive"
+    endings = WALKTHROUGH / "endings"
     for label, source in (("accepted", WALKTHROUGH / "record.json"),
-                          ("bound-hit", WALKTHROUGH / "endings" / "bound-hit" / "record.json")):
+                          ("bound-hit", endings / "bound-hit" / "record.json"),
+                          ("unchecked", endings / "repair-rejected" / "record.json")):
         (archive / label).mkdir(parents=True)
         (archive / label / "record.json").write_bytes(source.read_bytes())
+    # a repair nobody checked: what every live REPAIR carries until a validator exists
+    unchecked = json.loads((archive / "unchecked" / "record.json").read_text(encoding="utf-8"))
+    unchecked["validation"] = {"accepted": False, "checks_run": [],
+                               "report": "No independent validator exists yet."}
+    (archive / "unchecked" / "record.json").write_text(json.dumps(unchecked), encoding="utf-8")
     web = tmp_path / "web"
     shutil.copytree(server.WEB, web)
     (web / "harness.html").write_text(HARNESS, encoding="utf-8")
@@ -191,9 +199,11 @@ def test_every_screen_fits_the_viewport_at_desktop_and_phone_width(tmp_path, mon
             assert heading in text, f"{heading!r} missing at {width}px"
         assert ("What it concluded" in text) != ("Why there is no decision" in text)
         assert ("Decided: " in text) != ("Stopped " in text)      # the headline, first
+        if route == "r/unchecked":
+            assert "not checked by a validator" in text and "not accepted" not in text
         assert "Your feedback" in text and "Record feedback" in text
         assert "Creating a run" in text
     else:
-        assert "Autonomous Data Incident Investigator" in text and "Incidents" in text
-        assert "View the investigation history" in text
+        assert "Autonomous Data Incident Investigator" in text
+        assert "Investigation history" in text and "View runs" in text
     assert "did not load" not in text, "the page rendered an error state"

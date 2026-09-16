@@ -68,9 +68,9 @@ def test_how_a_run_ended_is_a_projection_of_its_fields(name, expected):
 @pytest.mark.parametrize(("name", "expected"), [
     ("accepted", "REPAIR · accepted by the validator"),
     ("rejected", "REPAIR · not accepted by the validator"),
-    ("bound", "Ended at a bound, no decision"),
-    ("model", "Ended by a model failure, no decision"),
-    ("infra", "Ended by a failure of ours, no decision"),
+    ("bound", "Stopped at its limit, no decision"),
+    ("model", "Stopped: the model failed, no decision"),
+    ("infra", "Stopped: a failure of ours, no decision"),
 ])
 def test_the_short_outcome_inherits_exactly_the_records_authority(name, expected):
     record = load(name)
@@ -97,20 +97,35 @@ def test_a_turn_says_what_was_asked_and_what_came_back_quoting_only_the_payload(
     refused = next(r for r in results if r["status"] == "DENIED")
     assert turn_text("turn", "answered", refused).startswith("refused: unknown tool")
     assert turn_text("turn", "decided", "REPAIR") == "Committed to REPAIR"
-    assert turn_text("turn", "validated", True) == "The validator accepted the repair"
-    assert turn_text("turn", "validated", False) == "The validator did not accept the repair"
+    checked = {"accepted": False, "report": "no", "checks_run": ["rebuild"]}
+    assert turn_text("turn", "validated", {**checked, "accepted": True}) == \
+        "The validator accepted the repair"
+    assert turn_text("turn", "validated", checked) == "The validator did not accept the repair"
+    assert turn_text("turn", "validated", {**checked, "checks_run": []}) == \
+        "No validator checked the repair"
 
 
 @pytest.mark.parametrize(("name", "expected"), [
     ("accepted", "Decided: REPAIR — accepted by the validator"),
     ("rejected", "Decided: REPAIR — not accepted by the validator"),
-    ("bound", "Stopped at the turn limit, no decision"),
-    ("model", "Stopped by a model failure, no decision"),
-    ("infra", "Stopped by a failure of ours, no decision"),
+    ("bound", "Stopped at its limit, no decision"),
+    ("model", "Stopped: the model failed, no decision"),
+    ("infra", "Stopped: a failure of ours, no decision"),
 ])
 def test_the_headline_inherits_exactly_the_records_authority(name, expected):
     record = load(name)
     assert phrase("headline", record["termination"], record) == expected
+
+
+def test_a_repair_nobody_checked_is_not_called_rejected():
+    """A validation result with `checks_run` empty states that no check ran; the record's
+    own placeholder verdict says so in its report. The page must not read `accepted: false`
+    as a verdict against the repair — that would assert a finding the record disclaims."""
+    record = load("rejected")
+    record["validation"] = {"accepted": False, "checks_run": [],
+                            "report": "No independent validator exists yet."}
+    assert phrase("headline", "submitted", record) == "Decided: REPAIR — not checked by a validator"
+    assert phrase("outcome", "submitted", record) == "REPAIR · not checked by a validator"
 
 
 @pytest.mark.parametrize("name", list(RECORDS))
