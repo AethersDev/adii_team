@@ -36,7 +36,6 @@ and a test fails the build when it is stale. Milestone marks come from
 
 ```text
     validation
-    evaluation
 ```
 
 ## Verification
