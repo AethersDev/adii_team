@@ -108,8 +108,8 @@ GUARDS = (
           "    if not reason.strip():\n",
           "    if False:\n"),
     Guard("D.api_label_checked_before_disk", "D", "demo/server.py",
-          "        if not LABEL.fullmatch(label) or not record.is_file():\n",
-          "        if not record.is_file():\n"),
+          "            if not LABEL.fullmatch(label) or not (ARCHIVE / label).is_dir():\n",
+          "            if not (ARCHIVE / label).is_dir():\n"),
     Guard("D.page_renders_text_never_markup", "D", "demo/web/app.js",
           "  n.append(...kids);\n",
           "  kids.forEach((k) => (typeof k === \"string\" "

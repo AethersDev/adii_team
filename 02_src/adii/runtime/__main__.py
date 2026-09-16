@@ -7,8 +7,15 @@ model runs and no validator exists yet — and drives them through the real runt
 real tool layer, against the walkthrough world. The record that lands in the archive was
 produced, not assembled, and its observations are what the tools actually returned.
 
-A real provider is a later unit and arrives after the trace event contract is decided,
-with a receipt written first (plan D-6b, D-11, D-15).
+    python -m adii.runtime --incident orders-missing-day --provider local \
+        --endpoint http://127.0.0.1:11434/v1 --model llama3.1
+
+`local` (SPIKE) drives A's real investigator loop with a model behind an OpenAI-compatible
+endpoint on this machine — Ollama, LM Studio, mlx_lm.server — over the real tool layer,
+against the walkthrough world or a development specimen's. Nothing is paid for and no
+receipt is needed; a paid provider waits for plan D-15 and D-12. No validator exists yet,
+so a live REPAIR carries a verdict that says exactly that: not checked, therefore not
+accepted, and no finding about the repair.
 
 Exit codes, one per way a run can end:
     0  a decision was archived          3  the loop ended the run without a decision; archived
@@ -29,7 +36,7 @@ from ..reporting.receipts import digest_of, write_receipt
 from ..reporting.record import ARCHIVE, reserve
 from ..tools import ReadOnlyDatabase, build_sql_tools, open_walkthrough_world
 from ..tools.walkthrough_world import build_script
-from .run import run_incident
+from .run import Recorder, run_incident
 from .scripted import replay
 
 WALKTHROUGH_WORLD = build_script()
@@ -67,9 +74,18 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m adii.runtime", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--incident", required=True, help="the incident id to investigate")
-    parser.add_argument("--provider", required=True, choices=["scripted"],
+    parser.add_argument("--provider", required=True, choices=["scripted", "local"],
                         help="scripted: a scripted investigator and validator over the real "
-                             "tool layer — no model, no cost")
+                             "tool layer — no model, no cost. local: A's loop with a model "
+                             "behind a local OpenAI-compatible endpoint (SPIKE)")
+    parser.add_argument("--endpoint", default="http://127.0.0.1:11434/v1",
+                        help="local only: the OpenAI-compatible base URL (default: Ollama's)")
+    parser.add_argument("--model", help="local only: the model's identity, as the record keeps it")
+    parser.add_argument("--served-as", metavar="NAME",
+                        help="local only: the name the endpoint wants in requests when it differs "
+                             "from --model (mlx-lm's server: default_model)")
+    parser.add_argument("--max-turns", type=int, default=12,
+                        help="local only: the model-turn bound (default 12)")
     parser.add_argument("--label", help="archive label (default: <incident>-<UTC time>); "
                                         "a label names one run forever")
     parser.add_argument("--archive", default=str(ARCHIVE), metavar="DIR",
@@ -84,12 +100,23 @@ def main(argv: list[str] | None = None) -> int:
         print(f"no such incident {args.incident!r}; known: {', '.join(known)}")
         return 2
     context, tools, world_digest, recorded = found
-    if recorded is None:
-        print(f"the scripted provider replays the walkthrough only; {args.incident!r} has no "
-              "recorded run — python -m adii.examples.specimens archives its scripted runs")
-        return 2
-    investigator, _, validator = replay(recorded)
-    configuration = {"provider": "scripted", "model": None, "tools": list(tools.names)}
+    if args.provider == "scripted":
+        if recorded is None:
+            print(f"the scripted provider replays the walkthrough only; {args.incident!r} has no "
+                  "recorded run — use --provider local, or python -m adii.examples.specimens")
+            return 2
+        configuration = {"provider": "scripted", "model": None, "tools": list(tools.names)}
+        reason = "scripted replay of a recorded run: no model, nothing is spent"
+    else:
+        if not args.model:
+            print("--provider local needs --model <id the endpoint serves>")
+            return 2
+        configuration = {"provider": "local", "model": args.model, "endpoint": args.endpoint,
+                         "served_as": args.served_as, "max_turns": args.max_turns,
+                         "tools": list(tools.names),
+                         "execution_mode": "live", "cost_basis": "local endpoint, no price"}
+        reason = (f"a local model, {args.model}, at {args.endpoint}: no nominal price, "
+                  "nothing is spent")
     label = args.label or f"{context.incident_id}-{datetime.now(UTC):%Y%m%dT%H%M%SZ}"
     archive = Path(args.archive)
     try:                          # every precondition that needs no I/O has passed: claim the label
@@ -102,11 +129,21 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     # The receipt, before anything is spent: written and flushed, kept on every path.
     write_receipt(folder, label=label, artefacts=artefacts(context, world_digest),
-                  configuration=configuration,
-                  reason="scripted replay of a recorded run: no model, nothing is spent")
+                  configuration=configuration, reason=reason)
+    # Every event lands in trace.jsonl the moment it happens: the live view of the run, and
+    # what a killed run leaves behind. The record written at the end is the authority.
+    recorder = Recorder(sink=folder / "trace.jsonl")
+    if args.provider == "scripted":
+        investigator, _, validator = replay(recorded)
+    else:
+        from .live import LoopInvestigator, NoValidatorYet  # the spike
+        investigator = LoopInvestigator(endpoint=args.endpoint, model=args.model,
+                                        max_turns=args.max_turns, recorder=recorder,
+                                        served_as=args.served_as)
+        validator = NoValidatorYet()
 
     record = run_incident(label, context, investigator, tools, validator,
-                          configuration=configuration)
+                          configuration=configuration, recorder=recorder)
     print(f"archived {write_record(record, archive)}")
     if not args.no_report:
         print(render_run(record))

@@ -283,9 +283,10 @@ python 02_src/scripts/guard_check.py          # every guard killed, none survivi
   throughout; no shell anywhere.
 - **Real money spent without a record.** The runtime refuses any paid provider unless a
   receipt was written first. D-15 is a precondition of D-11 going live, whatever the week.
-- **The browser becoming a launcher.** Tempting once runs are visible. It stays read-only:
-  a page must not be able to spend money or create a first exposure without a receipt (D8).
-  Launching stays on the command line until that is designed on purpose.
+- **The browser becoming a launcher.** It became one on 16 September, on purpose and
+  narrowly: only when the operator starts the server with a local model, only against that
+  endpoint, with the receipt written before the investigator runs (D8). No paid provider is
+  reachable from the page; that stays on the command line behind D-11 and D-15.
 - **The guard registry drifting from the code.** A registered snippet that is not found fails
   the harness, because a guard that moved is a guard that may be gone.
 - **Reporting a number that is not ours.** The report labels every figure with the run it came
