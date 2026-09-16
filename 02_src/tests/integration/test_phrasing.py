@@ -54,8 +54,8 @@ def load(name: str) -> dict:
 
 @pytest.mark.parametrize(("name", "expected"), [
     ("accepted", "The investigator committed to REPAIR."),
-    ("bound", "The investigator reached a bound it set after 3 tool calls and stopped without "
-              "a decision."),
+    ("bound", "The investigator reached a bound it set after 0 model turns and 3 tool calls, "
+              "and stopped without a decision."),
     ("model", "The model failed and the run stopped without a decision."),
     ("infra", "Something in the runtime failed — a defect of ours, not the model's — and the run "
               "stopped without a decision."),
@@ -77,15 +77,40 @@ def test_the_short_outcome_inherits_exactly_the_records_authority(name, expected
     assert phrase("outcome", record["termination"], record) == expected
 
 
-def test_every_trace_step_has_a_sentence_and_quotes_only_the_payload():
+def turn_text(kind: str, key: str, *args) -> str:
+    """Evaluate PHRASING.turn[key](*args) in node, exactly as the page does."""
+    script = (f"{(WEB / 'phrasing.js').read_text(encoding='utf-8')}\n"
+              f"const f = PHRASING[{kind!r}][{key!r}];\n"
+              f"const a = {json.dumps(list(args))};\n"
+              "process.stdout.write(typeof f === 'function' ? f(...a) : f);")
+    return subprocess.run([node(), "-e", script], capture_output=True, text=True,
+                          encoding="utf-8", check=True, timeout=30).stdout
+
+
+def test_a_turn_says_what_was_asked_and_what_came_back_quoting_only_the_payload():
     record = load("accepted")
-    sentences = [phrase("step", e["kind"], e["payload"]) for e in record["trace"]]
-    assert sentences[0] == "The investigator received incident demo-learning-001."
-    assert sentences[1] == "It asked the tool layer to run get_schema with table = orders."
-    assert sentences[2] == "The tool layer answered get_schema with 3 columns."
-    assert any(s.startswith("The tool layer refused delete_table: unknown tool") for s in sentences)
-    assert sentences[-2] == "The investigator committed to REPAIR."
-    assert sentences[-1] == "The validator accepted the repair."
+    calls = [e["payload"] for e in record["trace"] if e["kind"] == "tool_call"]
+    results = [e["payload"] for e in record["trace"] if e["kind"] == "tool_result"]
+    assert turn_text("turn", "asked", calls[0]["name"], calls[0]["arguments"]) == \
+        "Asked the tool layer to run get_schema with table = orders"
+    assert turn_text("turn", "answered", results[0]) == "answered with 3 columns"
+    refused = next(r for r in results if r["status"] == "DENIED")
+    assert turn_text("turn", "answered", refused).startswith("refused: unknown tool")
+    assert turn_text("turn", "decided", "REPAIR") == "Committed to REPAIR"
+    assert turn_text("turn", "validated", True) == "The validator accepted the repair"
+    assert turn_text("turn", "validated", False) == "The validator did not accept the repair"
+
+
+@pytest.mark.parametrize(("name", "expected"), [
+    ("accepted", "Decided: REPAIR — accepted by the validator"),
+    ("rejected", "Decided: REPAIR — not accepted by the validator"),
+    ("bound", "Stopped at the turn limit, no decision"),
+    ("model", "Stopped by a model failure, no decision"),
+    ("infra", "Stopped by a failure of ours, no decision"),
+])
+def test_the_headline_inherits_exactly_the_records_authority(name, expected):
+    record = load(name)
+    assert phrase("headline", record["termination"], record) == expected
 
 
 @pytest.mark.parametrize("name", list(RECORDS))
@@ -93,7 +118,9 @@ def test_no_projection_asserts_a_cause_the_record_does_not_state(name):
     record = load(name)
     text = " ".join([phrase("ended", record["termination"], record),
                      phrase("outcome", record["termination"], record),
-                     *(phrase("step", e["kind"], e["payload"]) for e in record["trace"])]).lower()
+                     phrase("headline", record["termination"], record),
+                     *(turn_text("turn", "answered", e["payload"])
+                       for e in record["trace"] if e["kind"] == "tool_result")]).lower()
     hits = [w for w in FORBIDDEN if w in text]
     assert not hits, f"a projection asserts a cause the record does not state: {hits}"
 
@@ -113,8 +140,7 @@ def test_the_readme_lists_every_sentence_the_page_adds():
     readme = (ROOT / "02_src" / "adii" / "demo" / "README.md").read_text(encoding="utf-8")
     source = (WEB / "phrasing.js").read_text(encoding="utf-8")
     for key in ("submitted", "bound_hit", "model_failure", "infrastructure_failure",
-                "notInvoked", "incident_received", "tool_call", "tool_result",
-                "decision_submitted", "validation_completed", "model_requested",
-                "model_responded", "scripted"):
+                "notInvoked", "asked", "answered", "wrote", "decided", "validated",
+                "unanswered", "scripted"):
         assert key in source, f"phrasing.js lost {key}"
         assert f"`{key}`" in readme, f"README does not list the {key} sentence"

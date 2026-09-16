@@ -187,9 +187,10 @@ def test_every_screen_fits_the_viewport_at_desktop_and_phone_width(tmp_path, mon
     assert scroll <= client, f"horizontal overflow at {width}px: {scroll} > viewport {client}"
     text = dom[dom.index('<pre id="text">'):]
     if route:
-        for heading in ("What was reported", "How the run ended", "What the investigator did"):
+        for heading in ("The incident", "The investigation, turn by turn", "Details for engineers"):
             assert heading in text, f"{heading!r} missing at {width}px"
-        assert ("What it decided" in text) != ("Why there is no decision" in text)
+        assert ("What it concluded" in text) != ("Why there is no decision" in text)
+        assert ("Decided: " in text) != ("Stopped " in text)      # the headline, first
         assert "Creating a run" in text
     else:
         assert "Autonomous Data Incident Investigator" in text and "Incidents" in text

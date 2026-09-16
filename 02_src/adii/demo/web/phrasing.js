@@ -25,8 +25,9 @@ const PHRASING = {
     liveHow: "To allow runs from the page, start the server with a local model:",
     liveCommand: "python -m adii.demo 8000 --endpoint http://127.0.0.1:8090/v1 " +
       "--model <model id> --served-as default_model",
-    running: "Investigating. Every step appears here as it happens; the record lands when the " +
+    running: "Investigating. Every turn appears here as it happens; the record lands when the " +
       "run ends.",
+    empty: "An incident appears here once the runtime has investigated it and archived the run.",
     createRun: "python -m adii.runtime --incident demo-learning-001 --provider scripted",
     specimens: "python -m adii.examples.specimens",
     specimensWhat: "Six development incidents with scripted example runs — made up, no model, " +
@@ -48,11 +49,21 @@ const PHRASING = {
    * beside the sentence, verbatim, so the projection never replaces the source. */
   ended: {
     submitted: (r) => `The investigator committed to ${r.decision.disposition}.`,
-    bound_hit: (r) => `The investigator reached a bound it set after ${r.counters.tool_calls} ` +
-      `tool call${r.counters.tool_calls === 1 ? "" : "s"} and stopped without a decision.`,
+    bound_hit: (r) => `The investigator reached a bound it set after ${r.counters.model_turns} ` +
+      `model turn${r.counters.model_turns === 1 ? "" : "s"} and ${r.counters.tool_calls} tool ` +
+      `call${r.counters.tool_calls === 1 ? "" : "s"}, and stopped without a decision.`,
     model_failure: () => "The model failed and the run stopped without a decision.",
     infrastructure_failure: () => "Something in the runtime failed — a defect of ours, not " +
       "the model's — and the run stopped without a decision.",
+  },
+
+  /* the outcome as a headline, from the same fields: what an operator reads first */
+  headline: {
+    submitted: (r) => `Decided: ${r.decision.disposition}` + (r.validation
+      ? ` — ${r.validation.accepted ? "accepted" : "not accepted"} by the validator` : ""),
+    bound_hit: () => "Stopped at the turn limit, no decision",
+    model_failure: () => "Stopped by a model failure, no decision",
+    infrastructure_failure: () => "Stopped by a failure of ours, no decision",
   },
 
   /* the same classes as a short label for lists and cards */
@@ -64,32 +75,26 @@ const PHRASING = {
     infrastructure_failure: () => "Ended by a failure of ours, no decision",
   },
 
+  /* ── a turn: the model's request and everything it caused, in one sentence each ──── */
+  turn: {
+    asked: (name, args) => `Asked the tool layer to run ${name}${describeArgs(args)}`,
+    answered: (p) => ({
+      OK: `answered${describeContent(p.content)}`,
+      DENIED: `refused${describeError(p.content)}`,
+      REJECTED: `rejected the arguments${describeError(p.content)}`,
+      ERROR: `failed${describeError(p.content)} — a defect of ours`,
+    })[p.status] || `returned ${p.status}`,
+    wrote: "The model wrote, instead of acting:",
+    decided: (disposition) => `Committed to ${disposition}`,
+    validated: (accepted) => `The validator ${accepted ? "accepted" : "did not accept"} the repair`,
+    unanswered: "The run ended before this call was answered",
+  },
+
   /* ── the validator's row ─────────────────────────────────────────── */
   validation: {
     accepted: "The validator accepted the repair.",
     rejected: "The validator did not accept the repair.",
     notInvoked: "No repair was proposed, so there was nothing to validate.",
-  },
-
-  /* ── trace steps: one sentence per event kind, from its payload ────────
-   * Every step is reversible to its event: the raw payload sits beside it. Unknown kinds
-   * fall through to the kind's own name — the page never guesses at a vocabulary it does
-   * not know. */
-  step: {
-    incident_received: (p) => `The investigator received incident ${p.incident_id}.`,
-    tool_call: (p) => `It asked the tool layer to run ${p.name}${describeArgs(p.arguments)}.`,
-    tool_result: (p) => ({
-      OK: `The tool layer answered ${p.name}${describeContent(p.content)}.`,
-      DENIED: `The tool layer refused ${p.name}${describeError(p.content)}.`,
-      REJECTED: `The tool layer rejected the arguments to ${p.name}${describeError(p.content)}.`,
-      ERROR: `The tool ${p.name} failed${describeError(p.content)} — a defect of ours.`,
-    })[p.status] || `The tool layer returned ${p.status} for ${p.name}.`,
-    decision_submitted: (p) => `The investigator committed to ${p.disposition}.`,
-    validation_completed: (p) => `The validator ${p.accepted ? "accepted" : "did not accept"} the repair.`,
-    /* the provider boundary (spike, pending the trace event contract): what the model was
-     * asked, and what it said — its words, as text */
-    model_requested: (p) => `The model was asked for turn ${p.turn}.`,
-    model_responded: (p) => `The model answered: ${p.content}`,
   },
 };
 
