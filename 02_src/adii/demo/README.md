@@ -93,6 +93,7 @@ record contains them. Strike any line below and the page stops saying it.
 | `unanswered` | "The run ended before this call was answered" |
 | product copy | what ADII is; the launcher's context (the model it runs with, one at a time; whether something is running now, from the list the page loaded); the history count; the footers (read-only, or what runs here — and that nothing is sent to an outside service); the commands that create a run or the six specimens — UI text about the product, never about a particular run |
 | `scripted` | "Scripted investigator · development demonstration, not a model result" — shown on every run and counted on every incident card whose record has `configuration.model` null, so a screenshot can never pass for a model result |
+| `success` / `correct_abstention` / `unnecessary_escalation` / `false_repair` / `repair_rejection` / `failure` / `not_evaluable` | one sentence per category the evaluation authority may score — "The decision matched the answer key.", "The decision to escalate matched the answer key.", "The decision escalated where the answer key names a call.", "A repair was proposed for a root cause the answer key does not name.", "The repair named the answer key's root cause and was not accepted by the validator.", "The decision did not match the answer key.", "No decision was submitted, so there was nothing to score." — from `evaluation/outcome_classification.py`'s definitions; the category, verdict and who settled it are shown beside it, verbatim from `evaluation_report.json` |
 
 ## Development specimens
 
@@ -167,6 +168,8 @@ GET /api/runs              one row per archived run, newest first; an unreadable
 GET /api/runs/{label}      the record, verbatim
 GET /api/runs/{label}/trace     the live trace of a run in progress, whether it finished, and
                            whether it is still running
+GET /api/runs/{label}/evaluation   the evaluation authority's report, verbatim, once the run
+                           has been scored (python -m adii.evaluation); 404 until then
 GET /api/incidents         the incidents a run can be started on
 GET /api/launch            whether runs may be started from the page, and against what
 POST /api/runs             start a run — only when the server was started with --model (403),

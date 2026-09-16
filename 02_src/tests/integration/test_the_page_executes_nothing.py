@@ -157,6 +157,11 @@ def test_every_screen_fits_the_viewport_at_desktop_and_phone_width(tmp_path, mon
                           ("unchecked", endings / "repair-rejected" / "record.json")):
         (archive / label).mkdir(parents=True)
         (archive / label / "record.json").write_bytes(source.read_bytes())
+    # the accepted run has been scored: the page shows what the authority said
+    (archive / "accepted" / "evaluation_report.json").write_text(json.dumps({
+        "schema": "adii.evaluation_report/v1", "run_label": "accepted",
+        "incident_id": "demo-learning-001", "category": "success", "sub_kind": None,
+        "verdict": "correct", "settled_by": "deterministic"}), encoding="utf-8")
     # a repair nobody checked: what every live REPAIR carries until a validator exists
     unchecked = json.loads((archive / "unchecked" / "record.json").read_text(encoding="utf-8"))
     unchecked["validation"] = {"accepted": False, "checks_run": [],
@@ -201,6 +206,10 @@ def test_every_screen_fits_the_viewport_at_desktop_and_phone_width(tmp_path, mon
         assert ("Decided: " in text) != ("Stopped " in text)      # the headline, first
         if route == "r/unchecked":
             assert "not checked by a validator" in text and "not accepted" not in text
+        if route == "r/accepted":
+            assert "What the evaluation said" in text and "matched the answer key" in text
+        else:
+            assert "What the evaluation said" not in text     # unscored: no section at all
         assert "Your feedback" in text and "Record feedback" in text
         assert "Creating a run" in text
     else:

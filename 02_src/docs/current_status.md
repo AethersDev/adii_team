@@ -24,13 +24,13 @@ and a test fails the build when it is stale. Milestone marks come from
 
 ```text
     contracts          154 lines
-    investigator       341 lines
+    investigator       352 lines
     tools              484 lines
     evaluation        1093 lines
     reporting          457 lines
     runtime            377 lines
     examples           542 lines
-    demo               270 lines
+    demo               284 lines
 ```
 
 ## Scaffold only — a README and an empty package

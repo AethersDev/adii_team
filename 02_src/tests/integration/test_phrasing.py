@@ -140,6 +140,15 @@ def test_no_projection_asserts_a_cause_the_record_does_not_state(name):
     assert not hits, f"a projection asserts a cause the record does not state: {hits}"
 
 
+def test_the_evaluations_categories_are_said_in_the_authoritys_own_terms():
+    """One sentence per category, from outcome_classification.py's definitions; the
+    category itself is always shown beside it, so the sentence never replaces it."""
+    from adii.evaluation.outcome_classification import CATEGORIES
+    for category in (*CATEGORIES, "not_evaluable"):
+        assert phrase("evaluation", category, {}).endswith("."), category
+    assert phrase("evaluation", "success", {}) == "The decision matched the answer key."
+
+
 def test_a_run_without_a_model_is_always_marked_scripted():
     """Projected from one field, configuration.model, so no screenshot of a scripted run
     can pass for a model result."""
@@ -156,6 +165,8 @@ def test_the_readme_lists_every_sentence_the_page_adds():
     source = (WEB / "phrasing.js").read_text(encoding="utf-8")
     for key in ("submitted", "bound_hit", "model_failure", "infrastructure_failure",
                 "notInvoked", "asked", "answered", "wrote", "decided", "validated",
-                "unanswered", "scripted"):
+                "unanswered", "scripted", "success", "correct_abstention",
+                "unnecessary_escalation", "false_repair", "repair_rejection", "failure",
+                "not_evaluable"):
         assert key in source, f"phrasing.js lost {key}"
         assert f"`{key}`" in readme, f"README does not list the {key} sentence"

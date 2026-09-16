@@ -107,6 +107,20 @@ def test_the_server_serves_the_archive_verbatim_uncached_and_nothing_else(tmp_pa
         assert rows[".hidden"]["error"] == "the folder's name is not a label"
         _, body = get("/api/runs/demo-learning-001")
         assert body == (archive / "demo-learning-001" / "record.json").read_bytes()
+        # the evaluation authority's report, when the run has one: listed by category and
+        # served verbatim; absent until then; unreadable when custody would say so
+        assert rows["demo-learning-001"]["evaluation"] is None
+        assert get("/api/runs/demo-learning-001/evaluation")[0].status == 404
+        report = archive / "demo-learning-001" / "evaluation_report.json"
+        report.write_text('{"schema": "adii.evaluation_report/v1", "category": "success"}\n',
+                          encoding="utf-8")
+        rows = {row["label"]: row for row in json.loads(get("/api/runs")[1])}
+        assert rows["demo-learning-001"]["evaluation"] == "success"
+        assert get("/api/runs/demo-learning-001/evaluation")[1] == report.read_bytes()
+        report.write_text("{not json", encoding="utf-8")
+        rows = {row["label"]: row for row in json.loads(get("/api/runs")[1])}
+        assert rows["demo-learning-001"]["evaluation"] == "unreadable"
+        report.unlink()
         page, _ = get("/")
         assert page.status == 200 and page.getheader("Cache-Control") == "no-store"
         for path in ("/api/runs/..\\outside", "/api/runs/../outside", "/api/runs/nope",

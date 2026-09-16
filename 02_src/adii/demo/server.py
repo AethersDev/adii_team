@@ -67,6 +67,7 @@ def index(root: Path) -> list[dict]:
             continue
         rows.append({
             "label": label,
+            "evaluation": evaluation_of(folder),
             "incident_id": record.context.incident_id,
             "termination": record.termination,
             "disposition": record.decision.disposition.value if record.decision else None,
@@ -82,6 +83,18 @@ def index(root: Path) -> list[dict]:
         })
     rows.sort(key=lambda row: row.get("written_at") or "~", reverse=True)   # running first
     return rows
+
+
+def evaluation_of(folder: Path) -> str | None:
+    """The category the evaluation authority scored this run, when it has; a report this
+    reader cannot parse is said to be unreadable rather than dropped."""
+    path = folder / "evaluation_report.json"
+    if not path.is_file():
+        return None
+    try:
+        return str(json.loads(path.read_text(encoding="utf-8")).get("category"))
+    except ValueError:                        # not JSON: custody's finding, listed as such
+        return "unreadable"
 
 
 def running(folder: Path) -> bool:
@@ -187,6 +200,9 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.send_json(live_trace(ARCHIVE / label))
             if len(parts) == 4 and parts[3] == "feedback":
                 return self.send_json(feedback_of(ARCHIVE / label))
+            report = ARCHIVE / label / "evaluation_report.json"
+            if len(parts) == 4 and parts[3] == "evaluation" and report.is_file():
+                return self.send(report.read_bytes())   # verbatim, as the authority wrote it
             record = ARCHIVE / label / "record.json"
             if len(parts) == 3 and record.is_file():
                 return self.send(record.read_bytes())   # verbatim: what was archived is shown

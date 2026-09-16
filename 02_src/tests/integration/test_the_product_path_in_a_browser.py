@@ -123,6 +123,7 @@ def test_a_stranger_starts_watches_reads_and_answers_a_run_in_the_browser(tmp_pa
     assert "Decided: ESCALATE" in text and "What it concluded" in text
     assert "The investigation, turn by turn" in text and "One investigation at a time." in text
     assert "Sam" in text and "why it stopped" in text     # shown back, verbatim
+    assert " ev-" in text                          # the observation's minted id, on the turn
     assert "did not load" not in text
     kept = (archive / label / "feedback.jsonl").read_text(encoding="utf-8").splitlines()
     assert [json.loads(line)["by"] for line in kept] == ["Sam"]

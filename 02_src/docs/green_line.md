@@ -24,10 +24,10 @@ without changing what the sequence produces.
 | 6 | a cited evidence id resolves to a minted observation | D-3 counters; contract row 3 (`evidence_refs`) | ✗ no `evidence_refs` on the decision yet; nothing checks citations |
 | 7 | the archived run survives: attested, preserved with everything it left, reloadable | `python -m adii.reporting.manifest --verify / --preserve`; retention classes evidence / annotation / evaluation | ✔ five names attested; anything else in a run folder is an unlisted finding |
 | 8 | the evaluator consumes the runtime's record directly | `python -m adii.evaluation --run L --key K`; `test_scoring_an_archived_run.py` | ✔ same JSON, no adapter; refuses a foreign key and an unchecked repair |
-| 9 | a score and a report exist for a run the real investigator produced | the sequence below, steps 4–6 | ✗ no frozen key exists for any incident the runtime can investigate |
-| 10 | the page renders the same archived truth, the evaluation included | `test_the_page_executes_nothing.py`, `test_the_product_path_in_a_browser.py`; D-19 | partial: record, trace, receipt, feedback rendered; the evaluation report is not yet served or shown |
+| 9 | a score and a report exist for a run the real investigator produced | the sequence below, steps 4–6; `01_data/runs/revenue-after-deploy-smoke-{1,2,3}/` | ✔ 16 Sep, as a smoke with no evaluation claim: run 1 `not_evaluable` (bound hit), runs 2 and 3 `success` — see "The first run" below |
+| 10 | the page renders the same archived truth, the evaluation included | `test_the_page_executes_nothing.py` (route `r/accepted` carries a report), `GET /api/runs/{label}/evaluation` | ✔ "What the evaluation said", in the authority's own terms, beside the validator's row |
 | 11 | the full suite and the guard pass are green on three operating systems | CI: `test` matrix + `guards` job; 32 registered guards | ✔ |
-| 12 | a second run of the same incident reveals no hidden state | run the sequence twice; compare the two records' shapes, the manifest, the page | ✗ not yet attempted |
+| 12 | a second run of the same incident reveals no hidden state | run the sequence twice on the same code; compare the two records, the manifest, the page | ✔ runs 2 and 3: same two queries, same decision, same score; the archive verified after each |
 
 ## The sequence to the first scored full-system run
 
@@ -45,9 +45,10 @@ python -m adii.runtime --incident revenue-after-deploy --provider local \
 python -m adii.reporting.manifest && python -m adii.reporting.manifest --verify
 python -m adii.demo 8000 --endpoint http://127.0.0.1:8090/v1 --model Qwen3-4B-Instruct-2507-4bit --served-as default_model
 
-# 4  DECIDE: the incident and its key — see "Decisions" below
+# 4  the incident and its key — done 16 Sep as a smoke (see "The first run"); an independent
+#    key, and one per incident, remain decision 2 below
 
-# 5  BUILD (the evaluation authority): author the key, freeze it, commit both files
+# 5  author the key, freeze it, commit both files (exists; done for revenue-after-deploy)
 #    02_src/adii/evaluation/fixtures/revenue-after-deploy.answer.json  +  .sha256
 python -c "from pathlib import Path; from adii.evaluation.freeze import freeze_answer_key; \
            print(freeze_answer_key(Path('02_src/adii/evaluation/fixtures/revenue-after-deploy.answer.json')))"
@@ -55,7 +56,7 @@ python -c "from pathlib import Path; from adii.evaluation.freeze import freeze_a
 # 6  the score, beside the record (exists)
 python -m adii.evaluation --run <label from step 2> --key 02_src/adii/evaluation/fixtures/revenue-after-deploy.answer.json
 
-# 7  BUILD (D-19): the page serves and shows evaluation_report.json; the text report names the category
+# 7  the page serves and shows evaluation_report.json (exists, 16 Sep): "What the evaluation said"
 
 # 8  run steps 2, 3 and 6 again on the same incident — row 12
 ```
@@ -64,6 +65,48 @@ What the first scored run may be called is fixed before it runs: a **public_deve
 smoke of the scoring path, no evaluation claim** — the specimens carry none
 (`examples/specimens.py`), and a number reported against an incident freezes it
 (`DATA_WORLD_v0.md`, "what is frozen"). It is never quoted as an ADII result.
+
+## The first run, 16 September
+
+**Recorded as: the first scored integration smoke on a known development incident, using
+the non-canonical live spike path.** Smoke green means the execution, custody and scoring
+seams compose. It does not mean ADII is accurate, that the model is good, that M7 is
+closed, or that any blind evaluation passed.
+
+The key: `evaluation/fixtures/revenue-after-deploy.answer.json`, NO_REPAIR, frozen
+`sha256:75ffde71…` **before the first run**, authored by the runtime's author from what
+the specimen's own world defines — `distributors.contract_end` on 2026-03-07 for two
+distributors carrying 0.45 of revenue, `deploys.touches` naming UI copy only — and
+labelled a development-fixture smoke for plumbing verification with no evaluation claim.
+Qwen3-4B-Instruct-2507-4bit on this machine, `--provider local`.
+
+Checked before scoring, for each run: the record names `revenue-after-deploy` and the
+model used; termination as reported; validation `None` (a NO_REPAIR carries no verdict);
+receipt, trace and record present, the receipt's `written_at` before the record's.
+Checked after: the report written once and naming its run; `--verify` OK after each
+attest (and FAILED, naming the one unlisted report, when a run was scored after the last
+attest); `--preserve` retains every report; every evidence digest still matches its bytes.
+One deviation from the order: run 2 followed a fix, not a retry — run 1 is kept and read
+below, and runs 2 and 3 are the pair on unchanged code.
+
+- **Run 1** — 12 turns, 2 tool calls, 39 s, `bound_hit`, scored `not_evaluable`. The model
+  reached `NO_REPAIR` on turn 3 and repeated it ten times; A's parser rejected every one:
+  the JSON ended in `</DECISION>` and carried `"patch": null`. The rejections were in A's
+  own trace with their reasons and **dropped by the spike adapter** (`runtime/live.py`),
+  so the archive showed twelve identical turns and no reason — and the loop re-asked the
+  model with nothing fed back, so it repeated itself to the bound. This is what the first
+  E2E was for.
+- **Fixed:** the parser accepts a closed protocol tag and `patch: null` (two lines, tested
+  in A's suite — for the loop's owner to review). **Open, by name:** *rejection feedback*
+  (a rejected decision is re-asked with no reason — the loop's seam), and *contract row 6*
+  (where a rejection is recorded; the adapter discards A's trace today).
+- **Runs 2 and 3** — 3 turns, 2 tool calls, 6 s, `NO_REPAIR`, scored `success`,
+  deterministic. Identical to each other. Read honestly: the right disposition for the
+  wrong reason. The model queried only the days after the deploy, never the days before,
+  never the distributors table, named no root cause, and wrote "the observed 45% drop is
+  not supported by data". C's deterministic path scores a NO_REPAIR on disposition alone.
+  A *scoring semantics* finding for the evaluation authority: a `success` any reader of
+  the trace would call unearned.
 
 ## Decisions the line waits on
 
@@ -98,3 +141,8 @@ smoke of the scoring path, no evaluation claim** — the specimens carry none
 | receipt ↔ key | `get_receipt_artefact` returns `{kind, path, digest}`; `write_receipt` takes `name → "sha256:…"`; the runtime has no `--key` and the receipt is written before the run | join at scoring time, not at the receipt (D-15's wording) |
 | key guard | `test_answer_keys_stay_out` matched only the catalogue's vocabulary; C's field names added | fixed 16 Sep |
 | docs | `OVERVIEW.md` names `demo-learning-001.answer.json` and two test files that are not in the tree; `evaluation_report.py` says it has no dependency on the package it lives in | the authority's to reconcile |
+| protocol → parser | a closed tag and `patch: null` were rejected as malformed decisions; found by run 1 | `investigator/loop.py` (fixed 16 Sep; the loop's owner reviews) |
+| loop → model | a rejected decision is re-asked with no reason fed back; the model repeats itself to the bound | `investigator/loop.py` — the seam's owner; a proposal belongs beside row 6 |
+| adapter → trace | A's `decision_rejected` events, with reasons, are discarded (`decision, _ = run(...)`) | `runtime/live.py:51`; contract row 6, then D-6b |
+| scoring semantics | a NO_REPAIR scores `success` on disposition alone; runs 2–3 are the case | `evaluation/scoring.py` — the authority's |
+| provider → trace | `model_requested` records a message *count*; the system prompt and tool schemas the model was sent are not in the record, so custody holds everything the model saw of the data but not everything it was told | `provider/openai_compatible.py:78-79`; contract row 1 |

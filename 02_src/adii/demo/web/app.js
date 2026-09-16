@@ -328,12 +328,13 @@ async function runPage(label, against) {
   if (row.running) return watch(label);
   const a = await load(`/api/runs/${label}`);
   if (a.schema !== SCHEMA) return mismatch(a.schema);
+  const evaluation = row.evaluation ? await load(`/api/runs/${label}/evaluation`) : null;
   const other = against && state.runs.find((r) => r.label === against && !r.error
     && r.incident_id === row.incident_id);
   crumbs([a.context.incident_id, `#i/${encodeURIComponent(a.context.incident_id)}`],
     [other ? "Two runs, side by side" : label]);
   if (!other) {
-    $("view").replaceChildren(story(a, false, label), howto(a.context.incident_id));
+    $("view").replaceChildren(story(a, false, label, evaluation), howto(a.context.incident_id));
   } else {
     const b = await load(`/api/runs/${against}`);
     if (b.schema !== SCHEMA) return mismatch(b.schema);
@@ -354,7 +355,7 @@ async function runPage(label, against) {
 const seconds = (ms) => (ms >= 1000 ? `${Math.round(ms / 1000)} s` : `${ms} ms`);
 const shortModel = (model) => (model ? String(model).split("/").pop() : "no model");
 
-function story(r, compact = false, label = r.label) {
+function story(r, compact = false, label = r.label, evaluation = null) {
   const c = r.context, d = r.decision, cfg = r.configuration, n = r.counters;
   const out = el("div", "story");
   const ran = cfg.model ? `${shortModel(cfg.model)} · ` : "";
@@ -416,6 +417,19 @@ function story(r, compact = false, label = r.label) {
     out.append(record("validator", "Validation", `Held by ${VALIDATOR}`,
       el("p", null, plain("not evaluated", "g-none")),
       el("p", "adii-field__hint adii-mt-sm", PHRASING.validation.notInvoked)));
+  }
+
+  /* the evaluation authority's category, when the run has been scored: its report,
+   * verbatim in the mono values, with one sentence from the dictionary beside it */
+  if (evaluation) {
+    const e = evaluation;
+    out.append(record(null, "What the evaluation said",
+      "Asserted by the evaluation authority, against an answer key ADII never saw",
+      el("p", "adii-assertion", PHRASING.evaluation[e.category] ?? e.category),
+      meta(["category", e.category], ...(e.sub_kind ? [["sub kind", e.sub_kind]] : []),
+        ...(e.verdict ? [["verdict", e.verdict]] : []),
+        ...(e.settled_by ? [["settled by", PHRASING.evaluation.settledBy[e.settled_by] ?? e.settled_by]] : []),
+        ...(e.reason ? [["reason", e.reason]] : []))));
   }
 
   if (!compact) out.append(feedbackBlock(label));
@@ -498,10 +512,14 @@ function turnCard(turn, i, validation) {
   const body = el("div", "turn__body");
   if (call) {
     body.append(el("p", "turn__what", PHRASING.turn.asked(call.payload.name, call.payload.arguments)));
+    /* the observation's own id, minted by the tool layer as it answered — shown beside
+     * the sentence so a viewer can see what the decision may later cite */
+    const minted = result && result.payload.content && result.payload.content.evidence_id;
     body.append(result
       ? el("p", "turn__result", `The tool layer ${PHRASING.turn.answered(result.payload)}.`,
           result.payload.status !== "OK" ? " " : "",
-          result.payload.status !== "OK" ? plain(result.payload.status, "g-unresolved") : "")
+          result.payload.status !== "OK" ? plain(result.payload.status, "g-unresolved") : "",
+          minted ? " " : "", minted ? mono(minted) : "")
       : el("p", "turn__result", PHRASING.turn.unanswered));
   }
   if (decided) body.append(el("p", "turn__what", PHRASING.turn.decided(decided.payload.disposition)));
@@ -560,8 +578,10 @@ function mismatch(schema) {
 }
 
 /* ── records: a container with a written owner ──────────────────────── */
+/* `owner` picks the identity's riser colour; an owner the identity has no colour for —
+ * the evaluation authority — is named in text only, which is the rule anyway. */
 function record(owner, title, ownerLine, ...kids) {
-  return el("article", `adii-record adii-record--${owner}`,
+  return el("article", owner ? `adii-record adii-record--${owner}` : "adii-record",
     el("div", "adii-record__head",
       el("h2", "adii-record__title", title),
       el("p", "adii-record__owner", ownerLine)),

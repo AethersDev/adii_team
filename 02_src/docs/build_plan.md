@@ -174,7 +174,9 @@ the real investigator doing the investigating.
 
 **From 16 September the tracks are integrated, and the objective test of the whole is
 [green_line.md](green_line.md): twelve properties, each tied to the command or test that
-demonstrates it, and the sequence to the first scored full-system run.**
+demonstrates it, and the sequence to the first scored full-system run. How the result is
+shown to an audience is [demo.md](demo.md): one incident, three layers, the machinery
+revealed only once it answers a question the audience already has.**
 
 **Demo** `python -m adii.runtime --incident demo-learning-001 --provider scripted && python -m adii.demo`
 

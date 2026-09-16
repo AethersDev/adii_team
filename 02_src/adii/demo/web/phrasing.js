@@ -14,10 +14,10 @@ const PHRASING = {
   /* ── product copy ─────────────────────────────────────────────────── */
   product: {
     name: "Autonomous Data Incident Investigator",
-    what: "ADII investigates data incidents. It reads the data through a small set of tools " +
-      "it is allowed to use, records every step, and decides — repair, no repair, or " +
-      "escalate — when the evidence supports a decision. A repair it proposes is checked " +
-      "separately; it never grades its own work.",
+    what: "A bounded autonomous investigator for data incidents. Its job is not to repair " +
+      "everything: it determines what action, if any, the evidence justifies — repair, no " +
+      "repair, or escalate — reading the data only through tools it is allowed to use, " +
+      "recording every step, and never grading its own work.",
     readOnly: "This page is read-only. It shows runs the runtime archived and can start " +
       "none: a page that can start a run can spend money.",
     /* the launcher's one line of context: the model is the server's choice, not a control */
@@ -113,6 +113,20 @@ const PHRASING = {
       REJECT: "The validator did not accept the repair",
       UNCHECKED: "No validator checked the repair" })[PHRASING.verdictOf(v)],
     unanswered: "The run ended before this call was answered",
+  },
+
+  /* ── the evaluation authority's category: one sentence each, from its own definitions
+   * (evaluation/outcome_classification.py); the category itself is shown beside it ── */
+  evaluation: {
+    success: "The decision matched the answer key.",
+    correct_abstention: "The decision to escalate matched the answer key.",
+    unnecessary_escalation: "The decision escalated where the answer key names a call.",
+    false_repair: "A repair was proposed for a root cause the answer key does not name.",
+    repair_rejection: "The repair named the answer key's root cause and was not accepted by " +
+      "the validator.",
+    failure: "The decision did not match the answer key.",
+    not_evaluable: "No decision was submitted, so there was nothing to score.",
+    settledBy: { deterministic: "the scoring rules", judge: "the judge", none: "no one" },
   },
 
   /* ── the validator's row ─────────────────────────────────────────── */
