@@ -29,7 +29,7 @@ server, no container. Windows and macOS are both first-class; CI runs on both pl
 | `investigator/` | 342 | **built in isolation** (A) | the loop, a scripted provider seam, frozen state, a turn budget, an explicit stop, structured decisions with an evidence gate, credential redaction, its own eight trace kinds | not driven by the runtime yet (D-6b, after the trace decision); `permitted_write_paths` not enforced — both live models wrote outside them |
 | `runtime/` | 346 | **built** (D) | one command per incident; a harness-owned trace; counters from the trace; the label reserved before the run; a record for every ending; exit codes per outcome; scripted stand-ins; the live bridge | the canonical adapter that drives A (D-6b); a termination class for a stop without a decision (contract row 5); the receipt before a paid call (D-15) |
 | `provider/` | 93 | **spike, local only** | A's seam served by any OpenAI-compatible endpoint on this machine; requests and responses recorded at the boundary | paid endpoints, refused until the receipt (D-15) and the ledger (D-12); lives on `spike/live-local`. C's judge takes a string-to-string callable, which this package should supply, so one place talks to models |
-| `reporting/` | 304 | **built** (D) | `RunRecord` v1, strict JSON, versioned, machine-path-free; the archive; the text report from a record for every ending | event constructors (D-1), evidence-cited counters (D-3), the manifest (D-10), the ledger (D-12), receipts (D-15) |
+| `reporting/` | 452 | **built** (D) | `RunRecord` v1, strict JSON, versioned, machine-path-free; the archive; the text report from a record for every ending; the receipt written and flushed before every run (D-15); attestation and manifest-first preservation of the archive (D-10) | event constructors (D-1), evidence-cited counters (D-3), the ledger (D-12, after the trace contract says where usage lands) |
 | `examples/` | 543 | **built** | the walkthrough; one produced record per ending; six development specimens with ten scripted runs | replaced or supplemented by the declassified catalogue once its seven rows resolve |
 | `demo/` | 109 | **built** | the inspector's server: lists and serves the archive, read-only, `Cache-Control: no-store` | nothing planned; it stays small on purpose |
 | `validation/` | 1 | **scaffold** (C) | a README | the validator: rebuild from frozen inputs, accept or reject. A live REPAIR carries "not checked, not accepted" until then. C's branch wires validation as a scoring precondition but does not build the rebuild |
@@ -62,7 +62,7 @@ error) and `GET /api/runs/<label>` (the record, verbatim). The page can start no
 | where | what | tracked |
 |---|---|---|
 | `01_data/walkthrough/` | the teaching incident, its trace, decision, verdict, report and v1 record; `endings/` one produced record and report per way a run ends | yes |
-| `01_data/runs/` | the archive: one `record.json` per run, whatever produced it | no — payloads; the README is; a manifest is D-10 |
+| `01_data/runs/` | the archive: `receipt.json` then `record.json` per run, whatever produced it | no — payloads; the README and `MANIFEST.json` are |
 | `01_data/demo/world/` | the canonical operational world | a work order; not built |
 | in code | six development specimens (`examples/specimens.py`), each with its own tiny world | yes |
 
