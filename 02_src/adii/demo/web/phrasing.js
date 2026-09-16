@@ -27,7 +27,17 @@ const PHRASING = {
       "--model <model id> --served-as default_model",
     running: "Investigating. Every turn appears here as it happens; the record lands when the " +
       "run ends.",
+    /* the footer of every screen: what this page can start, and that it spends nothing */
+    footReadOnly: "Read-only. Runs are launched from the command line; nothing on this page " +
+      "can spend money.",
+    footLive: (model) => `Runs start from this page against ${model}, a model on this ` +
+      "machine, one at a time; nothing on this page can spend money.",
     empty: "An incident appears here once the runtime has investigated it and archived the run.",
+    /* feedback: the operator's assertion about a run, kept beside the record, attributed */
+    feedbackAsk: "Was this investigation useful to you?",
+    feedbackExpected: "What did you expect to see, or what was missing?",
+    feedbackBy: "Your name (optional)",
+    feedbackRecorded: "Feedback recorded. It is kept beside this run's record, in your words.",
     createRun: "python -m adii.runtime --incident demo-learning-001 --provider scripted",
     specimens: "python -m adii.examples.specimens",
     specimensWhat: "Six development incidents with scripted example runs — made up, no model, " +

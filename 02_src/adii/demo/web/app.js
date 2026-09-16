@@ -11,8 +11,9 @@
  * field: everything on the page is in the record, or is one of the sentences in
  * phrasing.js, each a deterministic projection of record fields, each tested.
  *
- * The page cannot start a run. A page that can start a run can spend money. It says so, and
- * it says how a run is started, on every screen.
+ * The page starts a run only when the operator started the server with a local model — a
+ * page that can start a run can spend money, so otherwise it says how a run is started,
+ * on every screen. Its footer says which it is.
  *
  * No innerHTML anywhere. Every string here is model-written the day a live provider runs,
  * and a report that executes what the model wrote is inherited defect D12. Text nodes
@@ -74,6 +75,9 @@ function outcome(row) {
 
 async function load(url, init) {
   const res = await fetch(url, init);
+  const code = res.headers.get("ADII-Code");         /* the page's code, as served right now */
+  if (code && state.code && code !== state.code) location.reload();   /* this tab's script is older */
+  state.code = state.code ?? code;
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error || `${url} answered ${res.status}`);
   return body;
@@ -129,7 +133,8 @@ function remember(key, value) {
 }
 
 /* ── state, boot and routing ────────────────────────────────────────── */
-const state = { runs: [], launch: { enabled: false } };   /* the run list, and whether runs may start */
+/* the run list; whether runs may start; the code version this tab loaded; a run this tab just started */
+const state = { runs: [], launch: { enabled: false }, code: null, starting: null };
 
 preferences();
 window.addEventListener("hashchange", () => guard($("view"), route));
@@ -155,6 +160,10 @@ function crumbs(...items) {
     i ? el("span", "adii-nav__sep", "/") : "",
     href ? link("adii-nav__link", text, href) : el("span", "adii-nav__link", text)]));
 }
+
+/* every screen's footer says whether this page can start a run, and against what */
+const footer = (prefix = "") => foot(prefix + (state.launch.enabled
+  ? PHRASING.product.footLive(state.launch.model) : PHRASING.product.footReadOnly));
 
 function foot(text) {
   $("foot").replaceChildren(text);
@@ -200,6 +209,7 @@ function launcher(preset) {
     const answer = await load("/api/runs", { method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ incident: select.value }) });
+    state.starting = answer.label;
     location.hash = `#r/${encodeURIComponent(answer.label)}`;
   });
   guard(status, fill);
@@ -266,7 +276,7 @@ async function frontDoor() {
             el("p", "adii-empty__title", "No runs archived yet"),
             el("p", null, PHRASING.product.empty))),
     state.launch.enabled ? "" : howto()));
-  foot("Read-only. Runs are launched from the command line; nothing on this page can spend money.");
+  footer();
 }
 
 /* ── an incident: every run of it, in time order, each in its own words ── */
@@ -296,13 +306,16 @@ async function incidentPage(incident) {
           runs.length > 1 && r !== runs[0] ? link("adii-btn", "Compare with latest",
             `#r/${encodeURIComponent(runs[0].label)},${encodeURIComponent(r.label)}`) : ""))))),
     howto(incident));
-  foot("Read-only. Runs are launched from the command line; nothing on this page can spend money.");
+  footer();
 }
 
 /* ── one run, as a story; or two of one incident, side by side ──────── */
 async function runPage(label, against) {
   let row = state.runs.find((r) => r.label === label);
-  if (!row) {                                  /* just started: not in the list we loaded */
+  /* not in the list this tab loaded: reload it — and for a run this tab just started, wait
+   * for the runtime to reserve the label, which it does a moment after the server answers */
+  for (let i = 0; !row && (i === 0 || (state.starting === label && i < 20)); i++) {
+    if (i) await new Promise((resolve) => setTimeout(resolve, 500));
     state.runs = await load("/api/runs");
     row = state.runs.find((r) => r.label === label);
   }
@@ -316,7 +329,7 @@ async function runPage(label, against) {
   crumbs(["Incidents", "#"], [a.context.incident_id, `#i/${encodeURIComponent(a.context.incident_id)}`],
     [other ? "Two runs, side by side" : label]);
   if (!other) {
-    $("view").replaceChildren(story(a), howto());
+    $("view").replaceChildren(story(a, false, label), howto());
   } else {
     const b = await load(`/api/runs/${against}`);
     if (b.schema !== SCHEMA) return mismatch(b.schema);
@@ -326,7 +339,7 @@ async function runPage(label, against) {
         link("adii-btn", "Close comparison", `#r/${encodeURIComponent(label)}`)),
       el("div", "compare", story(a, true), story(b, true)));
   }
-  foot(`Read-only view of an ${SCHEMA} record. Runs are launched from the command line; nothing on this page can spend money.`);
+  footer(`An ${SCHEMA} record, shown as archived. `);
 }
 
 /* ── the run page: outcome first, then the investigation turn by turn ─────────────
@@ -337,7 +350,7 @@ async function runPage(label, against) {
 const seconds = (ms) => (ms >= 1000 ? `${Math.round(ms / 1000)} s` : `${ms} ms`);
 const shortModel = (model) => (model ? String(model).split("/").pop() : "no model");
 
-function story(r, compact = false) {
+function story(r, compact = false, label = r.label) {
   const c = r.context, d = r.decision, cfg = r.configuration, n = r.counters;
   const out = el("div", "story");
   const ran = cfg.model ? `${shortModel(cfg.model)} · ` : "";
@@ -398,6 +411,8 @@ function story(r, compact = false) {
       el("p", "adii-field__hint adii-mt-sm", PHRASING.validation.notInvoked)));
   }
 
+  if (!compact) out.append(feedbackBlock(label));
+
   out.append(el("details", "adii-panel tech",
     el("summary", null, "Details for engineers"),
     defs(["Run", r.label], ["Model", cfg.model ?? "none"], ["Endpoint", cfg.endpoint ?? "none"],
@@ -408,6 +423,44 @@ function story(r, compact = false) {
          ["Code revision", r.provenance.source_revision ?? "unknown"],
          ["Record schema", r.schema])));
   return out;
+}
+
+/* The operator's feedback on a run: recorded beside the record, attributed, shown back
+ * verbatim as text. The one write a read-only inspector accepts, because it spends nothing
+ * and asserts nothing about the run — it is the operator's word, labelled as such. */
+function feedbackBlock(label) {
+  const list = el("div", "feedback__list");
+  const show = (entries) => list.replaceChildren(...entries.map((f) =>
+    el("blockquote", "turn__quote",
+      el("p", "adii-field__hint", `${f.by}, ${when(f.written_at)} — useful: ${f.useful}`),
+      f.expected ? el("p", null, f.expected) : "")));
+  guard(list, async () => show(await load(`/api/runs/${encodeURIComponent(label)}/feedback`)));
+  const useful = el("fieldset", "adii-fieldset-plain feedback__useful",
+    el("legend", "adii-field__label", PHRASING.product.feedbackAsk),
+    ...["yes", "partly", "no"].map((v) => {
+      const input = el("input"); input.type = "radio"; input.name = "useful"; input.value = v;
+      return el("label", "feedback__option", input, ` ${v}`);
+    }));
+  const expected = el("textarea", "adii-input"); expected.rows = 3; expected.maxLength = 2000;
+  const by = el("input", "adii-input"); by.maxLength = 80;
+  const button = el("button", "adii-btn", "Record feedback"); button.type = "button";
+  const status = el("p", "adii-field__hint");
+  button.onclick = () => guard(status, async () => {
+    const chosen = useful.querySelector("input:checked");
+    if (!chosen) throw new Error("say whether it was useful first");
+    await load(`/api/runs/${encodeURIComponent(label)}/feedback`, { method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ useful: chosen.value, expected: expected.value, by: by.value }) });
+    status.replaceChildren(PHRASING.product.feedbackRecorded);
+    button.replaceChildren("Feedback recorded");
+    button.disabled = true;
+    show(await load(`/api/runs/${encodeURIComponent(label)}/feedback`));
+  });
+  return record("operator", "Your feedback", "Asserted by whoever writes it, kept beside this record",
+    list, useful,
+    el("div", "adii-field adii-mt-md", el("label", "adii-field__label", PHRASING.product.feedbackExpected), expected),
+    el("div", "adii-field adii-mt-sm", el("label", "adii-field__label", PHRASING.product.feedbackBy), by),
+    el("p", "adii-mt-md", button), status);
 }
 
 /* Group the trace into turns: each model request and everything it caused, or, for a
@@ -465,7 +518,7 @@ async function watch(label) {
       el("h1", "outcome__headline", plain("running", "g-unresolved"), " Investigating")),
     record("system", "The investigation, turn by turn", "Recorded by the runtime as it happens",
       status, list)));
-  foot("A run in progress. Nothing on this page can spend money.");
+  footer("A run in progress. ");
   let events = [];
   while (location.hash === `#r/${encodeURIComponent(label)}`) {
     const live = await load(`/api/runs/${label}/trace`);
@@ -473,7 +526,7 @@ async function watch(label) {
       events = live.events;
       list.replaceChildren(...turns(events).map(turnCard));
     }
-    if (live.finished) {
+    if (live.finished || !live.running) {     /* the record landed — or the run went silent */
       state.runs = await load("/api/runs");
       return route();
     }

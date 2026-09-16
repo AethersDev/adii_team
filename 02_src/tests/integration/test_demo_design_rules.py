@@ -125,3 +125,6 @@ def test_every_sentence_the_page_adds_comes_from_the_dictionary():
         assert key in script, f"app.js does not read {key}"
     assert "The investigator reached" not in script and "The model failed" not in script, (
         "an ending sentence is written in app.js instead of phrasing.js")
+    assert "Runs are launched from the command line" not in script, (
+        "a footer is written in app.js instead of phrasing.js — and it is only true when "
+        "the operator started the server without a model")

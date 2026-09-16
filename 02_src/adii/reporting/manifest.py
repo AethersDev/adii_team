@@ -27,20 +27,29 @@ from .record import ARCHIVE, source_revision
 
 SCHEMA = "adii.archive_manifest/v1"
 NAME = "MANIFEST.json"
-# Every record is evidence of a run and is kept; a class that may be rebuilt from recorded
-# identifiers, or kept only as diagnostics, is declared here when such an artefact exists.
-RETENTION = "evidence"
+# What the archive keeps of a run, by name, and why. Evidence is what the run left of itself
+# — the receipt written before it, the trace as it happened, the record when it ended — and
+# is kept for as long as the run is cited. An annotation is what a person said about the run
+# afterwards: preserved beside it, never mistaken for the run's own evidence. A file in a
+# run's folder under any other name is not attested, and verification lists it.
+RETENTION = {"receipt.json": "evidence", "trace.jsonl": "evidence", "record.json": "evidence",
+             "feedback.jsonl": "annotation"}
 
 
 def digest(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def artefacts(root: Path) -> list[Path]:
+    """Every file in `root` the archive keeps, by the names it keeps them under."""
+    return sorted(path for path in root.glob("*/*") if path.name in RETENTION)
+
+
 def attest(root: Path) -> dict:
-    """The manifest of `root` as it is now: one entry per archived record."""
+    """The manifest of `root` as it is now: one entry per artefact of every run."""
     entries = [{"path": path.relative_to(root).as_posix(), "bytes": path.stat().st_size,
-                "digest": digest(path), "retention": RETENTION}
-               for path in sorted(root.glob("*/record.json"))]
+                "digest": digest(path), "retention": RETENTION[path.name]}
+               for path in artefacts(root)]
     return {"schema": SCHEMA, "written_at": datetime.now(UTC).isoformat(timespec="seconds"),
             "source_revision": source_revision(), "entries": entries}
 
@@ -79,7 +88,7 @@ def verify(root: Path, manifest: dict | None = None) -> Verification:
             missing.append(rel)
         elif path.stat().st_size != entry["bytes"] or digest(path) != entry["digest"]:
             altered.append(rel)
-    present = {p.relative_to(root).as_posix() for p in root.glob("*/record.json")}
+    present = {p.relative_to(root).as_posix() for p in artefacts(root)}
     return Verification(len(listed), tuple(missing), tuple(altered),
                         tuple(sorted(present - set(listed))))
 
@@ -127,7 +136,7 @@ def main(argv: list[str] | None = None) -> int:
         print("the original is untouched; delete it only on the strength of a verified copy")
         return 0 if result.ok else 1
     path = write_manifest(root)
-    print(f"attested {len(attest(root)['entries'])} record(s) in {path}")
+    print(f"attested {len(attest(root)['entries'])} artefact(s) in {path}")
     return 0
 
 

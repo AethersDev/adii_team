@@ -114,6 +114,33 @@ GUARDS = (
           "  n.append(...kids);\n",
           "  kids.forEach((k) => (typeof k === \"string\" "
           "? n.insertAdjacentHTML(\"beforeend\", k) : n.append(k)));\n"),
+    Guard("D.server_starts_local_only", "D", "demo/__main__.py",
+          "    if not endpoint_is_local(args.endpoint):\n",
+          "    if False:\n"),
+    Guard("D.page_launch_needs_operator", "D", "demo/server.py",
+          "        if not LAUNCH:\n",
+          "        if False:\n"),
+    Guard("D.page_launch_known_incident", "D", "demo/server.py",
+          "        if incident not in {i[\"incident_id\"] for i in incidents()}:\n",
+          "        if False:\n"),
+    Guard("D.page_launch_one_at_a_time", "D", "demo/server.py",
+          "        if any(row.get(\"running\") for row in index(ARCHIVE)):\n",
+          "        if False:\n"),
+    Guard("D.post_body_declared_json", "D", "demo/server.py",
+          "        if self.headers.get(\"Content-Type\", \"\").split(\";\")[0].strip() "
+          "!= \"application/json\":\n",
+          "        if False:\n"),
+    Guard("D.feedback_useful_enumerated", "D", "demo/server.py",
+          "    if useful not in FEEDBACK_LIMITS[\"useful\"]:\n",
+          "    if False:\n"),
+    Guard("D.feedback_bounded", "D", "demo/server.py",
+          "    if len(expected) > FEEDBACK_LIMITS[\"expected\"] "
+          "or len(by) > FEEDBACK_LIMITS[\"by\"]:\n",
+          "    if False:\n"),
+    Guard("D.feedback_needs_record", "D", "demo/server.py",
+          "            if not LABEL.fullmatch(label) "
+          "or not (ARCHIVE / label / \"record.json\").is_file():\n",
+          "            if not LABEL.fullmatch(label) or not (ARCHIVE / label).is_dir():\n"),
     # C's guards join here when the evaluation authority merges.
 )
 
