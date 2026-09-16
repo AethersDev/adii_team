@@ -25,7 +25,15 @@ BUILD_OUTPUT = (ROOT / "build", ROOT / "dist")       # a wheel build copies sour
 
 # The public-index packages this project has chosen, each pinned in requirements.txt.
 # Adding a name here is a review decision, never a side effect of an import.
-CHOSEN = {"pytest", "ruff", "pytest-timeout"}
+CHOSEN = {"pytest", "ruff", "pytest-timeout", "openai"}
+
+# eval_authority's own modules import each other by bare name (from judge import ...),
+# not as a package — see 02_src/tests/eval_authority/conftest.py. Internal code, not a
+# public-index dependency, so it is excluded the same way "adii" itself is below.
+EVAL_AUTHORITY_MODULES = {
+    p.stem for p in (SRC / "tests" / "eval_authority").glob("*.py")
+    if p.stem != "conftest"
+}
 
 
 def files_named_as_tests() -> set[Path]:
@@ -88,7 +96,7 @@ def test_every_third_party_import_is_declared():
                 imported.update(alias.name.split(".")[0] for alias in node.names)
             elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
                 imported.add(node.module.split(".")[0])
-    third_party = imported - sys.stdlib_module_names - {"adii"}
+    third_party = imported - sys.stdlib_module_names - {"adii"} - EVAL_AUTHORITY_MODULES
     undeclared = sorted(third_party - {n.replace("-", "_") for n in declared()["pyproject"]})
     assert not undeclared, f"imported but not declared in pyproject.toml: {undeclared}"
 

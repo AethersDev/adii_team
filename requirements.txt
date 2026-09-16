@@ -23,3 +23,7 @@ pytest-timeout==2.4.0
 # Pinned, not floated. CI gates on lint, and an unpinned linter turns a new ruff
 # release into a red build nobody caused. Bump it deliberately, in its own PR.
 ruff==0.16.6
+
+# The real-model swap for eval_authority's judge (openai_provider.py). Not wired
+# into anything yet, but declared here so the import is never silently third-party.
+openai==1.109.1
