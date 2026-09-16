@@ -102,7 +102,7 @@ def main(port: int = 8000) -> int:
     print(f"  {len(runs)} archived run(s) in {ARCHIVE.relative_to(REPO)}. Read-only.")
     if not runs:
         print("  Produce one now:  python -m adii.runtime --incident demo-learning-001 "
-              "--provider fake")
+              "--provider scripted")
     print()
     try:
         httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)

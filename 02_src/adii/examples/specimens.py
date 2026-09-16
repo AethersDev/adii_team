@@ -37,8 +37,8 @@ from ..contracts import (
 )
 from ..reporting import RunRecord, write_record
 from ..reporting.record import ARCHIVE
-from ..runtime.fakes import ScriptedInvestigator, ScriptedValidator
 from ..runtime.run import Terminated, run_incident
+from ..runtime.scripted import EndingInvestigator, ScriptedInvestigator, ScriptedValidator
 from ..tools import Parameter, ReadOnlyDatabase, ToolSpec, build_sql_tools
 
 CONFIGURATION = {"provider": "scripted", "model": None, "execution_mode": "scripted",
@@ -334,24 +334,12 @@ SPECIMENS = (ORDERS_MISSING, REVENUE_AFTER_DEPLOY, DELIVERY_DUPLICATED, SHIPMENT
              SETTLEMENT_CONFLICT, REGION_MISASSIGNED)
 
 
-class Ends:
-    """A scripted investigator that makes its calls and then ends the run the loop's way."""
-
-    def __init__(self, calls: tuple[ToolCall, ...], ending: Terminated) -> None:
-        self._calls, self._ending = calls, ending
-
-    def investigate(self, context, tools):
-        for call in self._calls:
-            tools.execute(call)
-        raise self._ending
-
-
 def produce(specimen: Specimen, index: int, run: Run) -> RunRecord:
     """One run of one specimen through the real runtime over the real tool layer."""
     tools = build_sql_tools(ReadOnlyDatabase.in_memory(specimen.world))
     if specimen.extra_tool:
         tools.register(*specimen.extra_tool)
-    investigator = (Ends(run.calls, run.ending) if run.ending
+    investigator = (EndingInvestigator(run.calls, run.ending) if run.ending
                     else ScriptedInvestigator(run.calls, run.decision))
     return run_incident(f"{specimen.context.incident_id}-run-{index}", specimen.context,
                         investigator, tools, ScriptedValidator(run.verdict),

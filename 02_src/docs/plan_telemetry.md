@@ -69,7 +69,7 @@ A / B / C  ──TraceEvent──▶  events.py    the vocabulary: which kinds e
 CONFORMANCE says D is **passive**: it records what A, B and C say and never reinterprets. So
 D's first deliverable is not code they call — it is the vocabulary they emit. That is also
 what makes this plan independent of their schedule: everything below is built and tested
-against the walkthrough fixture and fakes before any of A, B or C exists, exactly as the
+against the walkthrough fixture and scripted stand-ins before any of A, B or C exists, exactly as the
 walkthrough already does.
 
 ---
@@ -87,7 +87,7 @@ walkthrough already does.
    `tools/`, `examples/` and `reporting/`, and the loop needs a model. Recommendation: a new
    `adii/provider/` package, the only place a model SDK is imported, added to the allow-list
    in [../tests/architecture/test_boundaries.py](../tests/architecture/test_boundaries.py) by a
-   reviewed change; A programs the loop against a small `Provider` protocol with a fake; D
+   reviewed change; A programs the loop against a small `Provider` protocol with a scripted stand-in; D
    builds the real adapter (D7, X2). The SDK itself is the repository's first runtime
    dependency and is a review item on its own. An OpenAI-compatible local endpoint uses the
    same adapter, which gives free development runs.
@@ -133,7 +133,7 @@ preservation, then provider. Within a phase the order is the dependency order.
 
 | # | Unit | Done when | Ids |
 |---|---|---|---|
-| D-6 ✔ 13 Sep (the runtime; the investigator it drives is still a script — M7's composition of A into it is unit D-6b, after D-1) | `adii/runtime/` — `python -m adii.runtime --incident <id> --provider fake`: investigator → validation → archive → render, in one process. Defines the three protocols it expects from A, B and C. Runs today with a walkthrough replay standing in for the investigator | one command, one incident, one archived record, one rendered report; a distinct exit code per outcome class; green on Windows and macOS | M7 |
+| D-6 ✔ 13 Sep (the runtime; the investigator it drives is still a script — M7's composition of A into it is unit D-6b, after D-1) | `adii/runtime/` — `python -m adii.runtime --incident <id> --provider scripted`: investigator → validation → archive → render, in one process. Defines the three protocols it expects from A, B and C. Runs today with a walkthrough replay standing in for the investigator | one command, one incident, one archived record, one rendered report; a distinct exit code per outcome class; green on Windows and macOS | M7 |
 | D-6b | The vertical slice — one adapter between A's `run()` and the runtime's `Investigator` protocol: the canonical trace recorded at the provider boundary before A parses the response, A's two exceptions mapped to termination classes, the decided class for a stop without a decision; the scripted stand-in retired | A's loop, invoked by `python -m adii.runtime` with the scripted provider, over B's real tools, leaves one `adii.run_record/v1` with one trace that the inspector renders; every M7 "complete when" box | M7 |
 | D-7 ✔ 14 Sep | `render.py` v2 — renders from a `RunRecord`, not from live objects; labels success, model failure, bound hit, validator rejection and infrastructure failure each in its own terms; pairs every call with the result the model saw, in order; a terminal submission is never called "pending" | one committed record per outcome class; each renders with a distinct label; `expected_report.txt` grows one file per class | D11 |
 | D-7b ✔ 14 Sep; 15 Sep the information architecture for someone who did not build ADII — a front door on the incidents, a run as a story in a fixed order, every added sentence a tested projection in `web/phrasing.js`, phone width an acceptance test; the drawer's fingerprints and ledger rows arrive with D-11 and D-12 | Inspector, production features — the run list grows with the archive (label, incident, model, outcome class, cost, started); filter by incident and by model; **compare** two runs of one incident side by side, which is how models get tested; the provenance drawer shows requested and effective configuration, one fingerprint per response, and the ledger with its unknown rows | two archived runs of one incident compare on one screen; a run with an unknown-usage row shows its cost as a lower bound, labelled | D7, D11, D15 |
@@ -193,7 +193,7 @@ git history, so "reserve first" is true in the execution graph and not only in p
 | # | Unit | Done when | Ids |
 |---|---|---|---|
 | D-20 | The reserve commitment received — the custodian's `adii.reserve_commitment/v1` document and its digest committed under `02_src/adii/evaluation/`, verified against the private original by digest | the file exists in the repository and predates every development incident in git history; the digest matches the custodian's | D8, D13 |
-| D-21 | The receiving machinery — `python -m adii.runtime --incident <id>` loads `01_data/incidents/<id>/` through the tool layer's world opener; the guard tests: every incident has a truth file marked `public_development` with a public `development_selection_class`, and nothing in the repository is blind-eligible | the walkthrough still runs by its own path; a compiled incident runs end to end with the fake provider; both guard tests are red against a planted violation | D1, X4 |
+| D-21 | The receiving machinery — `python -m adii.runtime --incident <id>` loads `01_data/incidents/<id>/` through the tool layer's world opener; the guard tests: every incident has a truth file marked `public_development` with a public `development_selection_class`, and nothing in the repository is blind-eligible | the walkthrough still runs by its own path; a compiled incident runs end to end with the scripted provider; both guard tests are red against a planted violation | D1, X4 |
 | D-22 | The declassified development catalogue — six incidents compiled by the custodian from the private corpus into the receiving contract, one per selection class, each passing the four questions, reachability tested against the real tool layer | six records in the archive, one per incident, each rendering in the inspector with its own disposition; additive from then on | M3, M4, M5 |
 
 ### Everything else, in parallel
@@ -205,6 +205,12 @@ git history, so "reserve first" is true in the execution graph and not only in p
 - **Screenshots** of real runs into `03_assets/screenshots/` for the presentation.
 - **Housekeeping** that only D notices: GitHub handles in `CODEOWNERS`, the generated docs
   staying generated, `current_status.md` regenerated with every package that grows.
+- **The live spike**, 15 Sep, branch `spike/live-local`, not merged: `adii/provider/`
+  behind A's seam over a local OpenAI-compatible endpoint, `runtime/live.py` driving A's
+  loop from the runtime, `--provider local`. One trace, recorded at the provider and tool
+  boundaries. It pre-empts D-1 in code on purpose, as working evidence for the review, and
+  makes the one policy choice main must not (a stop with no decision → `model_failure`).
+  D-6b and D-11 are carved from it after the rows resolve; nothing is merged before.
 - **Frontend specimens**, 15 Sep: `python -m adii.examples.specimens` archives six
   hand-authored development incidents with ten scripted runs, produced through the real
   runtime and B's tools, every record marked scripted with no model and no evaluation
@@ -228,7 +234,7 @@ git history, so "reserve first" is true in the execution graph and not only in p
 | C | failure signals for the grid; freeze identifiers (answer-key digests) for receipts; the shape of scoring output | D-15, D-17, D-19 | week 5 |
 
 Until each lands, the corresponding unit is tested against the walkthrough fixture and a
-fake. Nothing in this plan waits on another track to start.
+scripted stand-in. Nothing in this plan waits on another track to start.
 
 ---
 
@@ -258,7 +264,7 @@ two runs of one incident side by side.
 ```bash
 python -m ruff check 02_src
 python -m pytest
-python -m adii.runtime --incident demo-learning-001 --provider fake
+python -m adii.runtime --incident demo-learning-001 --provider scripted
 python 02_src/scripts/guard_check.py
 ```
 
@@ -266,7 +272,7 @@ python 02_src/scripts/guard_check.py
 
 ## How this plan fails, and what stops it
 
-- **Waiting on A, B or C.** It does not: fakes and the walkthrough fixture come first, and
+- **Waiting on A, B or C.** It does not: scripted components and the walkthrough fixture come first, and
   the runtime's protocols are the written interface the other track builds to.
 - **A contract change turns out to be needed** — a termination reason or a schema version on
   `InvestigationRun`, say. It is not: the trace carries the reason and the record carries the
@@ -275,7 +281,7 @@ python 02_src/scripts/guard_check.py
 - **Windows.** Paths, file locks, flush semantics and the missing signal timeout. Every
   unit's tests run on both platforms from its first PR; `pathlib` and `newline="\n"`
   throughout; no shell anywhere.
-- **Real money spent without a record.** The runtime refuses any non-fake provider unless a
+- **Real money spent without a record.** The runtime refuses any paid provider unless a
   receipt was written first. D-15 is a precondition of D-11 going live, whatever the week.
 - **The browser becoming a launcher.** Tempting once runs are visible. It stays read-only:
   a page must not be able to spend money or create a first exposure without a receipt (D8).
