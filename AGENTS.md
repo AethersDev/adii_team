@@ -95,7 +95,10 @@ python -m ruff check 02_src
 python -m pytest
 ```
 
-Both must pass, and CI must be green on Windows *and* macOS.
+Both must pass, and CI must be green on Windows *and* macOS. If you added a guard — a
+check that rejects, bounds or validates — it is not done until its row is in
+`02_src/scripts/guard_check.py` and the pass reports it killed: a guard is demonstrated
+when removing it makes a test fail, not when a test passes.
 
 ## The author-understanding gate
 

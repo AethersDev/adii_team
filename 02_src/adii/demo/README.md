@@ -4,7 +4,7 @@
 the decision, the verdict, what it cost, and where the record came from.
 
 ```bash
-python -m adii.runtime --incident demo-learning-001 --provider fake   # produce and archive one run
+python -m adii.runtime --incident demo-learning-001 --provider scripted   # produce and archive one run
 python -m adii.demo                                                     # → http://127.0.0.1:8000
 ```
 
@@ -27,8 +27,25 @@ Exactly one shape: `adii.run_record/v1`, defined in
 contract-mismatch state, never a guess, and the page invents no field — if it is on
 screen, it is in the record, or it is one of the sentences below.
 
-The page cannot start a run, because a page that can start a run can spend money. It says
-so, and it shows the command that does, on every screen.
+## Starting a run from the page
+
+Read-only by default: the page cannot start a run, because a page that can start a run can
+spend money and create a first exposure. The operator lifts that for one kind of run only:
+
+```bash
+python -m adii.demo 8000 --endpoint http://127.0.0.1:8090/v1 --model <id> --served-as default_model
+```
+
+Started this way, the front door and every incident page offer **Investigate**: pick an
+incident, and the server reserves a label, writes the receipt, and runs A's loop against
+that model — a local endpoint, nothing spent — while the page shows every step as the
+runtime records it, then the record when it lands. The two concerns that made the page
+read-only are met structurally: only a local endpoint is accepted, checked when the server
+starts, and the receipt precedes the investigator. No paid provider is reachable from the
+page. This amends rule 12 of the design system in writing, as that rule requires: the
+page may start a run only against a local model the operator configured, never otherwise.
+
+Without a model the page says how to start one, and shows the commands that create runs.
 
 ## Every sentence the page adds
 
@@ -41,18 +58,19 @@ record contains them. Strike any line below and the page stops saying it.
 | entry | sentence, from these fields |
 |---|---|
 | `submitted` | "The investigator committed to *disposition*." |
-| `bound_hit` | "The investigator reached a bound it set after *tool_calls* tool calls and stopped without a decision." |
+| `bound_hit` | "The investigator reached a bound it set after *model_turns* model turns and *tool_calls* tool calls, and stopped without a decision." |
 | `model_failure` | "The model failed and the run stopped without a decision." |
 | `infrastructure_failure` | "Something in the runtime failed — a defect of ours, not the model's — and the run stopped without a decision." |
 | the record's `detail` | always shown beside the sentence, verbatim, so the projection never replaces the source |
-| `accepted` / `rejected` | "The validator rebuilt from frozen inputs and accepted (rejected) the repair." |
+| `accepted` / `rejected` | "The validator accepted the repair." / "The validator did not accept the repair." — what `accepted` states and nothing about how; the validator's own report sits beside it |
 | `notInvoked` | "No repair was proposed, so there was nothing to validate." — only a REPAIR carries a repair, and the record refuses a verdict without one |
 | a run with no decision | no validation section is drawn at all; "Why there is no decision" says the run ended first, which the record's own invariant establishes: it refuses a verdict without a decision |
-| `incident_received` | "The investigator received incident *id*." |
-| `tool_call` | "It asked the tool layer to run *name* with *arguments*." |
-| `tool_result` | "The tool layer answered / refused / rejected the arguments to *name*", with the row or column count, or the error, quoted |
-| `decision_submitted` | "The investigator committed to *disposition*." |
-| `validation_completed` | "The validator accepted (rejected) the repair." |
+| `headline` per termination | "Decided: *disposition* — accepted (not accepted) by the validator", "Stopped at the turn limit, no decision", "Stopped by a model failure, no decision", "Stopped by a failure of ours, no decision" — the page's first line, from the same fields |
+| `asked` | "Asked the tool layer to run *name* with *arguments*" |
+| `answered` | "The tool layer answered with *n* rows / columns", "refused: *error*", "rejected the arguments: *error*", "failed: *error* — a defect of ours" — the tool layer's own status, quoted |
+| `wrote` | "The model wrote, instead of acting:" followed by its words, verbatim, as text |
+| `decided` / `validated` | "Committed to *disposition*", "The validator accepted (did not accept) the repair" |
+| `unanswered` | "The run ended before this call was answered" |
 | product copy | what ADII is, that the page is read-only, and the commands that create a run or the six specimens — UI text about the product, never about a particular run |
 | `scripted` | "Scripted investigator · development demonstration, not a model result" — shown on every run and counted on every incident card whose record has `configuration.model` null, so a screenshot can never pass for a model result |
 
@@ -69,8 +87,10 @@ They carry no evaluation claim and are not the development catalogue proposed in
 [docs/development_catalog.md](../../docs/development_catalog.md), which is compiled from
 private material under a decision record. See `02_src/adii/examples/specimens.py`.
 
-Every step sentence is reversible to its event: the raw payload sits under a disclosure
-beside it, so the prose can never become a second source of truth.
+The investigation is shown turn by turn: each model request and everything it caused, or,
+with no model, each tool call and its answer. Every turn is reversible to its events: the
+raw events sit under a disclosure beside it, so the prose can never become a second source
+of truth.
 
 ## The design system
 

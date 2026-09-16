@@ -1,24 +1,47 @@
-"""The inspector's backend: serves the run archive to the browser, read-only.
+"""The inspector's backend: serves the run archive to the browser, and, when the operator
+says so, starts a run against a local model.
 
-    python -m adii.demo            # http://127.0.0.1:8000
+    python -m adii.demo                                  # read-only: the archive, nothing else
+    python -m adii.demo 8000 --endpoint http://127.0.0.1:8090/v1 \\
+        --model Qwen3-4B-Instruct-2507-4bit --served-as default_model    # and live runs
 
-It lists `01_data/runs/<label>/record.json`, serves each record verbatim, and serves the
-static page. That is the whole implementation, on purpose: a browser must never be able to
-spend money or create a first exposure, so runs are launched from the command line and
-this process only reads what they archived.
+Read-only by default: it lists `01_data/runs/<label>/record.json`, serves each record
+verbatim, and serves the static page. A page that can start a run can spend money and
+create a first exposure, so launching exists only when the person at the terminal
+configured a model — and then only a local endpoint, which costs nothing, with the receipt
+written before the investigator runs. No paid provider is reachable from here, ever.
 
 Standard library only: the team repository has zero dependencies and this must not be the
-thing that adds one.
+thing that adds one. A launched run executes inside the request that started it, in the
+server's own process, and the page watches it through the live trace on other connections;
+the response is sent first, so the browser is never held.
 """
 from __future__ import annotations
 
 import json
+import time
+from datetime import UTC, datetime
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+from ..examples.specimens import SPECIMENS
+from ..examples.walkthrough import load as load_walkthrough
 from ..reporting.record import ARCHIVE, LABEL, REPO, read_record
+from ..runtime.__main__ import main as run_main
 
 WEB = Path(__file__).resolve().parent / "web"
+
+# Set from the command line. Empty means read-only: the page can start nothing.
+LAUNCH: dict[str, object] = {}
+# A run whose live trace has not moved for this long is not running; it died.
+STALE_AFTER_S = 180
+
+
+def incidents() -> list[dict[str, str]]:
+    """Every incident a run can be started on: the walkthrough's and the specimens'."""
+    context, _ = load_walkthrough()
+    return [{"incident_id": c.incident_id, "alert": c.alert}
+            for c in (context, *(s.context for s in SPECIMENS))]
 
 
 def index(root: Path) -> list[dict]:
@@ -30,9 +53,11 @@ def index(root: Path) -> list[dict]:
         if not folder.is_dir():                   # the README beside the runs
             continue
         label, path = folder.name, folder / "record.json"
+        if not LABEL.fullmatch(label):        # not a label: the API will not serve it either
+            rows.append({"label": label, "error": "the folder's name is not a label"})
+            continue
         if not path.is_file():
-            rows.append({"label": label, "error": "the label was reserved but no record was "
-                                                  "written; the run did not finish"})
+            rows.append({"label": label, **unfinished(folder)})
             continue
         try:
             record = read_record(path)
@@ -51,8 +76,30 @@ def index(root: Path) -> list[dict]:
             "api_cost_usd": record.api_cost_usd,
             "written_at": record.provenance.get("written_at"),
         })
-    rows.sort(key=lambda row: row.get("written_at") or "", reverse=True)
+    rows.sort(key=lambda row: row.get("written_at") or "~", reverse=True)   # running first
     return rows
+
+
+def unfinished(folder: Path) -> dict:
+    """A reserved label with no record: still running if its live trace moved recently,
+    otherwise a run that did not finish — and the row says how far it got."""
+    trace, receipt = folder / "trace.jsonl", folder / "receipt.json"
+    if trace.is_file() and time.time() - trace.stat().st_mtime < STALE_AFTER_S:
+        return {"running": True, "error": None}
+    how_far = ("a receipt and a live trace were written, but no record" if trace.is_file()
+               else "a receipt was written, but no record" if receipt.is_file()
+               else "the label was reserved but no record was written")
+    return {"running": False, "error": f"{how_far}; the run did not finish"}
+
+
+def live_trace(folder: Path) -> dict:
+    """A run in progress, as far as it has got: the events streamed so far, and whether
+    the record has landed."""
+    lines = (folder / "trace.jsonl").read_text(encoding="utf-8").splitlines() \
+        if (folder / "trace.jsonl").is_file() else []
+    return {"label": folder.name, "events": [json.loads(line) for line in lines if line],
+            "finished": (folder / "record.json").is_file(),
+            "receipt": (folder / "receipt.json").is_file()}
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -65,22 +112,56 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         super().end_headers()
 
-    def do_GET(self) -> None:  # noqa: N802  (stdlib naming)
+    def route(self) -> list[str]:
         path = self.path.split("?", 1)[0].rstrip("/") or "/"
-        if not path.startswith("/api/"):
+        return path.strip("/").split("/")
+
+    def do_GET(self) -> None:  # noqa: N802  (stdlib naming)
+        parts = self.route()
+        if parts[0] != "api":
             return super().do_GET()
-        parts = path.strip("/").split("/")          # api / runs / <label>
-        if parts[:2] != ["api", "runs"] or len(parts) > 3:
-            return self.send_json({"error": "no such endpoint"}, 404)
-        if len(parts) == 2:
+        if parts == ["api", "runs"]:
             return self.send_json(index(ARCHIVE))
-        label = parts[2]
-        record = ARCHIVE / label / "record.json"
-        # LABEL first: a label that is not one path segment never reaches the filesystem,
-        # where a backslash is a directory separator on Windows.
-        if not LABEL.fullmatch(label) or not record.is_file():
+        if parts == ["api", "incidents"]:
+            return self.send_json(incidents())
+        if parts == ["api", "launch"]:
+            return self.send_json({"enabled": bool(LAUNCH), **LAUNCH})
+        if parts[:2] == ["api", "runs"] and len(parts) in (3, 4):
+            label = parts[2]
+            # LABEL first: a label that is not one path segment never reaches the filesystem,
+            # where a backslash is a directory separator on Windows.
+            if not LABEL.fullmatch(label) or not (ARCHIVE / label).is_dir():
+                return self.send_json({"error": f"no run {label!r}"}, 404)
+            if len(parts) == 4 and parts[3] == "trace":
+                return self.send_json(live_trace(ARCHIVE / label))
+            record = ARCHIVE / label / "record.json"
+            if len(parts) == 3 and record.is_file():
+                return self.send(record.read_bytes())   # verbatim: what was archived is shown
             return self.send_json({"error": f"no run {label!r}"}, 404)
-        return self.send(record.read_bytes())      # verbatim: what was archived is what is shown
+        return self.send_json({"error": "no such endpoint"}, 404)
+
+    def do_POST(self) -> None:  # noqa: N802
+        """Start a run. Refused unless the operator configured a local model when starting
+        the server. The label is answered at once; the run then executes in this request's
+        thread while the page watches the live trace."""
+        if self.route() != ["api", "runs"]:
+            return self.send_json({"error": "no such endpoint"}, 404)
+        if not LAUNCH:
+            return self.send_json({"error": "this inspector is read-only: start it with "
+                                            "--model to allow runs against a local model"}, 403)
+        body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0)) or b"{}"))
+        incident = body.get("incident")
+        if incident not in {i["incident_id"] for i in incidents()}:
+            return self.send_json({"error": f"no such incident {incident!r}"}, 400)
+        now = datetime.now(UTC)
+        label = f"{incident}-{now:%Y%m%dT%H%M%S}-{now.microsecond // 1000:03d}Z"
+        self.send_json({"label": label})              # the page navigates and starts watching
+        self.wfile.flush()
+        run_main(["--incident", incident, "--provider", "local", "--label", label, "--no-report",
+                  "--archive", str(ARCHIVE),
+                  "--endpoint", str(LAUNCH["endpoint"]), "--model", str(LAUNCH["model"]),
+                  "--max-turns", str(LAUNCH["max_turns"]),
+                  *(["--served-as", str(LAUNCH["served_as"])] if LAUNCH.get("served_as") else [])])
 
     def send_json(self, payload: object, status: int = 200) -> None:
         self.send(json.dumps(payload, indent=2, allow_nan=False).encode("utf-8"), status)
@@ -89,6 +170,7 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("Connection", "close")
         self.end_headers()
         self.wfile.write(body)
 
@@ -96,13 +178,20 @@ class Handler(SimpleHTTPRequestHandler):
         print(f"  {self.address_string()} {fmt % args}")
 
 
-def main(port: int = 8000) -> int:
+def main(port: int = 8000, launch: dict[str, object] | None = None) -> int:
+    LAUNCH.clear()
+    LAUNCH.update(launch or {})
     runs = index(ARCHIVE)
     print(f"ADII run inspector — http://127.0.0.1:{port}")
-    print(f"  {len(runs)} archived run(s) in {ARCHIVE.relative_to(REPO)}. Read-only.")
+    print(f"  {len(runs)} archived run(s) in {ARCHIVE.relative_to(REPO)}.", end=" ")
+    if LAUNCH:
+        print(f"Runs may be started from the page, against {LAUNCH['model']} at "
+              f"{LAUNCH['endpoint']} — a local endpoint, nothing is spent.")
+    else:
+        print("Read-only: start with --model to allow runs against a local model.")
     if not runs:
         print("  Produce one now:  python -m adii.runtime --incident demo-learning-001 "
-              "--provider fake")
+              "--provider scripted")
     print()
     try:
         httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)
@@ -116,8 +205,3 @@ def main(port: int = 8000) -> int:
         except KeyboardInterrupt:
             print("\nstopped")
     return 0
-
-
-if __name__ == "__main__":
-    import sys
-    raise SystemExit(main(int(sys.argv[1]) if len(sys.argv) > 1 else 8000))

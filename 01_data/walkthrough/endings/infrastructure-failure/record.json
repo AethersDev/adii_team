@@ -114,7 +114,7 @@
     "latency_ms": 0
   },
   "configuration": {
-    "provider": "fake",
+    "provider": "scripted",
     "model": null,
     "tools": [
       "get_schema",
@@ -123,7 +123,7 @@
   },
   "provenance": {
     "origin": "runtime",
-    "written_at": "2026-09-14T07:07:57+00:00",
-    "source_revision": "42c042bd373dc47167a5840df9cf3c71950ab536"
+    "written_at": "2026-09-15T22:25:11+00:00",
+    "source_revision": "ccbfd4d00dc04ce3c966715b4f178bdccf7050a1"
   }
 }

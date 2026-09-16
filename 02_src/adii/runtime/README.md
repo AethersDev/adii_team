@@ -3,7 +3,7 @@
 One command takes an incident to an archived run and a readable report.
 
 ```bash
-python -m adii.runtime --incident demo-learning-001 --provider fake
+python -m adii.runtime --incident demo-learning-001 --provider scripted
 python -m adii.demo                     # the run is in the inspector
 ```
 
@@ -17,8 +17,8 @@ incident → investigator → decision → (REPAIR only) validator → verdict
 It knows A, B and C only as three protocols in `run.py` — `Investigator.investigate(context,
 tools)`, `Tools.execute(call)`, `Validator.validate(context, decision)` — expressed in
 contract types. Anything that satisfies them runs. Today the tools are the real executor
-over the walkthrough world, and `fakes.py` scripts the investigator and the validator from
-the walkthrough's recorded run; that is what `--provider fake` means, and it costs nothing.
+over the walkthrough world, and `scripted.py` scripts the investigator and the validator from
+the walkthrough's recorded run; that is what `--provider scripted` means, and it costs nothing.
 
 ## The harness owns the trace
 
