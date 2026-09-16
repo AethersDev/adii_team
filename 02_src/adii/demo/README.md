@@ -36,7 +36,7 @@ spend money and create a first exposure. The operator lifts that for one kind of
 python -m adii.demo 8000 --endpoint http://127.0.0.1:8090/v1 --model <id> --served-as default_model
 ```
 
-Started this way, the front door and every incident page offer **Investigate**: pick an
+Started this way, every screen offers **Investigate**: pick an
 incident, and the server reserves a label, writes the receipt, and runs A's loop against
 that model — a local endpoint, nothing spent — while the page shows every step as the
 runtime records it, then the record when it lands. The two concerns that made the page
@@ -44,8 +44,22 @@ read-only are met structurally: only a local endpoint is accepted, checked when 
 starts, and the receipt precedes the investigator. No paid provider is reachable from the
 page. This amends rule 12 of the design system in writing, as that rule requires: the
 page may start a run only against a local model the operator configured, never otherwise.
+One run at a time: while the archive shows one running, a second is refused (409). A run
+that has written nothing for three minutes is shown as one that did not finish, and the
+page stops watching it.
 
 Without a model the page says how to start one, and shows the commands that create runs.
+Every screen's footer says which of the two the page is.
+
+## Feedback on a run
+
+Every finished run's page ends with **Your feedback**: was it useful, what did you expect
+or miss, and optionally who you are. It is appended to `feedback.jsonl` beside the record,
+attributed, bounded in length, and shown back on the page verbatim as text. It is the one
+write a read-only inspector accepts: it spends nothing and asserts nothing about the run —
+it is the operator's word, labelled as the operator's. `GET /api/runs/{label}/feedback`
+lists it; `POST` the same path with `{"useful": "yes"|"partly"|"no", "expected": …, "by": …}`
+records it.
 
 ## Every sentence the page adds
 
@@ -111,8 +125,10 @@ tested against each other.
 
 ## What it is not
 
-- **Not a launcher.** Runs start from the command line. A page that can start a run can
-  spend money and create a first exposure without a receipt, so this one cannot.
+- **Not a launcher for anything that costs money.** A page that can reach a paid provider
+  can spend money and create a first exposure without a receipt, so this one reaches none:
+  it starts runs only against a local model the operator named when starting the server,
+  and otherwise runs start from the command line.
 - **Not the implementation.** Nothing in `02_src/adii/` may import it, and a test enforces
   that. It shows what the runtime produced; it produces nothing.
 
@@ -143,7 +159,19 @@ GET /api/runs              one row per archived run, newest first; an unreadable
                            label reserved by a run that never finished, is listed with its
                            error, never hidden
 GET /api/runs/{label}      the record, verbatim
+GET /api/runs/{label}/trace     the live trace of a run in progress, whether it finished, and
+                           whether it is still running
+GET /api/incidents         the incidents a run can be started on
+GET /api/launch            whether runs may be started from the page, and against what
+POST /api/runs             start a run — only when the server was started with --model (403),
+                           on an incident it knows (400), one at a time (409)
+POST /api/runs/{label}/feedback   record an operator's feedback beside the record
 ```
+
+Both writes take a JSON object declared as `application/json` and answer 400 to anything
+else — which is the shape a form on some other site would arrive in. Every response
+carries `ADII-Code`, the newest change to the page's files; a tab whose script is older
+reloads itself once, so an open tab never runs stale code over a current archive.
 
 Routes are the URL hash: `#` the incidents, `#i/<incident>` one incident's runs,
 `#r/<label>` one run, `#r/<label>,<label>` two runs of one incident side by side.
@@ -151,5 +179,5 @@ Routes are the URL hash: `#` the incidents, `#i/<incident>` one incident's runs,
 ## Verify
 
 ```bash
-python -m pytest 02_src/tests -k "record or inspector or design or walkthrough or executes"
+python -m pytest 02_src/tests -k "record or inspector or design or walkthrough or executes or product"
 ```

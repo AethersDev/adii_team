@@ -15,6 +15,8 @@ from adii.contracts import ToolCall
 from adii.examples.specimens import ORDERS_MISSING
 from adii.provider import ChatProvider, endpoint_is_local
 from adii.reporting import read_record
+from adii.reporting.receipts import NAME as RECEIPT
+from adii.reporting.receipts import read_receipt
 from adii.runtime import __main__ as cli
 from adii.runtime.run import Recorder
 from adii.tools import ReadOnlyDatabase, build_sql_tools
@@ -65,6 +67,29 @@ def test_a_live_run_leaves_one_record_with_one_trace(tmp_path, endpoint):
     responded = [e.payload for e in r.trace if e.kind == "model_responded"]
     assert responded[0]["content"] == TURNS[0]                     # recorded before A parsed it
     assert responded[0]["usage"] == {"prompt_tokens": 100, "completion_tokens": 20}
+
+
+def test_the_receipt_is_on_disk_when_the_first_model_request_arrives(tmp_path, endpoint):
+    """D-15, directly: at the instant the model receives its first request, the receipt
+    already exists, parses, and names the configuration requested. Observed at the model,
+    not inferred from clocks — the stand-in reads the disk as the request arrives."""
+    folder = tmp_path / "first"
+    FakeModel.probed = []
+    FakeModel.probe = lambda: read_receipt(folder / RECEIPT) if (folder / RECEIPT).is_file() \
+        else None
+    try:
+        assert cli.main(["--incident", INCIDENT, "--provider", "local", "--endpoint", endpoint,
+                         "--model", "test-model-1", "--archive", str(tmp_path), "--label",
+                         "first", "--no-report"]) == 0
+    finally:
+        FakeModel.probe = None
+    assert FakeModel.probed, "the model was never asked"
+    at_first_request = FakeModel.probed[0]
+    assert at_first_request is not None, "the first model request arrived before the receipt"
+    assert at_first_request["label"] == "first"
+    assert at_first_request["configuration"]["model"] == "test-model-1"
+    assert at_first_request["configuration"]["endpoint"] == endpoint
+    assert all(p == at_first_request for p in FakeModel.probed)   # and it never changed
 
 
 def test_the_model_is_shown_the_incident_the_tools_and_each_observation(endpoint):
@@ -126,7 +151,7 @@ def test_endings_translate_by_type_never_by_message(tmp_path, endpoint):
     assert down.termination == "model_failure" and "HTTP 500" in down.detail
 
 
-def test_only_local_endpoints_run_without_a_receipt():
+def test_only_local_endpoints_are_spoken_to():
     assert endpoint_is_local("http://127.0.0.1:11434/v1")
     assert endpoint_is_local("http://localhost:1234/v1")
     assert not endpoint_is_local("https://api.openai.com/v1")

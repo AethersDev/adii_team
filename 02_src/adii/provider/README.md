@@ -31,10 +31,11 @@ runs beside the inspector on 16 GB; an 8B one wants everything else closed.
 
 ## What it refuses
 
-A non-local endpoint. A model on this machine has no nominal price, so a run costs nothing
-and needs no receipt. A paid provider needs the receipt written first (plan D-15) and the
-ledger that makes cost evidence (D-12); until then a record saying a paid run cost 0.0
-would be inherited defect D15, and this package will not produce one.
+A non-local endpoint. A model on this machine has no nominal price, so a run costs nothing;
+the runtime writes its receipt anyway, before the investigator runs. A paid provider needs
+the receipt to be a precondition of the first call (plan D-15) and the ledger that makes
+cost evidence (D-12); until then a record saying a paid run cost 0.0 would be inherited
+defect D15, and this package will not produce one.
 
 ## What the runtime does with it
 

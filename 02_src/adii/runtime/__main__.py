@@ -12,8 +12,9 @@ produced, not assembled, and its observations are what the tools actually return
 
 `local` (SPIKE) drives A's real investigator loop with a model behind an OpenAI-compatible
 endpoint on this machine — Ollama, LM Studio, mlx_lm.server — over the real tool layer,
-against the walkthrough world or a development specimen's. Nothing is paid for and no
-receipt is needed; a paid provider waits for plan D-15 and D-12. No validator exists yet,
+against the walkthrough world or a development specimen's. Nothing is paid for; the receipt
+is written all the same, before the investigator runs, on every path. A paid provider is
+refused until plan D-15 and D-12 land. No validator exists yet,
 so a live REPAIR carries a verdict that says exactly that: not checked, therefore not
 accepted, and no finding about the repair.
 

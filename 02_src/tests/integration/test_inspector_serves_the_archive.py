@@ -5,11 +5,15 @@ from __future__ import annotations
 import http.client
 import json
 import os
+import runpy
 import socket
+import sys
 import threading
 import time
 from http.server import ThreadingHTTPServer
+from pathlib import Path
 
+import pytest
 from adii.demo import server
 from adii.demo.server import index, main
 from adii.examples.walkthrough import main as walkthrough
@@ -48,8 +52,9 @@ def test_an_unreadable_record_is_listed_not_hidden(tmp_path):
 
 def test_a_reserved_label_without_a_record_is_listed_not_hidden(tmp_path):
     """A run killed between claiming its label and writing its record leaves an empty
-    folder. That is a run that happened, so it is listed as one that did not finish. Files
-    beside the runs — the README — are not runs."""
+    folder. That is a run that happened, so once it has been silent for STALE_AFTER_S it is
+    listed as one that did not finish; until then it is starting. Files beside the runs —
+    the README — are not runs."""
     (tmp_path / "killed").mkdir()
     (tmp_path / "README.md").write_text("the archive", encoding="utf-8")
     (tmp_path / "receipted").mkdir()
@@ -57,8 +62,10 @@ def test_a_reserved_label_without_a_record_is_listed_not_hidden(tmp_path):
     (tmp_path / "died").mkdir()
     (tmp_path / "died" / "receipt.json").write_text("{}", encoding="utf-8")
     (tmp_path / "died" / "trace.jsonl").write_text("{}\n", encoding="utf-8")
-    old = time.time() - server.STALE_AFTER_S - 1
-    os.utime(tmp_path / "died" / "trace.jsonl", (old, old))
+    silent = time.time() - server.STALE_AFTER_S - 1
+    for folder in ("killed", "receipted", "died"):
+        for path in (tmp_path / folder, *(tmp_path / folder).iterdir()):
+            os.utime(path, (silent, silent))
     (tmp_path / "going").mkdir()
     (tmp_path / "going" / "receipt.json").write_text("{}", encoding="utf-8")
     (tmp_path / "going" / "trace.jsonl").write_text("{}\n", encoding="utf-8")
@@ -161,6 +168,24 @@ def test_a_run_can_be_started_from_the_page_only_when_the_operator_allowed_it(tm
                               "model": "test-model-1", "served_as": None, "max_turns": 6})
         assert call("GET", "/api/launch")[1]["enabled"] is True
         assert call("POST", "/api/runs", {"incident": "nope"})[0] == 400
+        # A write this server does not read is answered, never dropped: no body at all, and
+        # a JSON-shaped body that is not declared JSON — the shape a form on another site takes.
+        form = ('{"incident": "orders-missing-day"}', {"Content-Type": "text/plain"})
+        broken = ('{"incident": ', {"Content-Type": "application/json"})
+        for body, headers in ((None, {}), form, broken):
+            conn = http.client.HTTPConnection("127.0.0.1", httpd.server_port, timeout=10)
+            conn.request("POST", "/api/runs", body=body, headers=headers)
+            assert conn.getresponse().status == 400, (body, headers)
+        # One at a time: while the archive shows a run running, a second is refused.
+        busy = archive / "orders-missing-day-20260101T000000-000Z"
+        busy.mkdir()
+        (busy / "trace.jsonl").write_text("", encoding="utf-8")
+        assert call("GET", f"/api/runs/{busy.name}/trace")[1]["running"] is True
+        assert call("POST", "/api/runs", {"incident": "orders-missing-day"})[0] == 409
+        silent = time.time() - server.STALE_AFTER_S - 1
+        for path in (busy, busy / "trace.jsonl"):
+            os.utime(path, (silent, silent))
+        assert call("GET", f"/api/runs/{busy.name}/trace")[1]["running"] is False
         status, answer = call("POST", "/api/runs", {"incident": "orders-missing-day"})
         assert status == 200 and answer["label"].startswith("orders-missing-day-")
         label = answer["label"]
@@ -170,7 +195,7 @@ def test_a_run_can_be_started_from_the_page_only_when_the_operator_allowed_it(tm
             if status == 200 and live["finished"]:
                 break
             time.sleep(0.2)
-        assert live["finished"] and live["receipt"]
+        assert live["finished"] and live["receipt"] and not live["running"]
         assert [e["kind"] for e in live["events"]][:3] == \
             ["incident_received", "model_requested", "model_responded"]
         status, record = call("GET", f"/api/runs/{label}")
@@ -182,3 +207,97 @@ def test_a_run_can_be_started_from_the_page_only_when_the_operator_allowed_it(tm
         httpd.server_close()
         model.shutdown()
         model.server_close()
+
+
+def test_a_run_is_running_while_it_keeps_writing(tmp_path):
+    """Between the server answering a label and the first trace event, the folder holds a
+    receipt at most — that run is starting, not dead. A run silent for STALE_AFTER_S died."""
+    folder = tmp_path / "demo-learning-001-20260101T000000-000Z"
+    folder.mkdir()
+    assert server.unfinished(folder) == {"running": True, "error": None}
+    (folder / "receipt.json").write_text("{}", encoding="utf-8")
+    assert server.live_trace(folder)["running"] is True
+    silent = time.time() - server.STALE_AFTER_S - 1
+    for path in (folder, folder / "receipt.json"):
+        os.utime(path, (silent, silent))
+    row = server.unfinished(folder)
+    assert row["running"] is False and "a receipt was written, but no record" in row["error"]
+
+
+def test_the_server_refuses_to_start_against_anything_but_a_local_endpoint(monkeypatch):
+    """The one check that makes the launcher safe to expose: it happens when the server
+    starts, before any port is bound, and it stops the process."""
+    monkeypatch.setattr(sys, "argv", ["adii.demo", "0", "--endpoint",
+                                      "https://api.openai.com/v1", "--model", "any"])
+    with pytest.raises(SystemExit) as stopped:
+        runpy.run_module("adii.demo", run_name="__main__")
+    assert "not a local endpoint" in str(stopped.value.code)
+
+
+def test_a_tab_learns_when_the_code_it_runs_is_stale(tmp_path, monkeypatch):
+    """The page loads its script once and then routes in-page for as long as the tab is
+    open. Every response names the code as served; the script compares and reloads once."""
+    web = tmp_path / "web"
+    web.mkdir()
+    (web / "app.js").write_text("", encoding="utf-8")
+    monkeypatch.setattr(server, "WEB", web)
+    monkeypatch.setattr(server, "ARCHIVE", tmp_path / "archive")
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    try:
+        def served_code():
+            conn = http.client.HTTPConnection("127.0.0.1", httpd.server_port, timeout=10)
+            conn.request("GET", "/api/launch")
+            response = conn.getresponse()
+            response.read()
+            return response.getheader("ADII-Code")
+
+        before = served_code()
+        assert before and served_code() == before
+        later = os.stat(web / "app.js").st_mtime + 10
+        os.utime(web / "app.js", (later, later))
+        assert served_code() != before
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+    script = (Path(server.__file__).with_name("web") / "app.js").read_text(encoding="utf-8")
+    assert 'headers.get("ADII-Code")' in script and "location.reload()" in script
+
+
+def test_feedback_is_kept_beside_the_record_attributed_bounded_and_verbatim(tmp_path,
+                                                                             monkeypatch):
+    archive = tmp_path / "archive"
+    monkeypatch.setattr(server, "ARCHIVE", archive)
+    assert walkthrough(["--archive", str(archive)]) == 0
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    try:
+        def call(method, path, body=None):
+            conn = http.client.HTTPConnection("127.0.0.1", httpd.server_port, timeout=10)
+            conn.request(method, path, body=json.dumps(body) if body is not None else None,
+                         headers={"Content-Type": "application/json"} if body is not None else {})
+            response = conn.getresponse()
+            return response.status, json.loads(response.read() or b"{}")
+
+        assert call("GET", "/api/runs/demo-learning-001/feedback") == (200, [])
+        record = archive / "demo-learning-001" / "record.json"
+        archived = record.read_bytes()
+        said = {"useful": "partly", "expected": "<b>why</b> it stopped", "by": " Sam "}
+        status, entry = call("POST", "/api/runs/demo-learning-001/feedback", said)
+        assert status == 200 and entry["by"] == "Sam" and entry["useful"] == "partly"
+        assert entry["expected"] == "<b>why</b> it stopped"   # verbatim; the page renders text
+        assert call("POST", "/api/runs/demo-learning-001/feedback", {"useful": "maybe"})[0] == 400
+        assert call("POST", "/api/runs/demo-learning-001/feedback",
+                    {"useful": "yes", "expected": "x" * 2001})[0] == 400
+        assert call("POST", "/api/runs/nope/feedback", {"useful": "yes"})[0] == 404
+        (archive / "demo-learning-002").mkdir()             # reserved, no record: not finished
+        assert call("POST", "/api/runs/demo-learning-002/feedback", {"useful": "yes"})[0] == 404
+        assert not (archive / "demo-learning-002" / "feedback.jsonl").exists()
+        status, entries = call("GET", "/api/runs/demo-learning-001/feedback")
+        assert [e["by"] for e in entries] == ["Sam"]
+        kept = (archive / "demo-learning-001" / "feedback.jsonl").read_text(encoding="utf-8")
+        assert kept.count("\n") == 1 and '"schema": "adii.feedback/v1"' in kept
+        assert record.read_bytes() == archived          # the record is not what feedback touches
+    finally:
+        httpd.shutdown()
+        httpd.server_close()

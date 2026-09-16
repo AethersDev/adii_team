@@ -226,16 +226,21 @@ trace, the decision, the verdict, the cost, and where the record came from.
 
 **INPUT** The run archive in `01_data/runs/`, one `record.json` per run.
 
-**OUTPUT** A local web page. No model, no database, no agent in this process.
+**OUTPUT** A local web page. Read-only by default: no model, no database, no agent in this
+process. Started with `--model`, it also starts runs — the runtime, in this process, against
+a local endpoint only, one at a time — and the page watches them through the live trace.
 
-**CALLS** The standard library, and `reporting/` to read records. Its stylesheet is the
+**CALLS** The standard library; `reporting/` to read records; `runtime/` to start a run when
+the operator allowed it. Its stylesheet is the
 identity handoff's, copied from `03_assets/identity/css/` by `scripts/sync_identity.py`
 and held byte-identical by a test.
 
 **CALLED BY** `python -m adii.demo`. Nothing in the implementation.
 
-**MUST NOT DO** Be imported by any other `adii` package, launch a run, or invent a field
-that is not in the record. A page that can start a run can spend money; a page that fills
-in a blank is asserting something the runtime never said.
+**MUST NOT DO** Be imported by any other `adii` package, launch a run against anything but
+a local model the operator configured when starting the server (rule 12 of the design
+system, amended in writing on 16 September 2026), or invent a field that is not in the
+record. A page that can reach a paid provider can spend money; a page that fills in a blank
+is asserting something the runtime never said.
 *Enforced by* `test_the_demo_is_never_imported_by_the_implementation`,
 `test_the_demo_backend_stays_dependency_free`.

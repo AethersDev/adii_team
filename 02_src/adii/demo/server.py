@@ -14,7 +14,8 @@ written before the investigator runs. No paid provider is reachable from here, e
 Standard library only: the team repository has zero dependencies and this must not be the
 thing that adds one. A launched run executes inside the request that started it, in the
 server's own process, and the page watches it through the live trace on other connections;
-the response is sent first, so the browser is never held.
+the response is sent first, so the browser is never held. One run at a time: a second is
+refused while the archive shows one running.
 """
 from __future__ import annotations
 
@@ -80,16 +81,55 @@ def index(root: Path) -> list[dict]:
     return rows
 
 
+def running(folder: Path) -> bool:
+    """A reserved label with no record is running while it keeps writing — the folder when
+    reserved, then the receipt, then every trace event. Silent for STALE_AFTER_S, it died."""
+    if (folder / "record.json").is_file():
+        return False
+    moved = max(p.stat().st_mtime for p in (folder, folder / "receipt.json", folder / "trace.jsonl")
+                if p.exists())
+    return time.time() - moved < STALE_AFTER_S
+
+
 def unfinished(folder: Path) -> dict:
-    """A reserved label with no record: still running if its live trace moved recently,
-    otherwise a run that did not finish — and the row says how far it got."""
-    trace, receipt = folder / "trace.jsonl", folder / "receipt.json"
-    if trace.is_file() and time.time() - trace.stat().st_mtime < STALE_AFTER_S:
+    """A reserved label with no record: running, or a run that did not finish — and then
+    the row says how far it got."""
+    if running(folder):
         return {"running": True, "error": None}
+    trace, receipt = folder / "trace.jsonl", folder / "receipt.json"
     how_far = ("a receipt and a live trace were written, but no record" if trace.is_file()
                else "a receipt was written, but no record" if receipt.is_file()
                else "the label was reserved but no record was written")
     return {"running": False, "error": f"{how_far}; the run did not finish"}
+
+
+FEEDBACK_LIMITS = {"useful": ("yes", "partly", "no"), "expected": 2000, "by": 80}
+
+
+def feedback_of(folder: Path) -> list[dict]:
+    """Every piece of feedback left on a run, oldest first, as recorded."""
+    path = folder / "feedback.jsonl"
+    if not path.is_file():
+        return []
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
+
+
+def record_feedback(folder: Path, body: dict) -> dict:
+    """Append one operator's feedback beside the record: attributed, bounded, verbatim.
+    Raises ValueError with the reason when the body is not feedback this archive keeps."""
+    useful, expected, by = body.get("useful"), body.get("expected", ""), body.get("by", "")
+    if useful not in FEEDBACK_LIMITS["useful"]:
+        raise ValueError("useful must be one of yes, partly, no")
+    if not isinstance(expected, str) or not isinstance(by, str):
+        raise ValueError("expected and by must be text")
+    if len(expected) > FEEDBACK_LIMITS["expected"] or len(by) > FEEDBACK_LIMITS["by"]:
+        raise ValueError("expected is limited to 2000 characters and by to 80")
+    entry = {"schema": "adii.feedback/v1", "useful": useful, "expected": expected.strip(),
+             "by": by.strip() or "an operator",
+             "written_at": datetime.now(UTC).isoformat(timespec="seconds")}
+    with (folder / "feedback.jsonl").open("a", encoding="utf-8", newline="\n") as sink:
+        sink.write(json.dumps(entry, allow_nan=False) + "\n")
+    return entry
 
 
 def live_trace(folder: Path) -> dict:
@@ -99,7 +139,14 @@ def live_trace(folder: Path) -> dict:
         if (folder / "trace.jsonl").is_file() else []
     return {"label": folder.name, "events": [json.loads(line) for line in lines if line],
             "finished": (folder / "record.json").is_file(),
-            "receipt": (folder / "receipt.json").is_file()}
+            "receipt": (folder / "receipt.json").is_file(),
+            "running": running(folder)}
+
+
+def code_version() -> str:
+    """The page's code as served right now: the newest change under web/. Sent with every
+    response, so a tab whose script predates it reloads once instead of running stale."""
+    return str(max(p.stat().st_mtime_ns for p in WEB.iterdir() if p.is_file()))
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -110,6 +157,7 @@ class Handler(SimpleHTTPRequestHandler):
         # Nothing here may be cached: a browser showing last week's page over today's
         # archive is a stale inspector that looks current.
         self.send_header("Cache-Control", "no-store")
+        self.send_header("ADII-Code", code_version())
         super().end_headers()
 
     def route(self) -> list[str]:
@@ -134,25 +182,52 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.send_json({"error": f"no run {label!r}"}, 404)
             if len(parts) == 4 and parts[3] == "trace":
                 return self.send_json(live_trace(ARCHIVE / label))
+            if len(parts) == 4 and parts[3] == "feedback":
+                return self.send_json(feedback_of(ARCHIVE / label))
             record = ARCHIVE / label / "record.json"
             if len(parts) == 3 and record.is_file():
                 return self.send(record.read_bytes())   # verbatim: what was archived is shown
             return self.send_json({"error": f"no run {label!r}"}, 404)
         return self.send_json({"error": "no such endpoint"}, 404)
 
+    def body(self) -> dict:
+        """The JSON object posted. ValueError for anything else — including a body not
+        declared as JSON, which is how a form on some other site would arrive here."""
+        if self.headers.get("Content-Type", "").split(";")[0].strip() != "application/json":
+            raise ValueError("send a JSON object, as application/json")
+        parsed = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
+        if not isinstance(parsed, dict):
+            raise ValueError("send a JSON object, as application/json")
+        return parsed
+
     def do_POST(self) -> None:  # noqa: N802
-        """Start a run. Refused unless the operator configured a local model when starting
-        the server. The label is answered at once; the run then executes in this request's
-        thread while the page watches the live trace."""
-        if self.route() != ["api", "runs"]:
+        """Two writes, and only two. Feedback on a run: an operator's words, kept beside the
+        record. Starting a run: refused unless the operator configured a local model when
+        starting the server; the label is answered at once and the run then executes in
+        this request's thread while the page watches the live trace."""
+        parts = self.route()
+        if len(parts) == 4 and parts[:2] == ["api", "runs"] and parts[3] == "feedback":
+            label = parts[2]
+            if not LABEL.fullmatch(label) or not (ARCHIVE / label / "record.json").is_file():
+                return self.send_json({"error": f"no finished run {label!r}"}, 404)
+            try:
+                return self.send_json(record_feedback(ARCHIVE / label, self.body()))
+            except ValueError as why:          # not JSON, or not feedback this archive keeps
+                return self.send_json({"error": str(why)}, 400)
+        if parts != ["api", "runs"]:
             return self.send_json({"error": "no such endpoint"}, 404)
         if not LAUNCH:
             return self.send_json({"error": "this inspector is read-only: start it with "
                                             "--model to allow runs against a local model"}, 403)
-        body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0)) or b"{}"))
-        incident = body.get("incident")
+        try:
+            incident = self.body().get("incident")
+        except ValueError as why:
+            return self.send_json({"error": str(why)}, 400)
         if incident not in {i["incident_id"] for i in incidents()}:
             return self.send_json({"error": f"no such incident {incident!r}"}, 400)
+        if any(row.get("running") for row in index(ARCHIVE)):
+            return self.send_json({"error": "a run is in progress; this machine investigates "
+                                            "one at a time"}, 409)
         now = datetime.now(UTC)
         label = f"{incident}-{now:%Y%m%dT%H%M%S}-{now.microsecond // 1000:03d}Z"
         self.send_json({"label": label})              # the page navigates and starts watching
