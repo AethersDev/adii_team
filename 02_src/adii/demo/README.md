@@ -27,8 +27,25 @@ Exactly one shape: `adii.run_record/v1`, defined in
 contract-mismatch state, never a guess, and the page invents no field — if it is on
 screen, it is in the record, or it is one of the sentences below.
 
-The page cannot start a run, because a page that can start a run can spend money. It says
-so, and it shows the command that does, on every screen.
+## Starting a run from the page
+
+Read-only by default: the page cannot start a run, because a page that can start a run can
+spend money and create a first exposure. The operator lifts that for one kind of run only:
+
+```bash
+python -m adii.demo 8000 --endpoint http://127.0.0.1:8090/v1 --model <id> --served-as default_model
+```
+
+Started this way, the front door and every incident page offer **Investigate**: pick an
+incident, and the server reserves a label, writes the receipt, and runs A's loop against
+that model — a local endpoint, nothing spent — while the page shows every step as the
+runtime records it, then the record when it lands. The two concerns that made the page
+read-only are met structurally: only a local endpoint is accepted, checked when the server
+starts, and the receipt precedes the investigator. No paid provider is reachable from the
+page. This amends rule 12 of the design system in writing, as that rule requires: the
+page may start a run only against a local model the operator configured, never otherwise.
+
+Without a model the page says how to start one, and shows the commands that create runs.
 
 ## Every sentence the page adds
 

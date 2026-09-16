@@ -10,8 +10,10 @@ the scripted components in `scripted.py` today, the real packages when they exis
 """
 from __future__ import annotations
 
+import json
 import time
 import traceback
+from pathlib import Path
 from typing import Protocol
 
 from ..contracts import (
@@ -68,11 +70,20 @@ class Recorder:
     this class is the one place that changes.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, sink: Path | None = None) -> None:
+        """`sink`: a file every event is appended to the moment it happens, one JSON line
+        each, flushed — the live view of a run in progress, and the diagnostic evidence a
+        killed run leaves behind. The record written at the end is still the authority."""
         self._events: list[TraceEvent] = []
+        self._sink = sink.open("a", encoding="utf-8", newline="\n") if sink else None
 
     def event(self, kind: str, payload: dict[str, object]) -> None:
-        self._events.append(TraceEvent(sequence=len(self._events), kind=kind, payload=payload))
+        event = TraceEvent(sequence=len(self._events), kind=kind, payload=payload)
+        self._events.append(event)
+        if self._sink:
+            self._sink.write(json.dumps({"sequence": event.sequence, "kind": kind,
+                                         "payload": payload}, default=str) + "\n")
+            self._sink.flush()
 
     @property
     def trace(self) -> tuple[TraceEvent, ...]:
@@ -84,6 +95,11 @@ class Recorder:
         return sum(1 for e in self._events
                    if e.kind == "tool_result" and e.payload["status"] == "OK")
 
+    @property
+    def model_turns(self) -> int:
+        """Responses the provider boundary recorded. Zero when no model ran."""
+        return sum(1 for e in self._events if e.kind == "model_responded")
+
     def watch(self, tools: Tools) -> Tools:
         return _Watched(tools, self)
 
@@ -93,6 +109,10 @@ class _Watched:
 
     def __init__(self, inner: Tools, recorder: Recorder) -> None:
         self._inner, self._recorder = inner, recorder
+
+    def advertised(self) -> list[dict[str, object]]:
+        """What the loop shows the model — the inner layer's schemas, untouched."""
+        return self._inner.advertised()
 
     def execute(self, call: ToolCall) -> ToolResult:
         self._recorder.event("tool_call", {"call_id": call.call_id, "name": call.name,
@@ -105,7 +125,7 @@ class _Watched:
 
 def run_incident(label: str, context: IncidentContext, investigator: Investigator,
                  tools: Tools, validator: Validator, *,
-                 configuration: dict[str, object]) -> RunRecord:
+                 configuration: dict[str, object], recorder: Recorder | None = None) -> RunRecord:
     """Investigate, validate if a repair was proposed, and return the record — for every way
     a run can end. A submission carries its decision. A run the loop ended carries the loop's
     classification verbatim. Anything else that escapes is our defect: an infrastructure
@@ -113,7 +133,7 @@ def run_incident(label: str, context: IncidentContext, investigator: Investigato
     is the evidence and the counters come from it. Only a REPAIR reaches the validator: the
     contract says so, and this is where it is enforced on the way through."""
     started = time.monotonic()
-    recorder = Recorder()
+    recorder = recorder or Recorder()   # a provider records at its boundary into the same one
     recorder.event("incident_received", {"incident_id": context.incident_id})
     decision = validation = None
     try:
@@ -133,9 +153,9 @@ def run_incident(label: str, context: IncidentContext, investigator: Investigato
     return strict(RunRecord(
         label=label, context=context, trace=recorder.trace, termination=termination,
         detail=detail, decision=decision, validation=validation, tool_calls=recorder.tool_calls,
-        # No model has run, so no turns and no spend. How the investigator's model traffic
-        # reaches this trace is decision 1 of the trace event contract; until it is made,
-        # a number here would be invented.
-        model_turns=0, api_cost_usd=0.0,
+        # Turns are counted from the model events the provider boundary recorded — zero when
+        # no model ran. Cost stays 0.0: only local endpoints run here, and a paid provider
+        # waits for the receipt and the ledger (plan D-15, D-12).
+        model_turns=recorder.model_turns, api_cost_usd=0.0,
         latency_ms=int((time.monotonic() - started) * 1000),
         configuration=dict(configuration), provenance=provenance("runtime")))

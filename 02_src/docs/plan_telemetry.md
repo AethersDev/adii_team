@@ -157,7 +157,7 @@ preservation, then provider. Within a phase the order is the dependency order.
 | D-15 ✔ 16 Sep (D's four fields; the evaluation authority's frozen identifiers join `artefacts` when a run is scored — C's `receipt_artefacts.py` is that half) | `reporting/receipts.py` — before any irreversible call a receipt naming the artefact digests, the configuration, the source revision and the reason it is permitted is written *and flushed*; retained on the failure path | kill the process after the receipt write and before the call: the receipt exists and names what was about to be spent | D8 |
 | D-16 | `python -m adii.freeze` — records digests of the model-facing surface (prompts, tool schemas, configuration) and of the scoring code as *separate* artefacts, because they freeze at different times ([inherited/AUTHORITY_LIFECYCLE.md](inherited/AUTHORITY_LIFECYCLE.md)); a test that a frozen digest still matches | the three M9 checkboxes | M9, C3 |
 | D-17 | The grid runner — N incidents × R repeats; every promised repeat is materialised as a record, success or classified failure; one failing unit does not abort the rest | a unit failing mid-grid leaves a classified record for every promised repeat and the remaining units still run | D5 |
-| D-18 | `scripts/guard_check.py` — a registry of named guards across A, B, C and D (file, exact snippet, neutralised snippet) plus controls; neutralise, run pytest, restore; survivors listed by name; non-zero on any survivor or on a control that survives; a registered snippet that is not found is itself a failure | a deliberately kept survivor fails the pipeline; runs in CI before freeze | X1, X1a–c, X4 |
+| D-18 ✔ 16 Sep (20 guards across A, B, contracts and D, all killed; C's join on merge; a CI job runs the pass on every pull request) | `scripts/guard_check.py` — a registry of named guards across A, B, C and D (file, exact snippet, neutralised snippet) plus controls; neutralise, run pytest, restore; survivors listed by name; non-zero on any survivor or on a control that survives; a registered snippet that is not found is itself a failure | a deliberately kept survivor fails the pipeline; runs in CI before freeze | X1, X1a–c, X4 |
 | D-19 | The M10 report — from C's scoring output: success, failure, false repair, correct abstention, unnecessary escalation and repair rejection, each labelled in its own terms | one archive of each class renders distinctly and completely | D11, M10 |
 
 X1a, X1b and X1c are review questions D asks of every guard in the registry, not code: is
@@ -265,7 +265,7 @@ two runs of one incident side by side.
 python -m ruff check 02_src
 python -m pytest
 python -m adii.runtime --incident demo-learning-001 --provider scripted
-python 02_src/scripts/guard_check.py
+python 02_src/scripts/guard_check.py          # every guard killed, none surviving, by name
 ```
 
 ---
@@ -283,9 +283,10 @@ python 02_src/scripts/guard_check.py
   throughout; no shell anywhere.
 - **Real money spent without a record.** The runtime refuses any paid provider unless a
   receipt was written first. D-15 is a precondition of D-11 going live, whatever the week.
-- **The browser becoming a launcher.** Tempting once runs are visible. It stays read-only:
-  a page must not be able to spend money or create a first exposure without a receipt (D8).
-  Launching stays on the command line until that is designed on purpose.
+- **The browser becoming a launcher.** It became one on 16 September, on purpose and
+  narrowly: only when the operator starts the server with a local model, only against that
+  endpoint, with the receipt written before the investigator runs (D8). No paid provider is
+  reachable from the page; that stays on the command line behind D-11 and D-15.
 - **The guard registry drifting from the code.** A registered snippet that is not found fails
   the harness, because a guard that moved is a guard that may be gone.
 - **Reporting a number that is not ours.** The report labels every figure with the run it came

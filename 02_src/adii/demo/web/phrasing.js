@@ -19,6 +19,14 @@ const PHRASING = {
       "repair it proposes is checked by a separate validator; it never grades its own work.",
     readOnly: "This inspector is read-only. It shows runs the runtime archived and can start " +
       "none: a page that can start a run can spend money.",
+    liveAllowed: (model) => `Runs may be started from this page against ${model}, a model on ` +
+      "this machine: nothing is spent, and the receipt is written before the investigator runs. " +
+      "No paid provider is reachable from here.",
+    liveHow: "To allow runs from the page, start the server with a local model:",
+    liveCommand: "python -m adii.demo 8000 --endpoint http://127.0.0.1:8090/v1 " +
+      "--model <model id> --served-as default_model",
+    running: "Investigating. Every step appears here as it happens; the record lands when the " +
+      "run ends.",
     createRun: "python -m adii.runtime --incident demo-learning-001 --provider scripted",
     specimens: "python -m adii.examples.specimens",
     specimensWhat: "Six development incidents with scripted example runs — made up, no model, " +
