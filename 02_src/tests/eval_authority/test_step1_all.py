@@ -13,8 +13,8 @@ from pathlib import Path
 
 import pytest
 
-from judge import build_judge_prompt, judge_repair, parse_judge_reply
-from scoring import (
+from adii.evaluation.judge import build_judge_prompt, judge_repair, parse_judge_reply
+from adii.evaluation.scoring import (
     decide_route,
     score_decision,
     score_disposition,
@@ -22,6 +22,14 @@ from scoring import (
 )
 
 HERE = Path(__file__).parent
+
+if not (HERE / "demo-learning-001.answer.json").exists():
+    pytest.skip(
+        "blind answer keys not present — added post-freeze, kept out of the repo "
+        "so the system under evaluation can never read them (see eval_authority "
+        "OVERVIEW.md)",
+        allow_module_level=True,
+    )
 
 
 def load(name: str) -> dict:

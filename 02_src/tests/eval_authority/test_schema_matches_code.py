@@ -13,13 +13,17 @@ corpus, run through both, asserting the same accept/reject verdict every
 time. If they ever drift, this is the test that goes red.
 """
 import json
+from pathlib import Path
 
 import pytest
 
-from schema_validator import is_valid
-from versioning import load_versioned_answer_key
+from adii.evaluation.schema_validator import is_valid, validate_against_schema
+from adii.evaluation.versioning import load_versioned_answer_key
 
-with open("answer_key.schema.json", encoding="utf-8") as f:
+HERE = Path(__file__).parent
+EVALUATION_DIR = Path(__file__).resolve().parents[2] / "adii" / "evaluation"
+
+with open(EVALUATION_DIR / "answer_key.schema.json", encoding="utf-8") as f:
     PUBLISHED_SCHEMA = json.load(f)
 
 
@@ -97,13 +101,14 @@ class TestPublishedSchemaAndCodeAgree:
     def test_every_real_answer_key_in_this_directory_is_schema_valid(self):
         # The published schema must actually describe the real files, not
         # just a hand-picked corpus — this is the drift check C5 exists for.
-        import glob
-        real_files = glob.glob("*.answer.json") + glob.glob("fixtures/*.answer.json")
+        # Blind answer keys (demo-learning-*) are kept out of the repo (see
+        # OVERVIEW.md) so only the public fixtures are checked here; they
+        # are added back post-freeze and picked up automatically.
+        real_files = (list(EVALUATION_DIR.glob("*.answer.json"))
+                      + list(EVALUATION_DIR.glob("fixtures/*.answer.json")))
         assert real_files, "expected at least one real answer key file to check"
         for path in real_files:
             with open(path, encoding="utf-8") as f:
                 document = json.load(f)
-            errors = []
-            from schema_validator import validate_against_schema
             errors = validate_against_schema(document, PUBLISHED_SCHEMA)
             assert not errors, f"{path} fails the published schema: {errors}"

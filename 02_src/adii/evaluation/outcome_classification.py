@@ -59,7 +59,7 @@ def classify_outcome(decision: dict, validation: dict | None, answer_key: dict, 
     scoring.score_decision, called exactly once. It only adds the
     category label on top of that existing, unchanged verdict.
     """
-    from scoring import score_decision
+    from .scoring import score_decision
 
     actual_disposition = decision["disposition"]
     correct_disposition = answer_key["correct_disposition"]

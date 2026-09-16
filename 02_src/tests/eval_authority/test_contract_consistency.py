@@ -3,36 +3,31 @@ real contracts/core.py — not a hand-typed dict imitating it, but an
 actual InvestigationDecision/ValidationResult instance, converted the
 same way RunRecord.to_json() converts one for the archive?
 
-This test imports adii.contracts directly from the real adii_team
-checkout on this machine (sys.path manipulation below, scoped to this
-one test file) — not a copy, not a re-typed dataclass. If A or D ever
-change a field name in contracts/core.py, this file is the one that goes
-red, not eval_authority's own scoring.py, which has no import-time
-dependency on adii_team at all (and must not gain one — see
-scoring.py/judge.py's docstrings on staying independent of A/B's code).
+This test imports adii.contracts directly — not a copy, not a re-typed
+dataclass. If A or D ever change a field name in contracts/core.py,
+this file is the one that goes red, not eval_authority's own
+scoring.py, which has no import-time dependency on the rest of
+adii_team at all (and must not gain one — see scoring.py/judge.py's
+docstrings on staying independent of A/B's code).
 
-Skipped, not failed, if adii_team is not checked out next to
-eval_authority on this machine — the two are siblings under
-adii-practice/, not one repository, and this test's only job is to catch
-drift when both are actually present to compare.
+Skipped, not failed, if contracts/core.py cannot be found — this
+test's only job is to catch drift when both sides are actually present
+to compare.
 """
-import sys
 from pathlib import Path
 
 import pytest
 
-ADII_TEAM_SRC = Path(__file__).resolve().parent.parent / "adii_team" / "02_src"
+_CONTRACTS_CORE = Path(__file__).resolve().parents[2] / "adii" / "contracts" / "core.py"
 
-if not (ADII_TEAM_SRC / "adii" / "contracts" / "core.py").exists():
-    pytest.skip("adii_team checkout not found beside eval_authority/ — skipping contract consistency check", allow_module_level=True)
-
-sys.path.insert(0, str(ADII_TEAM_SRC))
+if not _CONTRACTS_CORE.exists():
+    pytest.skip("adii.contracts.core not found in 02_src — skipping contract consistency check", allow_module_level=True)
 
 from adii.contracts import Disposition, InvestigationDecision, ValidationResult
 
-from judge import build_judge_prompt
-from outcome_classification import classify_outcome
-from scoring import score_decision
+from adii.evaluation.judge import build_judge_prompt
+from adii.evaluation.outcome_classification import classify_outcome
+from adii.evaluation.scoring import score_decision
 
 
 def decision_to_dict(decision: InvestigationDecision) -> dict:

@@ -12,7 +12,7 @@ import json
 
 import pytest
 
-from freeze import (
+from adii.evaluation.freeze import (
     compute_digest,
     digest_path_for,
     freeze_answer_key,

@@ -9,7 +9,7 @@ import json
 
 import pytest
 
-from versioning import (
+from adii.evaluation.versioning import (
     CURRENT_VERSION,
     SCHEMA_FIELDS_BY_VERSION,
     load_versioned_answer_key,

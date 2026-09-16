@@ -26,23 +26,30 @@ from typing import ClassVar
 
 import pytest
 
-from freeze import load_frozen_answer_key
+from adii.evaluation.freeze import load_frozen_answer_key
 
-SEMANTICS = load_frozen_answer_key(Path("scoring_semantics.json"))
+EVALUATION_DIR = Path(__file__).resolve().parents[2] / "adii" / "evaluation"
+SEMANTICS = load_frozen_answer_key(EVALUATION_DIR / "scoring_semantics.json")
 RULES_BY_ID = {rule["id"]: rule for rule in SEMANTICS["rules"]}
 
 
 def resolve(dotted_name: str):
-    """Resolve "module.attr" or "module.Class.attr" to the real object,
-    importing eval_authority's own modules (scoring, judge) — never
-    adii_team's — so this stays a check of THIS codebase's own promise
-    to its frozen document, not a second copy of test_contract_consistency.py.
+    """Resolve "adii.evaluation.module.attr" to the real object — importing
+    eval_authority's own modules, so this stays a check of THIS codebase's
+    own promise to its frozen document, not a second copy of
+    test_contract_consistency.py.
     """
-    module_name, _, attr_path = dotted_name.partition(".")
-    obj = importlib.import_module(module_name)
-    for part in attr_path.split("."):
-        obj = getattr(obj, part)
-    return obj
+    parts = dotted_name.split(".")
+    for i in range(len(parts), 0, -1):
+        module_name = ".".join(parts[:i])
+        try:
+            obj = importlib.import_module(module_name)
+        except ImportError:
+            continue
+        for part in parts[i:]:
+            obj = getattr(obj, part)
+        return obj
+    raise ImportError(f"could not resolve {dotted_name!r}")
 
 
 class TestFrozenDocumentItself:
@@ -78,30 +85,30 @@ class TestFrozenStatementsAreEchoedByTheCodeItself:
     wording."""
 
     def test_r1_no_partial_credit_is_stated_in_score_disposition(self):
-        assert "one, right or wrong" in resolve("scoring.score_disposition").__doc__ or \
-            "Nothing in between" in resolve("scoring.score_disposition").__doc__
+        assert "one, right or wrong" in resolve("adii.evaluation.scoring.score_disposition").__doc__ or \
+            "Nothing in between" in resolve("adii.evaluation.scoring.score_disposition").__doc__
 
     def test_r2_validation_gate_is_stated_in_score_repair_validation(self):
-        doc = resolve("scoring.score_repair_validation").__doc__
+        doc = resolve("adii.evaluation.scoring.score_repair_validation").__doc__
         assert "independently accepted" in doc
 
     def test_r3_both_fields_required_is_stated_in_decide_route(self):
-        doc = resolve("scoring.decide_route").__doc__
+        doc = resolve("adii.evaluation.scoring.decide_route").__doc__
         assert "root_cause_id" in doc and "repair_id" in doc
 
     def test_r4_scope_limit_is_stated_in_the_judge_prompt_template(self):
-        template = resolve("judge.JUDGE_PROMPT_TEMPLATE")
+        template = resolve("adii.evaluation.judge.JUDGE_PROMPT_TEMPLATE")
         assert "outside your scope" in template
 
     def test_r5_word_boundary_is_stated_in_parse_judge_reply(self):
         # The word-boundary behavior itself is documented as an inline
         # comment rather than the docstring — resolve the source instead.
         import inspect
-        source = inspect.getsource(resolve("judge.parse_judge_reply"))
+        source = inspect.getsource(resolve("adii.evaluation.judge.parse_judge_reply"))
         assert "word-boundary" in source or "word boundary" in source
 
     def test_r6_unresolved_reporting_is_stated_in_score_decision(self):
-        doc = resolve("scoring.score_decision").__doc__
+        doc = resolve("adii.evaluation.scoring.score_decision").__doc__
         assert "unresolved" in doc
 
 
@@ -120,18 +127,18 @@ class TestBehaviorMatchesTheFrozenRuleContent:
 
     def test_r1_claims_no_near_miss_allowance(self):
         assert "no near-miss allowance" in RULES_BY_ID["R1"]["statement"]
-        from scoring import score_disposition
+        from adii.evaluation.scoring import score_disposition
         assert score_disposition("NO_REPAIR", self.ANSWER_KEY) == "incorrect"
 
     def test_r3_claims_never_auto_pass_on_only_one_match(self):
         assert "never auto-passed on a match of only one" in RULES_BY_ID["R3"]["statement"]
-        from scoring import decide_route
+        from adii.evaluation.scoring import decide_route
         decision = {"disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "SOMETHING_ELSE"}
         assert decide_route(decision, {"accepted": True}, self.ANSWER_KEY) == "needs_judge_review"
 
     def test_r6_claims_never_silently_scored(self):
         assert "never silently scored" in RULES_BY_ID["R6"]["statement"]
-        from scoring import score_decision
+        from adii.evaluation.scoring import score_decision
         decision = {"disposition": "REPAIR", "root_cause_id": "CAUSE_A", "repair_id": "SOMETHING_ELSE"}
         result = score_decision(decision, {"accepted": True}, self.ANSWER_KEY, judge=None)
         assert result == {"verdict": "unresolved", "settled_by": "none"}

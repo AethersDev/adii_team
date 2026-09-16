@@ -7,16 +7,13 @@ NO_REPAIR and ESCALATE. Both settle deterministically (scoring.py's
 non-REPAIR short-circuit), so no judge agent is involved here.
 """
 import json
-import sys
 from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+from adii.evaluation.scoring import score_decision
 
-from scoring import score_decision
-
-HERE = Path(__file__).parent
+HERE = Path(__file__).resolve().parents[3] / "adii" / "evaluation" / "fixtures"
 
 
 def load(name: str) -> dict:

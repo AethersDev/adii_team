@@ -12,7 +12,7 @@ import json
 
 import pytest
 
-from evaluation_report import SCHEMA, build_evaluation_report, to_json
+from adii.evaluation.evaluation_report import SCHEMA, build_evaluation_report, to_json
 
 ANSWER_KEY = {
     "correct_disposition": "REPAIR",

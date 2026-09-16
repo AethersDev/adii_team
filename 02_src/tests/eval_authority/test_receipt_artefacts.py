@@ -14,9 +14,9 @@ import json
 
 import pytest
 
-from freeze import freeze_answer_key
-from grounding import build_grounding_key
-from receipt_artefacts import get_receipt_artefact, get_receipt_artefact_with_grounding
+from adii.evaluation.freeze import freeze_answer_key
+from adii.evaluation.grounding import build_grounding_key
+from adii.evaluation.receipt_artefacts import get_receipt_artefact, get_receipt_artefact_with_grounding
 
 ANSWER_KEY = {"schema_version": "1", "incident_id": "t-1", "correct_disposition": "REPAIR"}
 
@@ -117,7 +117,7 @@ class TestGetReceiptArtefactWithGrounding:
         # Not to be confused with the answer_key_digest carried INSIDE the
         # grounding key document for C3's pairing check — this is a
         # digest of the grounding key file itself, a distinct artefact.
-        from freeze import compute_digest
+        from adii.evaluation.freeze import compute_digest
 
         answer_key_path = write_answer_key(tmp_path)
         freeze_answer_key(answer_key_path)

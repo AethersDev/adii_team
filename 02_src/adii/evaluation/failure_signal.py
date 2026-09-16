@@ -16,7 +16,7 @@ to one incident and one repeat.
 """
 from __future__ import annotations
 
-from outcome_classification import classify_outcome
+from .outcome_classification import classify_outcome
 
 
 def build_failure_signal(

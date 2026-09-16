@@ -12,8 +12,8 @@ from pathlib import Path
 
 import pytest
 
-from judge import build_judge_prompt, judge_repair, parse_judge_reply
-from scoring import (
+from adii.evaluation.judge import build_judge_prompt, judge_repair, parse_judge_reply
+from adii.evaluation.scoring import (
     decide_route,
     score_decision,
     score_disposition,
@@ -21,6 +21,7 @@ from scoring import (
 )
 
 HERE = Path(__file__).parent
+EVALUATION_FIXTURES = Path(__file__).resolve().parents[2] / "adii" / "evaluation" / "fixtures"
 
 
 def load(name: str) -> dict:
@@ -29,12 +30,18 @@ def load(name: str) -> dict:
 
 @pytest.fixture(scope="module")
 def key_001():
+    if not (HERE / "demo-learning-001.answer.json").exists():
+        pytest.skip(
+            "blind answer key not present — added post-freeze, kept out of the "
+            "repo so the system under evaluation can never read it (see "
+            "eval_authority OVERVIEW.md)"
+        )
     return load("demo-learning-001.answer.json")
 
 
 @pytest.fixture(scope="module")
 def key_escalate():
-    return load(str(Path("fixtures") / "synthetic-escalate-001.answer.json"))
+    return json.loads((EVALUATION_FIXTURES / "synthetic-escalate-001.answer.json").read_text(encoding="utf-8"))
 
 
 # ---------------------------------------------------------------------------

@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import json
 
-from outcome_classification import classify_outcome
+from .outcome_classification import classify_outcome
 
 SCHEMA = "adii.evaluation_report/v1"
 

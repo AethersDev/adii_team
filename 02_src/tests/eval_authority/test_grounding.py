@@ -15,8 +15,8 @@ import json
 
 import pytest
 
-from freeze import freeze_answer_key
-from grounding import build_grounding_key, check_grounding, load_grounding_key
+from adii.evaluation.freeze import freeze_answer_key
+from adii.evaluation.grounding import build_grounding_key, check_grounding, load_grounding_key
 
 ANSWER_KEY = {"schema_version": "1", "incident_id": "t-1", "correct_disposition": "REPAIR"}
 

@@ -29,7 +29,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from freeze import compute_digest, digest_path_for
+from .freeze import compute_digest, digest_path_for
 
 GROUNDING_SCHEMA_VERSION = "1"
 

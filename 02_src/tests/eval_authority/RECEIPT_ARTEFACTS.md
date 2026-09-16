@@ -19,7 +19,7 @@ identifiers, and how to get them.
 ## The one call you need
 
 ```python
-from receipt_artefacts import get_receipt_artefact
+from adii.evaluation.receipt_artefacts import get_receipt_artefact
 from pathlib import Path
 
 entry = get_receipt_artefact(Path("demo-learning-001.answer.json"))
@@ -35,7 +35,7 @@ If the run's answer key also has a bound grounding key (C3), get both
 entries in one call instead:
 
 ```python
-from receipt_artefacts import get_receipt_artefact_with_grounding
+from adii.evaluation.receipt_artefacts import get_receipt_artefact_with_grounding
 
 entries = get_receipt_artefact_with_grounding(
     Path("demo-learning-001.answer.json"),

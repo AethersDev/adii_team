@@ -8,7 +8,7 @@ records out, in order, success and failure recorded the same shape.
 """
 import json
 
-from failure_signal import build_failure_signal, build_grid_batch
+from adii.evaluation.failure_signal import build_failure_signal, build_grid_batch
 
 ANSWER_KEY = {
     "correct_disposition": "REPAIR",

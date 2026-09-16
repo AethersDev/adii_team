@@ -13,14 +13,22 @@ from pathlib import Path
 
 import pytest
 
-from judge import judge_repair
-from scoring import score_decision
-from validation_wiring import (
+from adii.evaluation.judge import judge_repair
+from adii.evaluation.scoring import score_decision
+from adii.evaluation.validation_wiring import (
     fake_validator_accepts_everything_structurally_sound,
     get_validation_for,
 )
 
 HERE = Path(__file__).parent
+
+if not (HERE / "demo-learning-001.answer.json").exists():
+    pytest.skip(
+        "blind answer keys not present — added post-freeze, kept out of the repo "
+        "so the system under evaluation can never read them (see eval_authority "
+        "OVERVIEW.md)",
+        allow_module_level=True,
+    )
 
 
 def load(name: str) -> dict:

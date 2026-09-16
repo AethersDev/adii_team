@@ -13,8 +13,8 @@ directly vs. through classify_outcome must agree on the verdict).
 """
 import pytest
 
-from outcome_classification import CATEGORIES, FailureSubKind, classify_outcome
-from scoring import score_decision
+from adii.evaluation.outcome_classification import CATEGORIES, FailureSubKind, classify_outcome
+from adii.evaluation.scoring import score_decision
 
 ANSWER_KEY_REPAIR = {
     "correct_disposition": "REPAIR",

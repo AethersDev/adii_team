@@ -23,8 +23,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from freeze import digest_path_for, load_frozen_answer_key
-from grounding import load_grounding_key
+from .freeze import digest_path_for, load_frozen_answer_key
+from .grounding import load_grounding_key
 
 
 def get_receipt_artefact(answer_key_path: Path) -> dict:
@@ -65,7 +65,7 @@ def get_receipt_artefact_with_grounding(answer_key_path: Path, grounding_key_pat
     for the same reason: an artefact pairing that does not verify is not
     something a receipt can truthfully vouch for.
     """
-    from freeze import compute_digest
+    from .freeze import compute_digest
 
     answer_key_path = Path(answer_key_path)
     grounding_key_path = Path(grounding_key_path)
