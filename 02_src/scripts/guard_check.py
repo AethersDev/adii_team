@@ -141,7 +141,22 @@ GUARDS = (
           "            if not LABEL.fullmatch(label) "
           "or not (ARCHIVE / label / \"record.json\").is_file():\n",
           "            if not LABEL.fullmatch(label) or not (ARCHIVE / label).is_dir():\n"),
-    # C's guards join here when the evaluation authority merges.
+    # ── the seam between the record and the evaluation authority ──────────────────
+    Guard("D.verify_lists_the_unattested", "D", "reporting/manifest.py",
+          "    present = {p.relative_to(root).as_posix() for p in root.glob(\"*/*\") "
+          "if p.is_file()}\n",
+          "    present = {p.relative_to(root).as_posix() for p in artefacts(root)}\n"),
+    Guard("C.score_needs_the_incidents_own_key", "C", "evaluation/__main__.py",
+          "    if key[\"incident_id\"] != incident:\n",
+          "    if False:\n"),
+    Guard("C.score_refuses_an_unchecked_repair", "C", "evaluation/__main__.py",
+          "    if verdict is not None and not verdict[\"accepted\"] "
+          "and not verdict[\"checks_run\"]:\n",
+          "    if False:\n"),
+    Guard("C.report_never_overwritten", "C", "evaluation/__main__.py",
+          "    if path.exists():\n        raise FileExistsError(f\"{path} exists",
+          "    if False:\n        raise FileExistsError(f\"{path} exists"),
+    # C's own guards (the key loaders, the scorer's refusals) join here from C's tests.
 )
 
 PYTEST = [sys.executable, "-m", "pytest", "-q", "-x", "-p", "no:cacheprovider"]

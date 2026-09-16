@@ -30,10 +30,12 @@ NAME = "MANIFEST.json"
 # What the archive keeps of a run, by name, and why. Evidence is what the run left of itself
 # — the receipt written before it, the trace as it happened, the record when it ended — and
 # is kept for as long as the run is cited. An annotation is what a person said about the run
-# afterwards: preserved beside it, never mistaken for the run's own evidence. A file in a
-# run's folder under any other name is not attested, and verification lists it.
+# afterwards: preserved beside it, never mistaken for the run's own evidence. An evaluation
+# is what the authority said about it against a key the run never saw: preserved with the
+# run, and neither its evidence nor anyone's opinion. A file in a run's folder under any
+# other name is not attested, and verification lists it as unlisted.
 RETENTION = {"receipt.json": "evidence", "trace.jsonl": "evidence", "record.json": "evidence",
-             "feedback.jsonl": "annotation"}
+             "feedback.jsonl": "annotation", "evaluation_report.json": "evaluation"}
 
 
 def digest(path: Path) -> str:
@@ -88,7 +90,7 @@ def verify(root: Path, manifest: dict | None = None) -> Verification:
             missing.append(rel)
         elif path.stat().st_size != entry["bytes"] or digest(path) != entry["digest"]:
             altered.append(rel)
-    present = {p.relative_to(root).as_posix() for p in artefacts(root)}
+    present = {p.relative_to(root).as_posix() for p in root.glob("*/*") if p.is_file()}
     return Verification(len(listed), tuple(missing), tuple(altered),
                         tuple(sorted(present - set(listed))))
 

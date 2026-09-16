@@ -140,7 +140,7 @@ preservation, then provider. Within a phase the order is the dependency order.
 | D-8 ✔ 14 Sep (source-level rule in `test_demo_design_rules.py`; the D12 browser regression in `test_the_page_executes_nothing.py` drives the shipped page in Chrome, which every CI runner ships) | The escape invariant — nothing drawn from a record is interpolated raw into any rendering surface; a source-level assertion that runs without a browser (the demo already has one for its own scripts) | reverting the escape turns the test red | D12 |
 | D-9 | `reporting/bounds.py` — `Budget(cost_usd, context_tokens, wall_clock_s)`, each optional, each named in a `bound_hit` event; the cost cap is documented as soft and post-spend with its worst-case overshoot stated | each bound trips with the other two unset; the documented overshoot is asserted | D9 |
 | D-10 ✔ 16 Sep | `python -m adii.reporting.manifest` — manifest-first preservation: hash the source, copy, re-hash the destination against the manifest made before the copy; verification re-runs from the manifest alone; each artefact declares its retention class | a payload change without a manifest change fails a test; the original is never deleted on the strength of an unverified copy | D13 |
-| D-10b ✔ 16 Sep | retention classes for what a run leaves beside its record: `receipt.json`, `trace.jsonl` and `record.json` are **evidence** — the run's own; `feedback.jsonl` is an **annotation** — what a person said afterwards, preserved with the run and never mistaken for its evidence. All four are attested and preserved; a file under any other name in a run's folder is listed by verification, not archived | preserving an archive drops nothing a run left; a test removes each artefact and verification names it | D13 |
+| D-10b ✔ 16 Sep | retention classes for what a run leaves beside its record: `receipt.json`, `trace.jsonl` and `record.json` are **evidence** — the run's own; `feedback.jsonl` is an **annotation** — what a person said afterwards; `evaluation_report.json` is an **evaluation** — what the authority said against a key the run never saw. All five are attested and preserved; a file under any other name in a run's folder is an unlisted finding | preserving an archive drops nothing a run left; a test removes each artefact and verification names it, and plants a stranger and verification lists it | D13 |
 
 ### Phase 3 — provider and money · week 4 (28 Sep – 4 Oct) · M8
 
@@ -159,7 +159,7 @@ preservation, then provider. Within a phase the order is the dependency order.
 | D-16 | `python -m adii.freeze` — records digests of the model-facing surface (prompts, tool schemas, configuration) and of the scoring code as *separate* artefacts, because they freeze at different times ([inherited/AUTHORITY_LIFECYCLE.md](inherited/AUTHORITY_LIFECYCLE.md)); a test that a frozen digest still matches | the three M9 checkboxes | M9, C3 |
 | D-17 | The grid runner — N incidents × R repeats; every promised repeat is materialised as a record, success or classified failure; one failing unit does not abort the rest | a unit failing mid-grid leaves a classified record for every promised repeat and the remaining units still run | D5 |
 | D-18 ✔ 16 Sep (20 guards across A, B, contracts and D, all killed; C's join on merge; a CI job runs the pass on every pull request) | `scripts/guard_check.py` — a registry of named guards across A, B, C and D (file, exact snippet, neutralised snippet) plus controls; neutralise, run pytest, restore; survivors listed by name; non-zero on any survivor or on a control that survives; a registered snippet that is not found is itself a failure | a deliberately kept survivor fails the pipeline; runs in CI before freeze | X1, X1a–c, X4 |
-| D-19 | The M10 report — from C's scoring output: success, failure, false repair, correct abstention, unnecessary escalation and repair rejection, each labelled in its own terms | one archive of each class renders distinctly and completely | D11, M10 |
+| D-19 (the seam ✔ 16 Sep: `python -m adii.evaluation --run L --key K` scores the record the runtime wrote, through its own reader, against a frozen key, and keeps `evaluation_report.json` beside the record in its own retention class; the page and the text report do not show it yet) | The M10 report — from C's scoring output: success, failure, false repair, correct abstention, unnecessary escalation and repair rejection, each labelled in its own terms | one archive of each class renders distinctly and completely | D11, M10 |
 
 X1a, X1b and X1c are review questions D asks of every guard in the registry, not code: is
 the check independent of the code it checks; are the boundary cases named tests rather than a
@@ -206,12 +206,15 @@ git history, so "reserve first" is true in the execution graph and not only in p
 - **Screenshots** of real runs into `03_assets/screenshots/` for the presentation.
 - **Housekeeping** that only D notices: GitHub handles in `CODEOWNERS`, the generated docs
   staying generated, `current_status.md` regenerated with every package that grows.
-- **The live spike**, 15 Sep, branch `spike/live-local`, not merged: `adii/provider/`
-  behind A's seam over a local OpenAI-compatible endpoint, `runtime/live.py` driving A's
-  loop from the runtime, `--provider local`. One trace, recorded at the provider and tool
-  boundaries. It pre-empts D-1 in code on purpose, as working evidence for the review, and
-  makes the one policy choice main must not (a stop with no decision → `model_failure`).
-  D-6b and D-11 are carved from it after the rows resolve; nothing is merged before.
+- **The live spike**, 15 Sep, branch `spike/live-local`: `adii/provider/` behind A's seam
+  over a local OpenAI-compatible endpoint, `runtime/live.py` driving A's loop from the
+  runtime, `--provider local`. One trace, recorded at the provider and tool boundaries. It
+  pre-empts D-1 in code on purpose, as working evidence for the review, and makes the one
+  policy choice main must not (a stop with no decision → `model_failure`). It was meant to
+  stay on its branch until the rows resolved; it reached `main` on 16 Sep with the live
+  console (PRs #20, #21, #23). So its placeholders are on the main command line and in the
+  page's launcher, marked SPIKE in the code, and D-6b replaces them in place once rows 1,
+  5 and 6 are decided. Nothing produced through them is quoted as an ADII result.
 - **Frontend specimens**, 15 Sep: `python -m adii.examples.specimens` archives six
   hand-authored development incidents with ten scripted runs, produced through the real
   runtime and B's tools, every record marked scripted with no model and no evaluation

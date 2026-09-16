@@ -70,9 +70,12 @@ def render_run(record: RunRecord) -> str:
                 out.append(f"  --- {path}")
                 out += [f"      {line}" for line in body.rstrip("\n").splitlines()]
             verdict = record.validation
+            # three states the record distinguishes: accepted; rejected after checks; and
+            # not checked at all — a placeholder verdict, which is not a finding
+            state = ("ACCEPTED" if verdict.accepted else "REJECTED" if verdict.checks_run
+                     else "UNCHECKED")
             out += ["", "INDEPENDENT VALIDATION",
-                    f"  {'ACCEPTED' if verdict.accepted else 'REJECTED'}"
-                    "   (decided by the validator, never by the agent)",
+                    f"  {state}   (decided by the validator, never by the agent)",
                     _wrap(verdict.report),
                     f"  checks: {', '.join(verdict.checks_run) or '(none recorded)'}"]
         else:
