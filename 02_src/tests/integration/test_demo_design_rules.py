@@ -120,8 +120,8 @@ def test_every_sentence_the_page_adds_comes_from_the_dictionary():
     what a step did, what ADII is — come from phrasing.js, one reviewable place. A prose
     sentence assembled in app.js is a sentence the team never saw in the dictionary."""
     script = code("app.js")
-    for key in ("PHRASING.ended", "PHRASING.step", "PHRASING.outcome", "PHRASING.product",
-                "PHRASING.validation", "PHRASING.disposition"):
+    for key in ("PHRASING.ended", "PHRASING.turn", "PHRASING.headline", "PHRASING.outcome",
+                "PHRASING.product", "PHRASING.validation", "PHRASING.disposition"):
         assert key in script, f"app.js does not read {key}"
     assert "The investigator reached" not in script and "The model failed" not in script, (
         "an ending sentence is written in app.js instead of phrasing.js")

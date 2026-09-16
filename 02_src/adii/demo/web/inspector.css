@@ -57,3 +57,14 @@
 /* two runs of one incident, side by side */
 .compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adii-space-xl); align-items: start; }
 @media (max-width: 64rem) { .compare { grid-template-columns: 1fr; } }
+
+/* ── the run page: the outcome first, then turns ──────────────────── */
+.outcome { display: grid; gap: var(--adii-space-sm); padding-bottom: var(--adii-space-sm); border-bottom: var(--adii-rule-width) solid var(--adii-border-strong); }
+.outcome__headline { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adii-space-sm); font-size: var(--adii-text-h2); }
+.turns { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--adii-space-sm); counter-reset: turn; }
+.turn { display: grid; grid-template-columns: 2.5ch minmax(0, 1fr); gap: var(--adii-space-sm); padding: var(--adii-space-sm) 0; border-bottom: 1px solid var(--adii-border-subtle); }
+.turn__n { color: var(--adii-ink-3); font-family: var(--adii-font-mono); font-size: var(--adii-text-meta); font-variant-numeric: tabular-nums; padding-top: 0.2em; }
+.turn__body { min-width: 0; display: grid; gap: var(--adii-space-2xs); }
+.turn__what { max-width: var(--adii-measure); }
+.turn__result { max-width: var(--adii-measure); color: var(--adii-ink-2); font-size: var(--adii-text-sm); }
+.turn__quote { margin: 0; padding: var(--adii-space-sm) var(--adii-space-md); border-left: var(--adii-rule-width) solid var(--adii-border-default); color: var(--adii-ink-2); font-size: var(--adii-text-sm); white-space: pre-wrap; overflow-wrap: anywhere; max-width: var(--adii-measure); }

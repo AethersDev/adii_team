@@ -264,7 +264,7 @@ async function frontDoor() {
       cards.length ? el("div", "incidents", ...cards)
         : el("div", "adii-empty",
             el("p", "adii-empty__title", "No runs archived yet"),
-            el("p", null, "An incident appears here once the runtime has investigated it and archived the run."))),
+            el("p", null, PHRASING.product.empty))),
     state.launch.enabled ? "" : howto()));
   foot("Read-only. Runs are launched from the command line; nothing on this page can spend money.");
 }
@@ -329,105 +329,156 @@ async function runPage(label, against) {
   foot(`Read-only view of an ${SCHEMA} record. Runs are launched from the command line; nothing on this page can spend money.`);
 }
 
-/* The hierarchy is fixed: incident, run, investigation, decision (or why there is none),
- * validation, technical details. A section the record cannot fill is left out. */
-function story(r, compact = false) {
-  const c = r.context, d = r.decision, cfg = r.configuration;
-  const ran = `${cfg.provider ?? "provider not recorded"} · ${cfg.model ?? "no model"}`;
-  const out = el("div", "story");
+/* ── the run page: outcome first, then the investigation turn by turn ─────────────
+ * What an operator reads, in the order they need it: what came of the run, what it looked
+ * at and what came back, the change it proposed, what the validator said. The machinery —
+ * ids, revisions, counters — is one closed disclosure at the end. A section the record
+ * cannot fill is left out. */
+const seconds = (ms) => (ms >= 1000 ? `${Math.round(ms / 1000)} s` : `${ms} ms`);
+const shortModel = (model) => (model ? String(model).split("/").pop() : "no model");
 
-  out.append(scriptedNote(cfg.model));
-  out.append(record("operator", compact ? r.label : c.incident_id,
-    compact ? `Run of ${c.incident_id}` : "Reported by the operator",
-    el("p", "adii-claim__label", "What was reported"),
+function story(r, compact = false) {
+  const c = r.context, d = r.decision, cfg = r.configuration, n = r.counters;
+  const out = el("div", "story");
+  const ran = cfg.model ? `${shortModel(cfg.model)} · ` : "";
+
+  /* the outcome, first */
+  out.append(el("header", "outcome",
+    el("p", "adii-eyebrow", compact ? r.label
+      : `${c.incident_id} · ${ran}${n.tool_calls} tool call${n.tool_calls === 1 ? "" : "s"} · ${seconds(n.latency_ms)}`),
+    el("h1", "outcome__headline", d ? chip(d.disposition) : plain(PHRASING.outcome[r.termination]?.(r) ?? r.termination, "g-unresolved"),
+      " ", PHRASING.headline[r.termination]?.(r) ?? r.termination),
+    scriptedNote(cfg.model)));
+
+  if (d) {
+    out.append(record("system", "What it concluded", `Asserted by ${INVESTIGATOR}`,
+      el("p", "adii-assertion", d.root_cause_summary),
+      el("p", "adii-field__hint adii-mt-sm", PHRASING.disposition[d.disposition]),
+      d.root_cause_id ? meta(["Root cause", d.root_cause_id]) : ""));
+  } else {
+    out.append(record("system", "Why there is no decision",
+      `Reported by ${r.termination === "infrastructure_failure" ? "the runtime" : INVESTIGATOR}`,
+      el("p", "adii-measure", PHRASING.ended[r.termination]?.(r) ?? r.termination),
+      el("p", "adii-field__hint adii-mt-2xs", "In the record's words: ", mono(r.detail))));
+  }
+
+  out.append(record("operator", "The incident", "Reported by the operator",
     el("p", "adii-measure", c.alert),
     meta(["As of", c.as_of],
          ["May write", c.permitted_write_paths.length ? c.permitted_write_paths.join(", ") : "nothing"])));
 
-  out.append(record("system", "How the run ended", `Reported by ${r.termination === "infrastructure_failure" ? "the runtime" : INVESTIGATOR} · ${ran}`,
-    el("p", "adii-measure", PHRASING.ended[r.termination]?.(r) ?? r.termination),
-    el("p", "adii-field__hint adii-mt-2xs", "In the record's words: ", mono(r.detail))));
+  const rounds = turns(r.trace);
+  out.append(record("system", "The investigation, turn by turn",
+    `Recorded by the runtime as it happened · ${rounds.length} turn${rounds.length === 1 ? "" : "s"}`,
+    el("ol", "turns", ...rounds.map(turnCard))));
 
-  out.append(record("system", "What the investigator did", `Recorded by the runtime as it happened · ${r.trace.length} step${r.trace.length === 1 ? "" : "s"}`,
-    el("ol", "steps", ...r.trace.map(step))));
-
-  if (d) {
-    out.append(record("system", "What it decided", `Asserted by ${INVESTIGATOR}`,
-      el("p", null, chip(d.disposition)),
-      el("p", "adii-field__hint adii-measure-narrow adii-mt-2xs", PHRASING.disposition[d.disposition]),
-      el("p", "adii-claim__label adii-mt-md", "In its own words"),
-      el("p", "adii-assertion", d.root_cause_summary),
-      d.root_cause_id ? meta(["Root cause", d.root_cause_id]) : ""));
-    if (d.repair_id) {
-      out.append(record("system", "The change it proposed", `Proposed by ${INVESTIGATOR}. Not applied by anyone.`,
-        defs(["Repair", d.repair_id]),
-        ...Object.entries(d.patch).flatMap(([path, body]) => [
-          el("p", "adii-claim__label adii-mt-md", path),
-          el("div", "adii-change__diff", ...body.replace(/\n$/, "").split("\n").map((line) =>
-            el("span", "adii-diff__line", el("span", "adii-diff__marker", " "), line, "\n")))])));
-    }
-  } else {
-    out.append(record("system", "Why there is no decision", `Reported by ${INVESTIGATOR}`,
-      el("p", "adii-measure", "The run ended before the investigator committed to a disposition, " +
-        "so there is no decision to show and nothing was proposed.")));
+  if (d && d.repair_id) {
+    out.append(record("system", "The change it proposed", `Proposed by ${INVESTIGATOR}. Not applied by anyone.`,
+      defs(["Repair", d.repair_id]),
+      ...Object.entries(d.patch).flatMap(([path, body]) => [
+        el("p", "adii-claim__label adii-mt-md", path),
+        el("div", "adii-change__diff", ...body.replace(/\n$/, "").split("\n").map((line) =>
+          el("span", "adii-diff__line", el("span", "adii-diff__marker", " "), line, "\n")))])));
   }
 
   if (r.validation) {
     const v = r.validation, verdict = v.accepted ? "ACCEPT" : "REJECT";
     out.append(record("validator", "What the validator said", `Asserted by ${VALIDATOR}`,
-      el("p", "adii-measure", v.accepted ? PHRASING.validation.accepted : PHRASING.validation.rejected),
-      el("div", "adii-verdicts adii-mt-md", el("div", `adii-check adii-check--${v.accepted ? "pass" : "fail"}`,
+      el("div", "adii-verdicts", el("div", `adii-check adii-check--${v.accepted ? "pass" : "fail"}`,
         glyph(v.accepted ? "g-pass" : "g-fail", "adii-check__mark"),
         el("p", "adii-check__body",
           el("span", "adii-check__name", "candidate repair"), " ",
           el("span", "adii-check__verdict", verdict), " ",
           el("span", "adii-check__note", v.report)))),
-      el("p", "adii-claim__label adii-mt-md", "Checks run"),
-      el("ul", "adii-inline-list", ...v.checks_run.map((check) => el("li", null, mono(check))))));
+      v.checks_run.length ? el("p", "adii-field__hint adii-mt-sm", "Checks run: ",
+        ...v.checks_run.flatMap((check, i) => [i ? ", " : "", mono(check)])) : ""));
   } else if (d) {
     out.append(record("validator", "Validation", `Held by ${VALIDATOR}`,
       el("p", null, plain("not evaluated", "g-none")),
       el("p", "adii-field__hint adii-mt-sm", PHRASING.validation.notInvoked)));
   }
-  /* no decision → no validation section: the record refuses a verdict without a decision,
-   * and "Why there is no decision" already says the run ended first */
 
   out.append(el("details", "adii-panel tech",
-    el("summary", null, "Technical details: how exactly this run was executed"),
-    defs(["schema", r.schema], ["label", r.label], ["termination", r.termination],
-         ["detail", r.detail],
-         ...flat("", r.provenance), ...flat("configuration", r.configuration), ...flat("", r.counters))));
+    el("summary", null, "Details for engineers"),
+    defs(["Run", r.label], ["Model", cfg.model ?? "none"], ["Endpoint", cfg.endpoint ?? "none"],
+         ["Provider", cfg.provider ?? "not recorded"], ["Turns", String(n.model_turns)],
+         ["Tool calls", String(n.tool_calls)], ["Duration", seconds(n.latency_ms)],
+         ["Cost", n.api_cost_usd ? `$${n.api_cost_usd}` : "nothing (no paid provider)"],
+         ["Ended", `${r.termination}: ${r.detail}`], ["Recorded", r.provenance.written_at ?? ""],
+         ["Code revision", r.provenance.source_revision ?? "unknown"],
+         ["Record schema", r.schema])));
   return out;
+}
+
+/* Group the trace into turns: each model request and everything it caused, or, for a
+ * scripted run with no model events, each tool call and its answer. Nothing is dropped —
+ * every event lands in exactly one turn, in order — and nothing is interpreted: the turn
+ * says what was asked and what came back. */
+function turns(trace) {
+  const live = trace.some((e) => e.kind === "model_requested");
+  const starts = live ? ["model_requested"] : ["tool_call", "decision_submitted", "validation_completed"];
+  const rounds = [];
+  for (const e of trace) {
+    if (e.kind === "incident_received") continue;              /* the header says it */
+    if (starts.includes(e.kind) || !rounds.length) rounds.push({ events: [] });
+    rounds[rounds.length - 1].events.push(e);
+  }
+  return rounds;
+}
+
+/* One turn as a card: what was asked and what came back, what was committed, what the
+ * validator said, or — when the model did none of those — what it wrote instead. */
+function turnCard(turn, i) {
+  const by = (kind) => turn.events.find((e) => e.kind === kind);
+  const call = by("tool_call"), result = by("tool_result"), said = by("model_responded");
+  const decided = by("decision_submitted"), validated = by("validation_completed");
+  const body = el("div", "turn__body");
+  if (call) {
+    body.append(el("p", "turn__what", PHRASING.turn.asked(call.payload.name, call.payload.arguments)));
+    body.append(result
+      ? el("p", "turn__result", `The tool layer ${PHRASING.turn.answered(result.payload)}.`,
+          result.payload.status !== "OK" ? " " : "",
+          result.payload.status !== "OK" ? plain(result.payload.status, "g-unresolved") : "")
+      : el("p", "turn__result", PHRASING.turn.unanswered));
+  }
+  if (decided) body.append(el("p", "turn__what", PHRASING.turn.decided(decided.payload.disposition)));
+  if (validated) body.append(el("p", "turn__what", PHRASING.turn.validated(validated.payload.accepted)));
+  if (!call && !decided && !validated) {
+    body.append(said
+      ? el("div", null, el("p", "turn__what", PHRASING.turn.wrote), el("blockquote", "turn__quote", said.payload.content))
+      : el("p", "turn__what", turn.events.map((e) => e.kind).join(", ")));
+  }
+  const kinds = turn.events.map((e) => e.kind).join(", ");
+  body.append(el("details", "step__raw", el("summary", null, `raw events · ${kinds}`),
+    el("pre", null, turn.events.map((e) =>
+      JSON.stringify({ sequence: e.sequence, kind: e.kind, payload: e.payload }, null, 2)).join("\n"))));
+  return el("li", "turn", el("span", "turn__n", String(i + 1)), body);
 }
 
 /* A run in progress: the live trace, polled until the record lands, then the story. */
 async function watch(label) {
   crumbs(["Incidents", "#"], [label]);
-  const steps = el("ol", "steps");
+  const list = el("ol", "turns");
   const status = el("p", "adii-field__hint", PHRASING.product.running);
   $("view").replaceChildren(el("div", "story",
-    record("system", "Investigating", "Recorded by the runtime as it happens", status, steps)));
+    el("header", "outcome", el("p", "adii-eyebrow", label),
+      el("h1", "outcome__headline", plain("running", "g-unresolved"), " Investigating")),
+    record("system", "The investigation, turn by turn", "Recorded by the runtime as it happens",
+      status, list)));
   foot("A run in progress. Nothing on this page can spend money.");
-  let shown = 0;
+  let events = [];
   while (location.hash === `#r/${encodeURIComponent(label)}`) {
     const live = await load(`/api/runs/${label}/trace`);
-    for (const e of live.events.slice(shown)) steps.append(step(e));
-    shown = live.events.length;
+    if (live.events.length !== events.length) {
+      events = live.events;
+      list.replaceChildren(...turns(events).map(turnCard));
+    }
     if (live.finished) {
       state.runs = await load("/api/runs");
       return route();
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
-}
-
-function step(e) {
-  return el("li", "step",
-    el("span", "step__n", String(e.sequence + 1)),
-    el("div", "step__body",
-      el("p", "step__text", PHRASING.step[e.kind]?.(e.payload) ?? `${e.kind}`),
-      el("details", "step__raw", el("summary", null, `raw event · ${e.kind}`),
-        el("pre", null, JSON.stringify(e.payload, null, 2)))));
 }
 
 /* ── refusals: something this page will not interpret ───────────────── */
