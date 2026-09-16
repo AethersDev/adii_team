@@ -15,6 +15,32 @@ Contestant and judge are different programs with different authority. The agent 
 be able to reach the answer key, the oracle, or the scoring code — not by convention, by
 construction. `02_src/tests/architecture/` enforces the import direction; the rest is your design.
 
+## Two boundaries, not one — and this package is only the first
+
+**This package is an authority boundary inside the team implementation. It is not a
+confidentiality boundary.** An import rule guards against accidental leakage; it is not
+secrecy when the investigator and an answer key share a checkout. So:
+
+```text
+may live here                                   never enters this repository
+─────────────────────────────────────────       ─────────────────────────────────────────
+the contracts and the deterministic scorer      the final blind worlds
+the freezing, versioning and grounding          the final blind answer keys
+  machinery for keys                            hidden authority state
+the development authority                       the final evaluator configuration
+PUBLIC / DEVELOPMENT answer keys only
+development scoring fixtures, under 02_src/tests/
+```
+
+A key that is meant to become blind truth does not move in here to make CI pass; the
+machinery moves, and a development key stands in for it. `test_answer_keys_stay_out`
+confines evaluation-shaped data to this package — that is the first boundary, enforced.
+The second is custodial: [DATA_WORLD_v0.md](../../docs/DATA_WORLD_v0.md) names blind
+incidents custodian-controlled, and
+[development_catalog.md](../../docs/development_catalog.md) records how the private
+reserve is committed before any development case is exposed. Nothing here can enforce
+the second boundary, which is exactly why it has to be written down.
+
 Note this is a *different* boundary from validation, which you also own. Validation asks
 **does this repair work**. Scoring asks **was this the right call at all** — including for
 the two dispositions that propose no repair, where there is nothing to validate.

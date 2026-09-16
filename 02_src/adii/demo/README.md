@@ -4,7 +4,7 @@
 the decision, the verdict, what it cost, and where the record came from.
 
 ```bash
-python -m adii.runtime --incident demo-learning-001 --provider fake   # produce and archive one run
+python -m adii.runtime --incident demo-learning-001 --provider scripted   # produce and archive one run
 python -m adii.demo                                                     # → http://127.0.0.1:8000
 ```
 
@@ -45,14 +45,15 @@ record contains them. Strike any line below and the page stops saying it.
 | `model_failure` | "The model failed and the run stopped without a decision." |
 | `infrastructure_failure` | "Something in the runtime failed — a defect of ours, not the model's — and the run stopped without a decision." |
 | the record's `detail` | always shown beside the sentence, verbatim, so the projection never replaces the source |
-| `accepted` / `rejected` | "The validator rebuilt from frozen inputs and accepted (rejected) the repair." |
+| `accepted` / `rejected` | "The validator accepted the repair." / "The validator did not accept the repair." — what `accepted` states and nothing about how; the validator's own report sits beside it |
 | `notInvoked` | "No repair was proposed, so there was nothing to validate." — only a REPAIR carries a repair, and the record refuses a verdict without one |
 | a run with no decision | no validation section is drawn at all; "Why there is no decision" says the run ended first, which the record's own invariant establishes: it refuses a verdict without a decision |
 | `incident_received` | "The investigator received incident *id*." |
 | `tool_call` | "It asked the tool layer to run *name* with *arguments*." |
 | `tool_result` | "The tool layer answered / refused / rejected the arguments to *name*", with the row or column count, or the error, quoted |
 | `decision_submitted` | "The investigator committed to *disposition*." |
-| `validation_completed` | "The validator accepted (rejected) the repair." |
+| `validation_completed` | "The validator accepted (did not accept) the repair." |
+| `model_requested` / `model_responded` | "The model was asked for turn *n*." / "The model answered: *its words*" — the provider boundary's events (spike, pending the trace event contract); the model's words are rendered as text |
 | product copy | what ADII is, that the page is read-only, and the commands that create a run or the six specimens — UI text about the product, never about a particular run |
 | `scripted` | "Scripted investigator · development demonstration, not a model result" — shown on every run and counted on every incident card whose record has `configuration.model` null, so a screenshot can never pass for a model result |
 

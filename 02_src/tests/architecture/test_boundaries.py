@@ -29,7 +29,10 @@ PRIVATE_PACKAGES = {"adii_env", "adii_eval", "adii_investigator"}
 # of the tool layer is that the investigator sees data through a boundary that can refuse it.
 OUTSIDE_WORLD = {"sqlite3", "subprocess", "socket", "urllib", "requests", "httpx",
                  "duckdb", "psycopg", "pymysql"}
-MAY_TOUCH_OUTSIDE = ("tools/", "examples/", "reporting/")
+# provider/ is the model boundary: the one place a model endpoint is spoken to, added by
+# decision 2 in docs/plan_telemetry.md. The investigator still never imports it; the
+# runtime builds a provider there and hands it in.
+MAY_TOUCH_OUTSIDE = ("tools/", "examples/", "reporting/", "provider/")
 
 
 def source_files() -> list[Path]:

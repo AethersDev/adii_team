@@ -23,7 +23,7 @@ DOCS = SRC / "docs"
 OUT = DOCS / "current_status.md"
 
 PACKAGES = ("contracts", "investigator", "tools", "validation",
-            "evaluation", "reporting", "runtime", "examples", "demo")
+            "evaluation", "reporting", "runtime", "provider", "examples", "demo")
 
 
 def implementation_lines(package: str) -> int:
