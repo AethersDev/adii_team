@@ -30,6 +30,9 @@ def index(root: Path) -> list[dict]:
         if not folder.is_dir():                   # the README beside the runs
             continue
         label, path = folder.name, folder / "record.json"
+        if not LABEL.fullmatch(label):        # not a label: the API will not serve it either
+            rows.append({"label": label, "error": "the folder's name is not a label"})
+            continue
         if not path.is_file():
             rows.append({"label": label, "error": "the label was reserved and a receipt "
                                                   "written, but no record; the run did not finish"

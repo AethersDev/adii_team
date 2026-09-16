@@ -85,6 +85,7 @@ python -m ruff check 02_src                   # lint
 python -m adii.examples.walkthrough --step    # the walkthrough, one stage at a time
 python -m adii.runtime --incident demo-learning-001 --provider scripted   # one incident → archive → report
 python 02_src/scripts/check_env.py            # is my machine ready?
+python 02_src/scripts/guard_check.py          # every safety guard demonstrated by a failing test (a few minutes)
 ```
 
 ## Repository map

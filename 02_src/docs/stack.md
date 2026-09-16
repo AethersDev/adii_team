@@ -76,6 +76,10 @@ error) and `GET /api/runs/<label>` (the record, verbatim). The page can start no
 | `integration/` | 94 | the walkthrough, the runtime, every ending, the specimens, the live path against a scripted stand-in endpoint, the inspector's API and design rules, the phrasing dictionary, the browser checks |
 
 Gates, all green on Windows, macOS and Ubuntu: `python -m ruff check 02_src` and `pytest`.
+And the guard-removal pass, `python 02_src/scripts/guard_check.py`: twenty registered
+guards across A, B, the contracts and D, each neutralised in turn, each killed by a test;
+a survivor fails the job by name. C's guards join the registry when the evaluation
+authority merges.
 
 ## Open decisions, blocking implementation
 

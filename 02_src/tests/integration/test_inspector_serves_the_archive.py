@@ -66,6 +66,11 @@ def test_the_server_serves_the_archive_verbatim_uncached_and_nothing_else(tmp_pa
     assert walkthrough(["--archive", str(archive)]) == 0
     (tmp_path / "outside").mkdir()
     (tmp_path / "outside" / "record.json").write_text("{}", encoding="utf-8")
+    # A folder that exists but is not a label: only the label rule can refuse it, on every
+    # platform. Without that rule the file below would be served.
+    (archive / ".hidden").mkdir()
+    (archive / ".hidden" / "record.json").write_bytes(
+        (archive / "demo-learning-001" / "record.json").read_bytes())
     httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     try:
@@ -78,13 +83,15 @@ def test_the_server_serves_the_archive_verbatim_uncached_and_nothing_else(tmp_pa
 
         listing, body = get("/api/runs")
         assert listing.status == 200 and listing.getheader("Cache-Control") == "no-store"
-        assert [row["label"] for row in json.loads(body)] == ["demo-learning-001"]
+        rows = {row["label"]: row for row in json.loads(body)}
+        assert set(rows) == {"demo-learning-001", ".hidden"}
+        assert rows[".hidden"]["error"] == "the folder's name is not a label"
         _, body = get("/api/runs/demo-learning-001")
         assert body == (archive / "demo-learning-001" / "record.json").read_bytes()
         page, _ = get("/")
         assert page.status == 200 and page.getheader("Cache-Control") == "no-store"
         for path in ("/api/runs/..\\outside", "/api/runs/../outside", "/api/runs/nope",
-                     "/api/nope"):
+                     "/api/nope", "/api/runs/.hidden"):
             assert get(path)[0].status == 404, path
     finally:
         httpd.shutdown()
