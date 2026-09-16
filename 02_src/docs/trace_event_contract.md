@@ -222,6 +222,17 @@ its execution API; the runtime boundary maps them to termination classes in two 
 `Terminated` moves into the shared contracts only if more than one independent package
 must produce the same object, never to make that wiring look tidier.
 
+### The live spike is not evidence for the rows, only for the seam
+
+Branch `spike/live-local` (15 September) drives A's loop from the runtime with a local
+model behind A's `respond()` seam. To make a run possible at all it had to pick names for
+the provider-boundary events and a class for a stop without a decision; it uses this
+proposal's names as placeholders and maps the stop to `model_failure` with the detail
+saying so. Those choices are the spike's, not the team's. What the spike does establish
+is narrower and real: A's seam can drive a model, and recording at the provider boundary
+before A parses the reply is possible with no change to A. Nothing on that branch merges
+before rows 1 to 6 are resolved, and whatever they decide replaces its placeholders.
+
 ### What is genuinely open
 
 Three questions, not eight names competing equally: the canonical names and envelopes for

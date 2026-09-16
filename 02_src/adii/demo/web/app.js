@@ -37,6 +37,7 @@ const el = (tag, cls, ...kids) => {
   return n;
 };
 const link = (cls, text, href) => { const a = el("a", cls, text); a.href = href; return a; };
+const option = (value, text) => { const o = el("option", null, text); o.value = value; return o; };
 const mono = (text) => el("span", "adii-mono", text);
 const when = (iso) => (iso ? `${iso.slice(0, 16).replace("T", " ")} UTC` : "");
 
@@ -62,18 +63,20 @@ const plain = (text, id) => el("span", "adii-state", glyph(id), text);
 
 /* the outcome of a run-list row, with the authority it inherits and nothing more */
 function outcome(row) {
+  if (row.running) return plain("running", "g-unresolved");
   if (row.error) return plain("unreadable", "g-unresolved");
   if (row.disposition) {
     return el("span", "run__outcome", chip(row.disposition),
-      row.validation ? `${row.validation === "ACCEPT" ? "accepted" : "rejected"} by the validator` : "");
+      row.validation ? `${row.validation === "ACCEPT" ? "accepted" : "not accepted"} by the validator` : "");
   }
   return plain(PHRASING.outcome[row.termination]?.() ?? row.termination, "g-unresolved");
 }
 
-async function load(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`${url} answered ${res.status}`);
-  return res.json();
+async function load(url, init) {
+  const res = await fetch(url, init);
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || `${url} answered ${res.status}`);
+  return body;
 }
 
 /* Runs a task; if it rejects, renders the transport-failure state with a retry. A dead
@@ -126,11 +129,14 @@ function remember(key, value) {
 }
 
 /* ── state, boot and routing ────────────────────────────────────────── */
-const state = { runs: [] };   /* the run list as /api/runs returned it */
+const state = { runs: [], launch: { enabled: false } };   /* the run list, and whether runs may start */
 
 preferences();
 window.addEventListener("hashchange", () => guard($("view"), route));
-guard($("view"), async () => { state.runs = await load("/api/runs"); await route(); });
+guard($("view"), async () => {
+  [state.runs, state.launch] = await Promise.all([load("/api/runs"), load("/api/launch")]);
+  await route();
+});
 
 async function route() {
   const hash = location.hash.slice(1);
@@ -160,15 +166,50 @@ function foot(text) {
     `${document.documentElement.scrollWidth},${document.documentElement.clientWidth}`;
 }
 
-/* how a run is created — on every screen, never a disabled button */
-function howto() {
+/* how a run is created — on every screen. A launcher when the operator allowed it, the
+ * commands otherwise; never a disabled button. */
+function howto(incident) {
+  if (state.launch.enabled) return launcher(incident);
   return el("section", "adii-panel howto",
     el("h2", "adii-panel__title", "Creating a run"),
     el("p", "adii-type-sm", PHRASING.product.readOnly),
     el("p", "adii-type-sm", "To investigate an incident and archive the run, then see it here:"),
     el("pre", null, `${PHRASING.product.createRun}\n${PHRASING.product.thenOpen}`),
     el("p", "adii-type-sm", PHRASING.product.specimensWhat),
-    el("pre", null, PHRASING.product.specimens));
+    el("pre", null, PHRASING.product.specimens),
+    el("p", "adii-type-sm", PHRASING.product.liveHow),
+    el("pre", null, PHRASING.product.liveCommand));
+}
+
+/* Start a run against the local model the server was started with. The server answers
+ * with the label at once and runs the investigation; the page goes to the run and watches. */
+function launcher(preset) {
+  const select = el("select", "adii-select");
+  select.id = "launch-incident";
+  const fill = async () => {
+    const incidents = await load("/api/incidents");
+    select.replaceChildren(...incidents.map((i) => option(i.incident_id, i.incident_id)));
+    if (preset) select.value = preset;
+  };
+  const button = el("button", "adii-btn adii-btn--primary", "Investigate");
+  button.type = "button";
+  const status = el("p", "adii-field__hint");
+  button.onclick = () => guard(status, async () => {
+    button.disabled = true;
+    status.replaceChildren("Starting…");
+    const answer = await load("/api/runs", { method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ incident: select.value }) });
+    location.hash = `#r/${encodeURIComponent(answer.label)}`;
+  });
+  guard(status, fill);
+  return el("section", "adii-panel howto",
+    el("h2", "adii-panel__title", "Investigate an incident"),
+    el("p", "adii-type-sm", PHRASING.product.liveAllowed(state.launch.model)),
+    el("div", "adii-toolbar",
+      el("div", "adii-field", el("label", "adii-field__label", "Incident"), select),
+      button),
+    status);
 }
 
 /* A run with no model was scripted. Said wherever such a run is shown, so a screenshot can
@@ -181,7 +222,7 @@ const scriptedNote = (model) => (model === null || model === undefined
 function incidents() {
   const byId = new Map();
   for (const r of state.runs) {
-    if (r.error) continue;
+    if (r.error || r.running) continue;
     if (!byId.has(r.incident_id)) byId.set(r.incident_id, []);
     byId.get(r.incident_id).push(r);
   }
@@ -213,6 +254,7 @@ async function frontDoor() {
       el("h1", null, "ADII"),
       el("p", "adii-eyebrow", PHRASING.product.name),
       el("p", "door__lede adii-mt-sm", PHRASING.product.what)),
+    state.launch.enabled ? launcher() : "",        /* the main action first, when allowed */
     el("section", null,
       el("div", "adii-section__head", el("h2", null, "Incidents"),
         el("span", "adii-eyebrow", cards.length
@@ -223,7 +265,7 @@ async function frontDoor() {
         : el("div", "adii-empty",
             el("p", "adii-empty__title", "No runs archived yet"),
             el("p", null, "An incident appears here once the runtime has investigated it and archived the run."))),
-    howto()));
+    state.launch.enabled ? "" : howto()));
   foot("Read-only. Runs are launched from the command line; nothing on this page can spend money.");
 }
 
@@ -253,15 +295,20 @@ async function incidentPage(incident) {
           " ",
           runs.length > 1 && r !== runs[0] ? link("adii-btn", "Compare with latest",
             `#r/${encodeURIComponent(runs[0].label)},${encodeURIComponent(r.label)}`) : ""))))),
-    howto());
+    howto(incident));
   foot("Read-only. Runs are launched from the command line; nothing on this page can spend money.");
 }
 
 /* ── one run, as a story; or two of one incident, side by side ──────── */
 async function runPage(label, against) {
-  const row = state.runs.find((r) => r.label === label);
+  let row = state.runs.find((r) => r.label === label);
+  if (!row) {                                  /* just started: not in the list we loaded */
+    state.runs = await load("/api/runs");
+    row = state.runs.find((r) => r.label === label);
+  }
   if (!row) return refused("No such run", `Nothing in the archive is labelled ${label}.`);
   if (row.error) return refused("The archive could not read this record", `${row.error}.`);
+  if (row.running) return watch(label);
   const a = await load(`/api/runs/${label}`);
   if (a.schema !== SCHEMA) return mismatch(a.schema);
   const other = against && state.runs.find((r) => r.label === against && !r.error
@@ -302,12 +349,7 @@ function story(r, compact = false) {
     el("p", "adii-field__hint adii-mt-2xs", "In the record's words: ", mono(r.detail))));
 
   out.append(record("system", "What the investigator did", `Recorded by the runtime as it happened · ${r.trace.length} step${r.trace.length === 1 ? "" : "s"}`,
-    el("ol", "steps", ...r.trace.map((e) => el("li", "step",
-      el("span", "step__n", String(e.sequence + 1)),
-      el("div", "step__body",
-        el("p", "step__text", PHRASING.step[e.kind]?.(e.payload) ?? `${e.kind}`),
-        el("details", "step__raw", el("summary", null, `raw event · ${e.kind}`),
-          el("pre", null, JSON.stringify(e.payload, null, 2)))))))));
+    el("ol", "steps", ...r.trace.map(step))));
 
   if (d) {
     out.append(record("system", "What it decided", `Asserted by ${INVESTIGATOR}`,
@@ -356,6 +398,36 @@ function story(r, compact = false) {
          ["detail", r.detail],
          ...flat("", r.provenance), ...flat("configuration", r.configuration), ...flat("", r.counters))));
   return out;
+}
+
+/* A run in progress: the live trace, polled until the record lands, then the story. */
+async function watch(label) {
+  crumbs(["Incidents", "#"], [label]);
+  const steps = el("ol", "steps");
+  const status = el("p", "adii-field__hint", PHRASING.product.running);
+  $("view").replaceChildren(el("div", "story",
+    record("system", "Investigating", "Recorded by the runtime as it happens", status, steps)));
+  foot("A run in progress. Nothing on this page can spend money.");
+  let shown = 0;
+  while (location.hash === `#r/${encodeURIComponent(label)}`) {
+    const live = await load(`/api/runs/${label}/trace`);
+    for (const e of live.events.slice(shown)) steps.append(step(e));
+    shown = live.events.length;
+    if (live.finished) {
+      state.runs = await load("/api/runs");
+      return route();
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+}
+
+function step(e) {
+  return el("li", "step",
+    el("span", "step__n", String(e.sequence + 1)),
+    el("div", "step__body",
+      el("p", "step__text", PHRASING.step[e.kind]?.(e.payload) ?? `${e.kind}`),
+      el("details", "step__raw", el("summary", null, `raw event · ${e.kind}`),
+        el("pre", null, JSON.stringify(e.payload, null, 2)))));
 }
 
 /* ── refusals: something this page will not interpret ───────────────── */

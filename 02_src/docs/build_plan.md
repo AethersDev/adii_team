@@ -57,13 +57,13 @@ rather than by running out of turns.
 **Why it matters** Without a loop there is no agent. This is the smallest thing that is
 recognisably ADII rather than a script.
 
-**Build** a fake provider first; the message list; the turn loop; a budget; an explicit
+**Build** a scripted provider first; the message list; the turn loop; a budget; an explicit
 stopping condition; the loop's own trace events.
 
-**Demo** One incident in, a terminal decision out, with a fake provider and no tools.
+**Demo** One incident in, a terminal decision out, with a scripted provider and no tools.
 
 **Done when**
-- [x] a fake provider produces a deterministic run
+- [x] a scripted provider produces a deterministic run
 - [x] the loop stops on a stated condition, not on an exception
 - [x] a turn budget exists and is enforced
 - [x] every turn appears in the trace
@@ -73,7 +73,7 @@ Ticked 14 September from what `02_src/tests/unit/test_investigator_loop.py` prov
 loop is not yet driven by the runtime and no provider exists; those are M7's next box and
 M8, not this milestone.
 
-**Suggested first task** The fake provider, with one canned reply. It is small, it unblocks
+**Suggested first task** The scripted provider, with one canned reply. It is small, it unblocks
 everything else, and it is the piece most likely to be got wrong quietly.
 
 **Likely files** `02_src/adii/investigator/`, `02_src/tests/unit/`
@@ -172,7 +172,7 @@ architecture exists to prevent.
 **Goal** One command takes an incident to an archived run and a readable report — with
 the real investigator doing the investigating.
 
-**Demo** `python -m adii.runtime --incident demo-learning-001 --provider fake && python -m adii.demo`
+**Demo** `python -m adii.runtime --incident demo-learning-001 --provider scripted && python -m adii.demo`
 
 **Where it stands, 14 September.** The four boxes below are ticked by a slice in which the
 investigator is a script replaying the walkthrough. That proved the runtime, the archive,
@@ -192,7 +192,7 @@ contract (`plan_telemetry.md` D-1) and the adapter that wires A into the runtime
 - [x] one command, one incident, one run artifact
 - [x] same commit green on Windows and macOS
 - [x] the report shows evidence, decision, validation and cost
-- [x] a fake provider is still sufficient
+- [x] a scripted provider is still sufficient
 
 ---
 

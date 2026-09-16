@@ -11,14 +11,26 @@ python -m adii.demo                        # http://127.0.0.1:8000
 ```
 
 Payloads are ignored by git — they are machine-produced and can be large — but ignoring is
-not preserving. A tracked manifest of what exists (path, size, digest) lands with the
-preservation unit in `02_src/docs/plan_telemetry.md`; until then, a run you need to keep is
-copied out by hand.
+not preserving. Three mechanisms, kept apart:
+
+```bash
+python -m adii.reporting.manifest                   # attest: MANIFEST.json — path, size, digest, retention
+python -m adii.reporting.manifest --verify          # hold the archive to its manifest, from the manifest alone
+python -m adii.reporting.manifest --preserve DEST   # manifest first, then the copy, then the copy verified
+```
+
+`MANIFEST.json` is tracked; commit it when the runs it lists are worth attesting — the
+first paid run, say. The original is never deleted on the strength of an unverified copy.
+
+Every run folder also holds `receipt.json`, written and flushed after the label was
+reserved and before the investigator ran: the incident and world by digest, the
+configuration, the source revision, and the reason the spend is permitted. A folder with a
+receipt and no record is a run that did not finish, and the inspector says so.
 
 To produce a run:
 
 ```bash
-python -m adii.runtime --incident demo-learning-001 --provider fake
+python -m adii.runtime --incident demo-learning-001 --provider scripted
 ```
 
 `python -m adii.examples.walkthrough --archive` archives the same run assembled by hand
