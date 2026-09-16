@@ -65,7 +65,7 @@ function outcome(row) {
   if (row.error) return plain("unreadable", "g-unresolved");
   if (row.disposition) {
     return el("span", "run__outcome", chip(row.disposition),
-      row.validation ? `${row.validation === "ACCEPT" ? "accepted" : "not accepted"} by the validator` : "");
+      row.validation ? `${row.validation === "ACCEPT" ? "accepted" : "rejected"} by the validator` : "");
   }
   return plain(PHRASING.outcome[row.termination]?.() ?? row.termination, "g-unresolved");
 }

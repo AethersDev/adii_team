@@ -161,27 +161,19 @@ def test_every_screen_fits_the_viewport_at_desktop_and_phone_width(tmp_path, mon
     monkeypatch.setattr(server, "WEB", web)
     httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
-    command = [binary, "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage",
-               "--hide-scrollbars", "--no-first-run", f"--user-data-dir={tmp_path / 'chrome'}",
-               f"--window-size={max(width + 40, 500)},900", "--virtual-time-budget=15000",
-               "--dump-dom",
-               f"http://127.0.0.1:{httpd.server_port}/harness.html?w={width}&route={route}"]
     try:
-        started = time.monotonic()
-        dom = dump_dom(command)
-        widths = re.search(r'data-measured="(\d+),(\d+)"', dom)
-        if not widths:
-            # A browser that produced no measurement within its budget is a launch under
-            # load, not a page defect. One more try, and the failure message says which.
-            first = (f"first attempt took {time.monotonic() - started:.0f}s, "
-                     f"dom tail: {dom[-300:]!r}")
-            dom = dump_dom(command)
-            widths = re.search(r'data-measured="(\d+),(\d+)"', dom)
+        dom = dump_dom(
+            [binary, "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage",
+             "--hide-scrollbars", "--no-first-run", f"--user-data-dir={tmp_path / 'chrome'}",
+             f"--window-size={max(width + 40, 500)},900", "--virtual-time-budget=15000",
+             "--dump-dom",
+             f"http://127.0.0.1:{httpd.server_port}/harness.html?w={width}&route={route}"])
     finally:
         httpd.shutdown()
         httpd.server_close()
-    assert "</html>" in dom, f"no document within the deadline; dom tail: {dom[-300:]!r}"
-    assert widths, f"the inner page never reported its measured widths twice; {first}"
+    assert "</html>" in dom
+    widths = re.search(r'data-measured="(\d+),(\d+)"', dom)
+    assert widths, "the inner page never reported its measured widths"
     scroll, client = map(int, widths.groups())
     assert client == width, f"the harness did not embed the page at {width}px (got {client})"
     assert scroll <= client, f"horizontal overflow at {width}px: {scroll} > viewport {client}"

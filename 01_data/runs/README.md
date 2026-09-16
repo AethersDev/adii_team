@@ -18,7 +18,7 @@ copied out by hand.
 To produce a run:
 
 ```bash
-python -m adii.runtime --incident demo-learning-001 --provider scripted
+python -m adii.runtime --incident demo-learning-001 --provider fake
 ```
 
 `python -m adii.examples.walkthrough --archive` archives the same run assembled by hand

@@ -15,12 +15,24 @@ from pathlib import Path
 
 from ..contracts import ToolCall, ToolResult, ValidationResult
 from ..reporting import RunRecord, render_run
+from ..runtime.fakes import ScriptedValidator, scripted
 from ..runtime.run import Terminated, Tools, run_incident
-from ..runtime.scripted import EndingInvestigator, ScriptedValidator, replay
 from ..tools import build_sql_tools, open_walkthrough_world
 from .walkthrough import FIXTURE, load
 
 ENDINGS = FIXTURE / "endings"
+
+
+class Ends:
+    """An investigator that makes some of the walkthrough's calls, then ends the run."""
+
+    def __init__(self, calls: tuple[ToolCall, ...], ending: Terminated) -> None:
+        self._calls, self._ending = calls, ending
+
+    def investigate(self, context, tools):
+        for call in self._calls:
+            tools.execute(call)
+        raise self._ending
 
 
 class Drops:
@@ -41,7 +53,7 @@ def endings() -> dict[str, RunRecord]:
     context, recorded = load()
     calls = tuple(ToolCall(e.payload["call_id"], e.payload["name"], e.payload["arguments"])
                   for e in recorded.trace if e.kind == "tool_call")
-    investigator, _, accepts = replay(recorded)
+    investigator, _, accepts = scripted(recorded)
     rejects = ScriptedValidator(ValidationResult(
         accepted=False,
         report="Rebuilt the demo warehouse from frozen inputs with the candidate patch "
@@ -50,11 +62,10 @@ def endings() -> dict[str, RunRecord]:
         checks_run=("pipeline_rebuilds", "row_counts_preserved", "independent_recomputation")))
     cases = {
         "repair-rejected": (investigator, None, rejects),
-        "model-failure": (EndingInvestigator(calls[:1], Terminated(
+        "model-failure": (Ends(calls[:1], Terminated(
             "model_failure", "the provider returned an empty message on three attempts")),
             None, accepts),
-        "bound-hit": (EndingInvestigator(calls[:3],
-                                         Terminated("bound_hit", "tool_calls: 3 of 3 used")),
+        "bound-hit": (Ends(calls[:3], Terminated("bound_hit", "tool_calls: 3 of 3 used")),
                       None, accepts),
         "infrastructure-failure": (investigator, "c3", accepts),
     }
@@ -63,7 +74,7 @@ def endings() -> dict[str, RunRecord]:
         tools = build_sql_tools(open_walkthrough_world())
         records[label] = run_incident(
             label, context, agent, Drops(tools, drop_on) if drop_on else tools, validator,
-            configuration={"provider": "scripted", "model": None, "tools": list(tools.names)})
+            configuration={"provider": "fake", "model": None, "tools": list(tools.names)})
     return records
 
 

@@ -67,7 +67,7 @@ def test_how_a_run_ended_is_a_projection_of_its_fields(name, expected):
 
 @pytest.mark.parametrize(("name", "expected"), [
     ("accepted", "REPAIR · accepted by the validator"),
-    ("rejected", "REPAIR · not accepted by the validator"),
+    ("rejected", "REPAIR · rejected by the validator"),
     ("bound", "Ended at a bound, no decision"),
     ("model", "Ended by a model failure, no decision"),
     ("infra", "Ended by a failure of ours, no decision"),
@@ -114,7 +114,6 @@ def test_the_readme_lists_every_sentence_the_page_adds():
     source = (WEB / "phrasing.js").read_text(encoding="utf-8")
     for key in ("submitted", "bound_hit", "model_failure", "infrastructure_failure",
                 "notInvoked", "incident_received", "tool_call", "tool_result",
-                "decision_submitted", "validation_completed", "model_requested",
-                "model_responded", "scripted"):
+                "decision_submitted", "validation_completed", "scripted"):
         assert key in source, f"phrasing.js lost {key}"
         assert f"`{key}`" in readme, f"README does not list the {key} sentence"

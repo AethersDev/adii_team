@@ -80,7 +80,7 @@ built.
 | Week | Goal | Gate — how we know it happened |
 |---|---|---|
 | **1** | Runway + the smallest complete loop | A teammate on Windows clones, installs, tests, and runs the walkthrough **without anyone touching their machine**. Then each person explains a *different* section of a live toy run. |
-| **2** | The real vertical slice | One command runs incident → investigation → evidence → decision → validation → archived run → readable report. Same commit green on Windows **and** macOS. A scripted provider is fine. |
+| **2** | The real vertical slice | One command runs incident → investigation → evidence → decision → validation → archived run → readable report. Same commit green on Windows **and** macOS. Fake provider is fine. |
 | **3** | Real investigator evidence | One unscored smoke, then development runs. Archived: config, model, trace, decision, validation, usage, cost, latency. We can name concrete failure modes. |
 | **4** | The scientific layer | We can answer: *does interactive investigation add measurable value over always-escalate, alert-only, and static evidence?* **"No" is a valid answer.** |
 | **5** | Freeze + blind evaluation | Investigator, config, metrics, validator, and authority all frozen. One-shot blind run. No tuning after seeing outcomes. |

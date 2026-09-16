@@ -37,7 +37,7 @@ The runtime in `02_src/adii/runtime/run.py` calls `investigate(context, tools)` 
 `Investigator` and records every tool call and result on the way through, so the loop
 never counts anything. It maps an ending to a termination class and archives the run
 however it ended. Today the runtime still drives the scripted stand-in in
-`02_src/adii/runtime/scripted.py`; nothing outside this package imports the loop yet. The
+`02_src/adii/runtime/fakes.py`; nothing outside this package imports the loop yet. The
 adapter between `run()` and `investigate()` — one canonical trace recorded at the provider
 boundary, A's two exceptions mapped to two termination classes, a decided meaning for a
 stop without a decision — is the next unit, and it waits on the decision rows in
