@@ -41,6 +41,19 @@ class ScriptedInvestigator:
         return self._decision
 
 
+class EndingInvestigator:
+    """Makes its calls, then ends the run the way it was told to: a `Terminated` for an
+    ending the loop classifies, any other exception for a defect of ours."""
+
+    def __init__(self, calls: tuple[ToolCall, ...], ending: Exception) -> None:
+        self._calls, self._ending = calls, ending
+
+    def investigate(self, context: IncidentContext, tools: Tools) -> InvestigationDecision:
+        for call in self._calls:
+            tools.execute(call)
+        raise self._ending
+
+
 class ScriptedValidator:
     def __init__(self, result: ValidationResult | None) -> None:
         self._result = result
@@ -52,7 +65,7 @@ class ScriptedValidator:
         return self._result
 
 
-def scripted(run: InvestigationRun,
+def replay(run: InvestigationRun,
              ) -> tuple[ScriptedInvestigator, ScriptedTools, ScriptedValidator]:
     """The three components, scripted from a recorded run. Today that run is the
     walkthrough's. The command line takes the investigator and the validator from here and

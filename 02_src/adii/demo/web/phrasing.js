@@ -19,7 +19,7 @@ const PHRASING = {
       "repair it proposes is checked by a separate validator; it never grades its own work.",
     readOnly: "This inspector is read-only. It shows runs the runtime archived and can start " +
       "none: a page that can start a run can spend money.",
-    createRun: "python -m adii.runtime --incident demo-learning-001 --provider fake",
+    createRun: "python -m adii.runtime --incident demo-learning-001 --provider scripted",
     specimens: "python -m adii.examples.specimens",
     specimensWhat: "Six development incidents with scripted example runs — made up, no model, " +
       "no evaluation claim:",
@@ -50,7 +50,7 @@ const PHRASING = {
   /* the same classes as a short label for lists and cards */
   outcome: {
     submitted: (r) => r.decision.disposition + (r.validation
-      ? ` · ${r.validation.accepted ? "accepted" : "rejected"} by the validator` : ""),
+      ? ` · ${r.validation.accepted ? "accepted" : "not accepted"} by the validator` : ""),
     bound_hit: () => "Ended at a bound, no decision",
     model_failure: () => "Ended by a model failure, no decision",
     infrastructure_failure: () => "Ended by a failure of ours, no decision",
@@ -58,8 +58,8 @@ const PHRASING = {
 
   /* ── the validator's row ─────────────────────────────────────────── */
   validation: {
-    accepted: "The validator rebuilt from frozen inputs and accepted the repair.",
-    rejected: "The validator rebuilt from frozen inputs and rejected the repair.",
+    accepted: "The validator accepted the repair.",
+    rejected: "The validator did not accept the repair.",
     notInvoked: "No repair was proposed, so there was nothing to validate.",
   },
 
@@ -77,7 +77,11 @@ const PHRASING = {
       ERROR: `The tool ${p.name} failed${describeError(p.content)} — a defect of ours.`,
     })[p.status] || `The tool layer returned ${p.status} for ${p.name}.`,
     decision_submitted: (p) => `The investigator committed to ${p.disposition}.`,
-    validation_completed: (p) => `The validator ${p.accepted ? "accepted" : "rejected"} the repair.`,
+    validation_completed: (p) => `The validator ${p.accepted ? "accepted" : "did not accept"} the repair.`,
+    /* the provider boundary (spike, pending the trace event contract): what the model was
+     * asked, and what it said — its words, as text */
+    model_requested: (p) => `The model was asked for turn ${p.turn}.`,
+    model_responded: (p) => `The model answered: ${p.content}`,
   },
 };
 

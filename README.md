@@ -52,11 +52,11 @@ If it prints `Ready.`, your machine is done. Nobody needs to touch your laptop.
 **5. Run one incident, then open the inspector**
 
 ```bash
-python -m adii.runtime --incident demo-learning-001 --provider fake   # investigate, validate, archive, report
+python -m adii.runtime --incident demo-learning-001 --provider scripted   # investigate, validate, archive, report
 python -m adii.demo                                                     # → http://127.0.0.1:8000
 ```
 
-`fake` scripts the investigator and the validator — no model, no cost — and drives them
+`scripted` replays the investigator and the validator — no model, no cost — and drives them
 through the real runtime over the real tool layer. Every archived run appears in the inspector, a
 read-only page: the trace, the decision, the verdict, the cost. See
 [02_src/adii/runtime/README.md](02_src/adii/runtime/README.md) and
@@ -83,7 +83,7 @@ architecture — in that order.
 pytest                                        # all tests
 python -m ruff check 02_src                   # lint
 python -m adii.examples.walkthrough --step    # the walkthrough, one stage at a time
-python -m adii.runtime --incident demo-learning-001 --provider fake   # one incident → archive → report
+python -m adii.runtime --incident demo-learning-001 --provider scripted   # one incident → archive → report
 python 02_src/scripts/check_env.py            # is my machine ready?
 ```
 
@@ -114,7 +114,7 @@ packaging migration at the deadline.
   scripts/                   check_env.py, sync_briefing.py, sync_status.py, sync_identity.py
   docs/                      system map, build plan, status, glossary, architecture, the D plan
 
-03_assets/                   diagrams, screenshots, design prototypes, and the identity
+03_assets/                   diagrams, screenshots, and the identity
   identity/                  the design system the inspector's stylesheet is synced from
 ```
 
@@ -122,16 +122,17 @@ The split between `adii/` and `adii/demo/` is an authority boundary, not houseke
 the demo may be changed freely because it claims nothing, and a test forbids the rest of
 `adii/` from importing it.
 
-## New contributor? Read these four, in this order
+## New contributor? Read these five, in this order
 
 | | |
 |---|---|
 | [system_map.md](02_src/docs/system_map.md) | what you are looking at, and where every concept lives in the code |
 | [build_plan.md](02_src/docs/build_plan.md) | the milestones, what each one has to do, and what "done" means |
 | [current_status.md](02_src/docs/current_status.md) | what is actually built right now — **generated**, so it does not go stale |
+| [stack.md](02_src/docs/stack.md) | the backend and the frontend, package by package and file by file: what exists, what is missing, what is blocked on which decision |
 | [glossary.md](02_src/docs/glossary.md) | the words, kept short. Validation and evaluation are not the same thing |
 
-Twenty minutes with those four and the walkthrough should leave you knowing what ADII
+Twenty minutes with those five and the walkthrough should leave you knowing what ADII
 does, what exists, what does not, where each idea lives, what we build next, and how to
 prove your contribution works.
 

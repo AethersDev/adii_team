@@ -6,7 +6,7 @@ cannot flatter its own efficiency because it never reports a number: it only mak
 and the runtime records each one on the way through.
 
 It knows A, B and C only as the three protocols below. Anything that satisfies them runs:
-the scripted components in `fakes.py` today, the real packages when they exist.
+the scripted components in `scripted.py` today, the real packages when they exist.
 """
 from __future__ import annotations
 
