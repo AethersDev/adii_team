@@ -18,31 +18,49 @@ Exit codes, one per way a run can end:
 from __future__ import annotations
 
 import argparse
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 
 from ..examples.specimens import SPECIMENS
 from ..examples.walkthrough import load
 from ..reporting import render_run, write_record
+from ..reporting.receipts import digest_of, write_receipt
 from ..reporting.record import ARCHIVE, reserve
 from ..tools import ReadOnlyDatabase, build_sql_tools, open_walkthrough_world
+from ..tools.walkthrough_world import build_script
 from .run import run_incident
 from .scripted import replay
 
+WALKTHROUGH_WORLD = build_script()
+
 
 def incident(incident_id: str):
-    """The incident's context and a fresh tool layer over its world: the walkthrough's, or
-    a development specimen's. None when no such incident exists."""
+    """The incident's context, a fresh tool layer over its world, the world's digest, and
+    the walkthrough's recorded run if this is the walkthrough. None when no such incident
+    exists."""
     context, recorded = load()
     if incident_id == context.incident_id:
-        return context, build_sql_tools(open_walkthrough_world()), recorded
+        return (context, build_sql_tools(open_walkthrough_world()),
+                digest_of(WALKTHROUGH_WORLD), recorded)
     for specimen in SPECIMENS:
         if specimen.context.incident_id == incident_id:
             tools = build_sql_tools(ReadOnlyDatabase.in_memory(specimen.world))
             if specimen.extra_tool:
                 tools.register(*specimen.extra_tool)
-            return specimen.context, tools, None
+            return specimen.context, tools, digest_of(specimen.world), None
     return None
+
+
+def artefacts(context, world_digest: str) -> dict[str, str]:
+    """What the run is about to expose to a model, by digest: the incident as handed over
+    and the world behind the tools. The evaluation authority's frozen identifiers join
+    these when a run is scored."""
+    handed = json.dumps({"incident_id": context.incident_id, "alert": context.alert,
+                         "as_of": context.as_of,
+                         "permitted_write_paths": list(context.permitted_write_paths)},
+                        sort_keys=True)
+    return {"incident": digest_of(handed), "world": world_digest}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -65,7 +83,7 @@ def main(argv: list[str] | None = None) -> int:
         known = [load()[0].incident_id, *(s.context.incident_id for s in SPECIMENS)]
         print(f"no such incident {args.incident!r}; known: {', '.join(known)}")
         return 2
-    context, tools, recorded = found
+    context, tools, world_digest, recorded = found
     if recorded is None:
         print(f"the scripted provider replays the walkthrough only; {args.incident!r} has no "
               "recorded run — python -m adii.examples.specimens archives its scripted runs")
@@ -75,13 +93,17 @@ def main(argv: list[str] | None = None) -> int:
     label = args.label or f"{context.incident_id}-{datetime.now(UTC):%Y%m%dT%H%M%SZ}"
     archive = Path(args.archive)
     try:                          # every precondition that needs no I/O has passed: claim the label
-        reserve(archive, label)
+        folder = reserve(archive, label)
     except ValueError as bad:                # the label is not one the archive can hold
         print(f"not archived: {bad}")
         return 2
     except FileExistsError as taken:
         print(f"not archived: {taken}")
         return 1
+    # The receipt, before anything is spent: written and flushed, kept on every path.
+    write_receipt(folder, label=label, artefacts=artefacts(context, world_digest),
+                  configuration=configuration,
+                  reason="scripted replay of a recorded run: no model, nothing is spent")
 
     record = run_incident(label, context, investigator, tools, validator,
                           configuration=configuration)

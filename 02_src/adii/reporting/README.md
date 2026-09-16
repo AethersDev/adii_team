@@ -10,8 +10,10 @@ instrumentation, CI, and the environment.
 
 `record.py` — the run record: one strict, versioned document per run
 (`adii.run_record/v1`), what the archive stores and the inspector renders. `render_run()` —
-the text report from a record, for every way a run can end. The rest is planned, unit by
-unit, in
+the text report from a record, for every way a run can end. `receipts.py` — what a run is
+about to spend, written and flushed before it runs, kept on every path (inherited D8).
+`manifest.py` — attestation and manifest-first preservation of the archive (inherited
+D13). The rest is planned, unit by unit, in
 [plan_telemetry.md](../../docs/plan_telemetry.md).
 
 ## What to get right early

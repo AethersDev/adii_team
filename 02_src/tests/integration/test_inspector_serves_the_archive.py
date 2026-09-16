@@ -50,8 +50,11 @@ def test_a_reserved_label_without_a_record_is_listed_not_hidden(tmp_path):
     beside the runs — the README — are not runs."""
     (tmp_path / "killed").mkdir()
     (tmp_path / "README.md").write_text("the archive", encoding="utf-8")
-    [row] = index(tmp_path)
-    assert row["label"] == "killed" and "no record was written" in row["error"]
+    (tmp_path / "receipted").mkdir()
+    (tmp_path / "receipted" / "receipt.json").write_text("{}", encoding="utf-8")
+    rows = {row["label"]: row for row in index(tmp_path)}
+    assert "no record was written" in rows["killed"]["error"]
+    assert "a receipt written, but no record" in rows["receipted"]["error"]
 
 
 def test_the_server_serves_the_archive_verbatim_uncached_and_nothing_else(tmp_path, monkeypatch):

@@ -31,8 +31,11 @@ def index(root: Path) -> list[dict]:
             continue
         label, path = folder.name, folder / "record.json"
         if not path.is_file():
-            rows.append({"label": label, "error": "the label was reserved but no record was "
-                                                  "written; the run did not finish"})
+            rows.append({"label": label, "error": "the label was reserved and a receipt "
+                                                  "written, but no record; the run did not finish"
+                         if (folder / "receipt.json").is_file() else
+                         "the label was reserved but no record was written; the run did "
+                         "not finish"})
             continue
         try:
             record = read_record(path)
