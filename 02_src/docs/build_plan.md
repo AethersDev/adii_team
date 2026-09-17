@@ -152,7 +152,7 @@ stopped.
 
 ---
 
-## M6 — Independent validation
+## M6 — Independent validation — DONE
 
 **Goal** A separate authority accepts or rejects the candidate action.
 
@@ -160,10 +160,33 @@ stopped.
 architecture exists to prevent.
 
 **Done when**
-- [ ] validation rebuilds from frozen inputs
-- [ ] it never reads the investigator's own claim about its sandbox
-- [ ] REJECT is reachable and tested
-- [ ] the reasons are machine-readable
+- [x] validation rebuilds from frozen inputs
+- [x] it never reads the investigator's own claim about its sandbox
+- [x] REJECT is reachable and tested
+- [x] the reasons are machine-readable
+
+Built as `validation/patching.py` (rebuilds a brand-new `ReadOnlyDatabase` from
+patched SQL text — never mutates the investigator's own connection), `checks.py`
+(three atomic checks, including the count-vs-identity check C1(c) requires), and
+`validator.py` (`Validator.validate(context, decision) -> ValidationResult`,
+satisfying `runtime.run.Validator` and driven end to end by
+`run_incident` in `test_validation_end_to_end.py` — no fakes). `validate()`'s
+signature has no parameter a rehearsal claim could arrive through
+(`test_validator.py::TestNeverConsultsARehearsal`). An adapter,
+`as_dict_validator`, satisfies `evaluation/validation_wiring.py`'s
+`ValidatorProvider` shape for offline scoring
+(`test_validation_wired_into_evaluation.py`).
+
+**Not yet wired**: `runtime/live.py`'s `NoValidatorYet` (the `--provider local`
+path) still stands in for the real validator — that file is an unmerged spike
+gated on the D-1 trace contract, not validation's own scope. Swapping
+`NoValidatorYet()` for `validation.validator.Validator()` there is the
+remaining integration step, owned by whoever lands the D-1 rows.
+
+**Only incident covered**: `demo-learning-001` (the walkthrough world). Extending
+`_WORLD_BUILDERS` in `validator.py` for additional incidents is required before
+M7's real incidents can be validated, not before M6 itself is done — C1's test
+spec is buildable and provable against one frozen world.
 
 ---
 
