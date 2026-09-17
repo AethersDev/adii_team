@@ -18,7 +18,8 @@ _RULE = "-" * 78
 ENDED = {
     "model_failure": ("MODEL FAILURE", "the model's failure, filed as the model's"),
     "bound_hit": ("BOUND HIT", "the loop stopped at a bound it set"),
-    "infrastructure_failure": ("INFRASTRUCTURE FAILURE", "our defect, not the model's"),
+    "infrastructure_failure": ("INFRASTRUCTURE FAILURE",
+                               "not the model's: the runtime's or the provider's"),
 }
 
 
@@ -33,6 +34,20 @@ def _wrap(text: str, width: int = 76, indent: str = "  ") -> str:
     if line:
         lines.append(indent + line)
     return "\n".join(lines)
+
+
+def _cost(record: RunRecord) -> str:
+    """A paid run's cost is the ledger's lower bound, and says how many requests it could
+    not price; a run with no paid provider spent nothing, and says that rather than $0."""
+    if record.configuration.get("provider") != "openai":
+        return (f"${record.api_cost_usd:.4f}" if record.api_cost_usd
+                else "nothing spent (no paid provider)")
+    unpriced = sum(1 for e in record.trace if e.kind == "model_requested") - sum(
+        1 for e in record.trace if e.kind == "model_responded"
+        and isinstance(e.payload.get("usage"), dict)
+        and isinstance(e.payload["usage"].get("prompt_tokens"), int))
+    bound = f"at least ${record.api_cost_usd:.4f}"
+    return bound + (f" ({unpriced} request(s) without usage)" if unpriced else "")
 
 
 def render_run(record: RunRecord) -> str:
@@ -83,7 +98,7 @@ def render_run(record: RunRecord) -> str:
 
     out += ["", "COST OF THIS RUN",
             f"  tool calls {record.tool_calls}   model turns {record.model_turns}"
-            f"   ${record.api_cost_usd:.4f}   {record.latency_ms} ms", _RULE]
+            f"   {_cost(record)}   {record.latency_ms} ms", _RULE]
     return "\n".join(out) + "\n"
 
 

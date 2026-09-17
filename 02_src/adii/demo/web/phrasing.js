@@ -67,7 +67,8 @@ const PHRASING = {
       `model turn${r.counters.model_turns === 1 ? "" : "s"} and ${r.counters.tool_calls} tool ` +
       `call${r.counters.tool_calls === 1 ? "" : "s"}, and stopped without a decision.`,
     model_failure: () => "The model failed and the run stopped without a decision.",
-    infrastructure_failure: () => "Something in the runtime failed — a defect of ours, not " +
+    infrastructure_failure: () => "Something outside the model failed — the runtime or the " +
+      "provider, not " +
       "the model's — and the run stopped without a decision.",
   },
 
@@ -86,7 +87,7 @@ const PHRASING = {
       ? ` — ${PHRASING.verdict[PHRASING.verdictOf(r.validation)]}` : ""),
     bound_hit: () => "Stopped at its limit, no decision",
     model_failure: () => "Stopped: the model failed, no decision",
-    infrastructure_failure: () => "Stopped: a failure of ours, no decision",
+    infrastructure_failure: () => "Stopped: a failure outside the model, no decision",
   },
 
   /* the same classes as a short label for lists and cards */
@@ -95,7 +96,20 @@ const PHRASING = {
       ? ` · ${PHRASING.verdict[PHRASING.verdictOf(r.validation)]}` : ""),
     bound_hit: () => "Stopped at its limit, no decision",
     model_failure: () => "Stopped: the model failed, no decision",
-    infrastructure_failure: () => "Stopped: a failure of ours, no decision",
+    infrastructure_failure: () => "Stopped: a failure outside the model, no decision",
+  },
+
+  /* what the run cost: nothing without a paid provider; otherwise the ledger's lower bound
+   * — proved usage at nominal prices — with the requests it could not price counted */
+  cost: (r) => {
+    if (!r.configuration || r.configuration.provider !== "openai") {
+      return r.counters.api_cost_usd ? `$${r.counters.api_cost_usd}` : "nothing spent (no paid provider)";
+    }
+    const asked = r.trace.filter((e) => e.kind === "model_requested").length;
+    const priced = r.trace.filter((e) => e.kind === "model_responded" && e.payload.usage
+      && Number.isInteger(e.payload.usage.prompt_tokens)).length;
+    return `at least $${r.counters.api_cost_usd.toFixed(4)}` +
+      (asked > priced ? ` (${asked - priced} request(s) without usage)` : "");
   },
 
   /* ── a turn: the model's request and everything it caused, in one sentence each ──── */

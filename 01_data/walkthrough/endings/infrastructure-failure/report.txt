@@ -16,7 +16,7 @@ EVIDENCE GATHERED
   -> run_sql(query="SELECT * FROM mart_daily WHERE day = '2026-01-14'")
   <- (unanswered: the run ended here)
 
-RUN ENDED — INFRASTRUCTURE FAILURE   (our defect, not the model's)
+RUN ENDED — INFRASTRUCTURE FAILURE   (not the model's: the runtime's or the provider's)
   ConnectionError: the warehouse connection dropped
 
 DECISION
@@ -26,5 +26,5 @@ INDEPENDENT VALIDATION
   never reached — no decision was submitted
 
 COST OF THIS RUN
-  tool calls 2   model turns 0   $0.0000   0 ms
+  tool calls 2   model turns 0   nothing spent (no paid provider)   0 ms
 ------------------------------------------------------------------------------

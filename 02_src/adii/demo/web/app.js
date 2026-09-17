@@ -439,7 +439,7 @@ function story(r, compact = false, label = r.label, evaluation = null) {
     defs(["Run", r.label], ["Model", cfg.model ?? "none"], ["Endpoint", cfg.endpoint ?? "none"],
          ["Provider", cfg.provider ?? "not recorded"], ["Turns", String(n.model_turns)],
          ["Tool calls", String(n.tool_calls)], ["Duration", seconds(n.latency_ms)],
-         ["Cost", n.api_cost_usd ? `$${n.api_cost_usd}` : "nothing (no paid provider)"],
+         ["Cost", PHRASING.cost(r)],
          ["Ended", `${r.termination}: ${r.detail}`], ["Recorded", r.provenance.written_at ?? ""],
          ["Code revision", r.provenance.source_revision ?? "unknown"],
          ["Record schema", r.schema])));

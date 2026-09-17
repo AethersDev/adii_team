@@ -39,5 +39,5 @@ INDEPENDENT VALIDATION
   checks: pipeline_rebuilds, row_counts_preserved, independent_recomputation
 
 COST OF THIS RUN
-  tool calls 3   model turns 0   $0.0000   0 ms
+  tool calls 3   model turns 0   nothing spent (no paid provider)   0 ms
 ------------------------------------------------------------------------------

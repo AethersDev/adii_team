@@ -79,13 +79,14 @@ record contains them. Strike any line below and the page stops saying it.
 | `submitted` | "The investigator committed to *disposition*." |
 | `bound_hit` | "The investigator reached a bound it set after *model_turns* model turns and *tool_calls* tool calls, and stopped without a decision." |
 | `model_failure` | "The model failed and the run stopped without a decision." |
-| `infrastructure_failure` | "Something in the runtime failed — a defect of ours, not the model's — and the run stopped without a decision." |
+| `infrastructure_failure` | "Something outside the model failed — the runtime or the provider, not the model's — and the run stopped without a decision." — a refused status, an unreachable endpoint or a timeout is the provider's failure, never filed as the model's (inherited D14) |
 | the record's `detail` | always shown beside the sentence, verbatim, so the projection never replaces the source |
 | `accepted` / `rejected` / `unchecked` | "The validator accepted the repair." / "The validator did not accept the repair." / "No validator checked the repair." — what `accepted` and `checks_run` state and nothing about how; the validator's own report sits beside it |
 | `notInvoked` | "No repair was proposed, so there was nothing to validate." — only a REPAIR carries a repair, and the record refuses a verdict without one |
 | a run with no decision | no validation section is drawn at all; "Why there is no decision" says the run ended first, which the record's own invariant establishes: it refuses a verdict without a decision |
 | `verdict` | "accepted by the validator" when `accepted`; "not accepted by the validator" when not, after checks; "not checked by a validator" when `checks_run` is empty — the record's placeholder verdict disclaims any finding, and the page never turns it into one |
-| `headline` per termination | "Decided: *disposition* — *verdict*", "Stopped at its limit, no decision", "Stopped: the model failed, no decision", "Stopped: a failure of ours, no decision" — the page's first line, from the same fields; the same words label every list and card (`outcome`) |
+| `headline` per termination | "Decided: *disposition* — *verdict*", "Stopped at its limit, no decision", "Stopped: the model failed, no decision", "Stopped: a failure outside the model, no decision" — the page's first line, from the same fields; the same words label every list and card (`outcome`) |
+| `cost` | for a paid run (`configuration.provider` openai) "at least $*x*" — the ledger's lower bound, proved usage at nominal prices — "(*n* request(s) without usage)" when any request could not be priced, never $0 (inherited D15); otherwise the recorded cost as recorded, or "nothing spent (no paid provider)" when it is zero |
 | `asked` | "Asked the tool layer to run *name* with *arguments*" |
 | `answered` | "The tool layer answered with *n* rows / columns", "refused: *error*", "rejected the arguments: *error*", "failed: *error* — a defect of ours" — the tool layer's own status, quoted |
 | `wrote` | "The model wrote, instead of acting:" followed by its words, verbatim, as text |

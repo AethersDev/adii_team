@@ -57,7 +57,8 @@ def load(name: str) -> dict:
     ("bound", "The investigator reached a bound it set after 0 model turns and 3 tool calls, "
               "and stopped without a decision."),
     ("model", "The model failed and the run stopped without a decision."),
-    ("infra", "Something in the runtime failed — a defect of ours, not the model's — and the run "
+    ("infra", "Something outside the model failed — the runtime or the provider, not the "
+              "model's — and the run "
               "stopped without a decision."),
 ])
 def test_how_a_run_ended_is_a_projection_of_its_fields(name, expected):
@@ -70,7 +71,7 @@ def test_how_a_run_ended_is_a_projection_of_its_fields(name, expected):
     ("rejected", "REPAIR · not accepted by the validator"),
     ("bound", "Stopped at its limit, no decision"),
     ("model", "Stopped: the model failed, no decision"),
-    ("infra", "Stopped: a failure of ours, no decision"),
+    ("infra", "Stopped: a failure outside the model, no decision"),
 ])
 def test_the_short_outcome_inherits_exactly_the_records_authority(name, expected):
     record = load(name)
@@ -110,7 +111,7 @@ def test_a_turn_says_what_was_asked_and_what_came_back_quoting_only_the_payload(
     ("rejected", "Decided: REPAIR — not accepted by the validator"),
     ("bound", "Stopped at its limit, no decision"),
     ("model", "Stopped: the model failed, no decision"),
-    ("infra", "Stopped: a failure of ours, no decision"),
+    ("infra", "Stopped: a failure outside the model, no decision"),
 ])
 def test_the_headline_inherits_exactly_the_records_authority(name, expected):
     record = load(name)
@@ -149,6 +150,25 @@ def test_the_evaluations_categories_are_said_in_the_authoritys_own_terms():
     assert phrase("evaluation", "success", {}) == "The decision matched the answer key."
 
 
+def test_the_cost_is_a_labelled_lower_bound_never_a_zero_for_a_paid_run():
+    """Inherited D15 on the page: a run with no paid provider spent nothing and says so; a
+    paid run shows the ledger's lower bound and counts the requests it could not price."""
+    record = {**load("accepted"), "configuration": {"provider": "scripted", "model": None}}
+    record["counters"] = {**record["counters"], "api_cost_usd": 0.0}
+    paid = {**record, "configuration": {"provider": "openai"},
+            "counters": {**record["counters"], "api_cost_usd": 0.0012},
+            "trace": [{"sequence": 0, "kind": "model_requested", "payload": {"turn": 1}},
+                      {"sequence": 1, "kind": "model_responded",
+                       "payload": {"turn": 1, "usage": {"prompt_tokens": 100}}},
+                      {"sequence": 2, "kind": "model_requested", "payload": {"turn": 2}}]}
+    script = (f"{(WEB / 'phrasing.js').read_text(encoding='utf-8')}\n"
+              f"process.stdout.write(PHRASING.cost({json.dumps(record)}) + '|' + "
+              f"PHRASING.cost({json.dumps(paid)}));")
+    out = subprocess.run([node(), "-e", script], capture_output=True, text=True,
+                         encoding="utf-8", check=True, timeout=30).stdout
+    assert out == "nothing spent (no paid provider)|at least $0.0012 (1 request(s) without usage)"
+
+
 def test_a_run_without_a_model_is_always_marked_scripted():
     """Projected from one field, configuration.model, so no screenshot of a scripted run
     can pass for a model result."""
@@ -165,7 +185,7 @@ def test_the_readme_lists_every_sentence_the_page_adds():
     source = (WEB / "phrasing.js").read_text(encoding="utf-8")
     for key in ("submitted", "bound_hit", "model_failure", "infrastructure_failure",
                 "notInvoked", "asked", "answered", "wrote", "decided", "validated",
-                "unanswered", "scripted", "success", "correct_abstention",
+                "unanswered", "scripted", "cost", "success", "correct_abstention",
                 "unnecessary_escalation", "false_repair", "repair_rejection", "failure",
                 "not_evaluable"):
         assert key in source, f"phrasing.js lost {key}"

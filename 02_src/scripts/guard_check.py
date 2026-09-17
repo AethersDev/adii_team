@@ -53,6 +53,9 @@ GUARDS = (
           "    if isinstance(max_turns, bool) or not isinstance(max_turns, int) "
           "or max_turns < 0:\n",
           "    if False:\n"),
+    Guard("A.patch_maps_path_to_text", "A", "investigator/loop.py",
+          "    if not all(isinstance(k, str) and isinstance(v, str) for k, v in patch.items()):\n",
+          "    if False:\n"),
     # ── B: the tool layer ───────────────────────────────────────────────────────────
     Guard("B.unknown_tool_denied", "B", "tools/executor.py",
           "        if tool is None:\n            return self._result(call, \"DENIED\", {\n",
@@ -142,6 +145,32 @@ GUARDS = (
           "or not (ARCHIVE / label / \"record.json\").is_file():\n",
           "            if not LABEL.fullmatch(label) or not (ARCHIVE / label).is_dir():\n"),
     # ── the seam between the record and the evaluation authority ──────────────────
+    Guard("D.reader_refuses_a_patch_that_is_not_text", "D", "reporting/record.py",
+          "    if not isinstance(patch, dict) or not all(\n",
+          "    if False and not all(\n"),
+    # ── the paid path: nothing is spent without a record, a price, a cap ────────────
+    Guard("D.paid_provider_needs_receipt", "D", "provider/openai_compatible.py",
+          "        if paid and not (receipt is not None and receipt.is_file()):\n",
+          "        if False:\n"),
+    Guard("D.cost_cap_between_requests", "D", "provider/openai_compatible.py",
+          "            if spent >= self._cap:            "
+          "# checked between requests: the overshoot is one\n",
+          "            if False:\n"),
+    Guard("D.paid_model_must_have_a_price", "D", "runtime/__main__.py",
+          "        if args.model not in PRICES:\n",
+          "        if False:\n"),
+    Guard("D.paid_endpoint_carries_no_secret", "D", "provider/openai_compatible.py",
+          "    if parts.query or parts.username or parts.password:\n        return False\n",
+          "    if False:\n        return False\n"),
+    Guard("D.paid_needs_credential_before_label", "D", "runtime/__main__.py",
+          "        if not credential:\n",
+          "        if False:\n"),
+    Guard("D.ledger_row_without_usage_is_unknown", "D", "reporting/ledger.py",
+          "        if isinstance(tokens_in, int) and isinstance(tokens_out, int) \\\n"
+          "                and not isinstance(tokens_in, bool) "
+          "and not isinstance(tokens_out, bool):\n",
+          "        if True:\n"
+          "            tokens_in, tokens_out = tokens_in or 0, tokens_out or 0\n"),
     Guard("D.verify_lists_the_unattested", "D", "reporting/manifest.py",
           "    present = {p.relative_to(root).as_posix() for p in root.glob(\"*/*\") "
           "if p.is_file()}\n",

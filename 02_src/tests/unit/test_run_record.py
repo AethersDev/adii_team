@@ -88,6 +88,11 @@ def test_a_record_of_the_wrong_shape_is_refused_with_a_message():
     doc["trace"] = "oops"
     with pytest.raises(ValueError, match="malformed"):
         from_json(json.dumps(doc))
+    # a patch that is not path -> text (R0 of 17 Sep archived one and crashed both renderers)
+    doc = json.loads(walkthrough_record().to_json())
+    doc["decision"]["patch"] = {"ledger": {"day": "2026-03-09", "settled_usd": 91340.0}}
+    with pytest.raises(ValueError, match="patch must map each path"):
+        from_json(json.dumps(doc))
 
 
 def test_a_label_is_one_path_segment():
