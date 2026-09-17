@@ -158,6 +158,9 @@ class ReadOnlyDatabase:
                 raise Rejected(
                     "the query exceeded its execution budget; narrow it with a WHERE "
                     "clause, fewer joins, or a LIMIT") from None
+            if "no such table" in str(problem):        # as get_schema says it: name the known
+                raise Rejected(f"SQL error: {problem}; known tables: "
+                               f"{list(self.tables())}") from None
             raise Rejected(f"SQL error: {problem}") from None
         if cursor.description is None:
             raise Rejected("the statement returned no result set; only SELECT is useful here")

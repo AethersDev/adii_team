@@ -29,12 +29,25 @@ sends `default_model`. Any OpenAI-compatible local server works — Ollama
 name as is. Incidents: the walkthrough's, or any development specimen's. A 4-bit 4B model
 runs beside the inspector on 16 GB; an 8B one wants everything else closed.
 
-## What it refuses
+## What it refuses, and what a paid endpoint needs
 
-A non-local endpoint. A model on this machine has no nominal price, so a run costs nothing
-and needs no receipt. A paid provider needs the receipt written first (plan D-15) and the
-ledger that makes cost evidence (D-12); until then a record saying a paid run cost 0.0
-would be inherited defect D15, and this package will not produce one.
+Without a credential, a non-local endpoint. With one — the paid path, since 17 September —
+the provider refuses to exist unless the receipt is already on disk (plan D-15), a nominal
+price and a spend cap above zero are given (D-12), and the endpoint is https unless on
+this machine. The credential goes on the wire as a bearer header and nowhere else: not
+the receipt, the trace, the record, the report, an error, or the endpoint string. A refused
+status, an unreachable host or a timeout is raised as `ProviderFailure` carrying only the
+status and the structured error code — never the body, which a 401 fills with the masked
+key — and the runtime files it as an infrastructure failure, not the model's (D-14). The
+ledger's lower bound is checked between requests against the cap; the request that
+crosses it is already paid for, so the overshoot is one request: the prompt so far plus
+`max_tokens`. A record never says a paid run cost 0.0: it says at least what was proved,
+and counts the requests it could not price.
+
+```bash
+OPENAI_API_KEY=... python -m adii.runtime --incident revenue-after-deploy --provider openai \
+    --model gpt-4.1-mini --max-cost-usd 0.25
+```
 
 ## What the runtime does with it
 

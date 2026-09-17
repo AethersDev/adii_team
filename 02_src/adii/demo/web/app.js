@@ -1,7 +1,8 @@
-/* ADII run inspector — the read-only surface over the run archive.
+/* ADII's one page: investigate, watch, read, answer.
  *
  * Three screens, one route each, all from the URL hash: the front door (#), which opens on
- * the incidents; an incident's runs (#i/<incident>); and one run as a story (#r/<label>),
+ * the action — Investigate — when the operator allowed it, then the investigation history;
+ * an incident's runs (#i/<incident>); and one run as a story (#r/<label>),
  * or two runs of one incident side by side (#r/<label>,<label>). The hierarchy on every
  * run page is fixed — incident, run, investigation, decision, validation, technical
  * details — and a section the record cannot fill is left out, never drawn empty.
@@ -11,8 +12,9 @@
  * field: everything on the page is in the record, or is one of the sentences in
  * phrasing.js, each a deterministic projection of record fields, each tested.
  *
- * The page cannot start a run. A page that can start a run can spend money. It says so, and
- * it says how a run is started, on every screen.
+ * The page starts a run only when the operator started the server with a local model — a
+ * page that can start a run can spend money, so otherwise it says how a run is started,
+ * on every screen. Its footer says which it is.
  *
  * No innerHTML anywhere. Every string here is model-written the day a live provider runs,
  * and a report that executes what the model wrote is inherited defect D12. Text nodes
@@ -67,13 +69,16 @@ function outcome(row) {
   if (row.error) return plain("unreadable", "g-unresolved");
   if (row.disposition) {
     return el("span", "run__outcome", chip(row.disposition),
-      row.validation ? `${row.validation === "ACCEPT" ? "accepted" : "not accepted"} by the validator` : "");
+      row.validation ? PHRASING.verdict[row.validation] ?? row.validation : "");
   }
   return plain(PHRASING.outcome[row.termination]?.() ?? row.termination, "g-unresolved");
 }
 
 async function load(url, init) {
   const res = await fetch(url, init);
+  const code = res.headers.get("ADII-Code");         /* the page's code, as served right now */
+  if (code && state.code && code !== state.code) location.reload();   /* this tab's script is older */
+  state.code = state.code ?? code;
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error || `${url} answered ${res.status}`);
   return body;
@@ -129,7 +134,8 @@ function remember(key, value) {
 }
 
 /* ── state, boot and routing ────────────────────────────────────────── */
-const state = { runs: [], launch: { enabled: false } };   /* the run list, and whether runs may start */
+/* the run list; whether runs may start; the code version this tab loaded; a run this tab just started */
+const state = { runs: [], launch: { enabled: false }, code: null, starting: null };
 
 preferences();
 window.addEventListener("hashchange", () => guard($("view"), route));
@@ -156,6 +162,11 @@ function crumbs(...items) {
     href ? link("adii-nav__link", text, href) : el("span", "adii-nav__link", text)]));
 }
 
+/* every screen's footer says whether this page can start a run, and against what */
+const footer = (prefix = "") => foot(prefix + (state.launch.enabled
+  ? PHRASING.product.footLive(shortModel(state.launch.model), state.launch.provider)
+  : PHRASING.product.footReadOnly));
+
 function foot(text) {
   $("foot").replaceChildren(text);
   window.scrollTo({ top: 0 });
@@ -181,9 +192,10 @@ function howto(incident) {
     el("pre", null, PHRASING.product.liveCommand));
 }
 
-/* Start a run against the local model the server was started with. The server answers
- * with the label at once and runs the investigation; the page goes to the run and watches. */
+/* Start a run against the model the server was started with. The server answers with
+ * the label at once and runs the investigation; the page goes to the run and watches. */
 function launcher(preset) {
+  const running = state.runs.find((r) => r.running);
   const select = el("select", "adii-select");
   select.id = "launch-incident";
   const fill = async () => {
@@ -200,15 +212,20 @@ function launcher(preset) {
     const answer = await load("/api/runs", { method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ incident: select.value }) });
+    state.starting = answer.label;
     location.hash = `#r/${encodeURIComponent(answer.label)}`;
   });
   guard(status, fill);
   return el("section", "adii-panel howto",
-    el("h2", "adii-panel__title", "Investigate an incident"),
-    el("p", "adii-type-sm", PHRASING.product.liveAllowed(state.launch.model)),
+    el("h2", "adii-panel__title", "Investigate"),
     el("div", "adii-toolbar",
       el("div", "adii-field", el("label", "adii-field__label", "Incident"), select),
       button),
+    el("p", "adii-type-sm", PHRASING.product.runsWith(shortModel(state.launch.model),
+                                                       state.launch.provider)),
+    el("p", "adii-field__hint", ...(running
+      ? [link("adii-nav__link", PHRASING.product.busy(running.label), `#r/${encodeURIComponent(running.label)}`)]
+      : [PHRASING.product.idle])),
     status);
 }
 
@@ -218,7 +235,7 @@ const scriptedNote = (model) => (model === null || model === undefined
   ? el("p", "adii-field__hint scripted", plain("scripted", "g-none"), " ", PHRASING.product.scripted)
   : "");
 
-/* ── the front door: what ADII is, and the incidents ────────────────── */
+/* ── the front door: what ADII is, what to do here, and what happened before ── */
 function incidents() {
   const byId = new Map();
   for (const r of state.runs) {
@@ -230,7 +247,7 @@ function incidents() {
 }
 
 async function frontDoor() {
-  crumbs(["Incidents"]);
+  crumbs();
   const cards = [];
   const byActivity = [...incidents()].sort(([, a], [, b]) =>
     (b[0].written_at || "").localeCompare(a[0].written_at || ""));   /* most recent activity first */
@@ -238,15 +255,14 @@ async function frontDoor() {
     const latest = runs[0];                          /* the list is newest first */
     const first = await load(`/api/runs/${latest.label}`);
     cards.push(el("article", "adii-record adii-record--operator incident",
-      el("div", "adii-record__head",
-        el("h3", "adii-record__title", incident),
-        el("p", "adii-record__owner", "Reported by the operator")),
+      el("div", "adii-record__head", el("h3", "adii-record__title", incident)),
       el("p", "incident__alert", first.schema === SCHEMA ? first.context.alert : "(record not readable)"),
       el("div", "incident__facts",
-        el("span", null, el("b", null, String(runs.length)), ` recorded run${runs.length === 1 ? "" : "s"}`
-          + (runs.every((r) => r.model === null || r.model === undefined) ? ", all scripted" : "")),
-        el("span", null, "Latest: ", outcome(latest), " · ", when(latest.written_at))),
-      el("p", null, link("adii-btn", "View the investigation history", `#i/${encodeURIComponent(incident)}`))));
+        el("span", null, el("b", null, String(runs.length)), ` run${runs.length === 1 ? "" : "s"}`
+          + (runs.every((r) => r.model === null || r.model === undefined) ? ", all scripted" : "")
+          + ` · latest ${when(latest.written_at)}`),
+        el("span", null, outcome(latest))),
+      el("p", null, link("adii-btn", "View runs", `#i/${encodeURIComponent(incident)}`))));
   }
   const unreadable = state.runs.filter((r) => r.error).length;
   $("view").replaceChildren(el("div", "door",
@@ -254,26 +270,26 @@ async function frontDoor() {
       el("h1", null, "ADII"),
       el("p", "adii-eyebrow", PHRASING.product.name),
       el("p", "door__lede adii-mt-sm", PHRASING.product.what)),
-    state.launch.enabled ? launcher() : "",        /* the main action first, when allowed */
+    state.launch.enabled ? launcher() : "",        /* the action first, when allowed */
     el("section", null,
-      el("div", "adii-section__head", el("h2", null, "Incidents"),
+      el("div", "adii-section__head", el("h2", null, "Investigation history"),
         el("span", "adii-eyebrow", cards.length
-          ? `${cards.length} incident${cards.length === 1 ? "" : "s"}, ${state.runs.length - unreadable} run${state.runs.length - unreadable === 1 ? "" : "s"}` +
-            (unreadable ? `, ${unreadable} unreadable` : "")
+          ? PHRASING.product.history(cards.length, state.runs.length - unreadable) +
+            (unreadable ? ` · ${unreadable} unreadable` : "")
           : "none archived yet")),
       cards.length ? el("div", "incidents", ...cards)
         : el("div", "adii-empty",
             el("p", "adii-empty__title", "No runs archived yet"),
             el("p", null, PHRASING.product.empty))),
     state.launch.enabled ? "" : howto()));
-  foot("Read-only. Runs are launched from the command line; nothing on this page can spend money.");
+  footer();
 }
 
 /* ── an incident: every run of it, in time order, each in its own words ── */
 async function incidentPage(incident) {
   const runs = incidents().get(incident);
   if (!runs) return refused("No such incident", `Nothing in the archive is labelled ${incident}.`);
-  crumbs(["Incidents", "#"], [incident]);
+  crumbs([incident]);
   const first = await load(`/api/runs/${runs[0].label}`);
   $("view").replaceChildren(
     el("article", "adii-record adii-record--operator",
@@ -284,7 +300,7 @@ async function incidentPage(incident) {
       el("p", "adii-measure", first.schema === SCHEMA ? first.context.alert : "(record not readable)")),
     el("section", null,
       el("div", "adii-section__head", el("h2", null, "Runs"),
-        el("span", "adii-eyebrow", `${runs.length}, newest first · each ended in its own way`)),
+        el("span", "adii-eyebrow", `${runs.length}, newest first`)),
       el("div", "runs", ...runs.map((r) => el("div", "run",
         el("div", "run__main",
           el("span", "adii-mono adii-type-sm", r.label),
@@ -296,13 +312,16 @@ async function incidentPage(incident) {
           runs.length > 1 && r !== runs[0] ? link("adii-btn", "Compare with latest",
             `#r/${encodeURIComponent(runs[0].label)},${encodeURIComponent(r.label)}`) : ""))))),
     howto(incident));
-  foot("Read-only. Runs are launched from the command line; nothing on this page can spend money.");
+  footer();
 }
 
 /* ── one run, as a story; or two of one incident, side by side ──────── */
 async function runPage(label, against) {
   let row = state.runs.find((r) => r.label === label);
-  if (!row) {                                  /* just started: not in the list we loaded */
+  /* not in the list this tab loaded: reload it — and for a run this tab just started, wait
+   * for the runtime to reserve the label, which it does a moment after the server answers */
+  for (let i = 0; !row && (i === 0 || (state.starting === label && i < 20)); i++) {
+    if (i) await new Promise((resolve) => setTimeout(resolve, 500));
     state.runs = await load("/api/runs");
     row = state.runs.find((r) => r.label === label);
   }
@@ -311,12 +330,13 @@ async function runPage(label, against) {
   if (row.running) return watch(label);
   const a = await load(`/api/runs/${label}`);
   if (a.schema !== SCHEMA) return mismatch(a.schema);
+  const evaluation = row.evaluation ? await load(`/api/runs/${label}/evaluation`) : null;
   const other = against && state.runs.find((r) => r.label === against && !r.error
     && r.incident_id === row.incident_id);
-  crumbs(["Incidents", "#"], [a.context.incident_id, `#i/${encodeURIComponent(a.context.incident_id)}`],
+  crumbs([a.context.incident_id, `#i/${encodeURIComponent(a.context.incident_id)}`],
     [other ? "Two runs, side by side" : label]);
   if (!other) {
-    $("view").replaceChildren(story(a), howto());
+    $("view").replaceChildren(story(a, false, label, evaluation), howto(a.context.incident_id));
   } else {
     const b = await load(`/api/runs/${against}`);
     if (b.schema !== SCHEMA) return mismatch(b.schema);
@@ -326,7 +346,7 @@ async function runPage(label, against) {
         link("adii-btn", "Close comparison", `#r/${encodeURIComponent(label)}`)),
       el("div", "compare", story(a, true), story(b, true)));
   }
-  foot(`Read-only view of an ${SCHEMA} record. Runs are launched from the command line; nothing on this page can spend money.`);
+  footer();
 }
 
 /* ── the run page: outcome first, then the investigation turn by turn ─────────────
@@ -337,15 +357,16 @@ async function runPage(label, against) {
 const seconds = (ms) => (ms >= 1000 ? `${Math.round(ms / 1000)} s` : `${ms} ms`);
 const shortModel = (model) => (model ? String(model).split("/").pop() : "no model");
 
-function story(r, compact = false) {
+function story(r, compact = false, label = r.label, evaluation = null) {
   const c = r.context, d = r.decision, cfg = r.configuration, n = r.counters;
   const out = el("div", "story");
   const ran = cfg.model ? `${shortModel(cfg.model)} · ` : "";
+  const requests = r.trace.filter((e) => e.kind === "tool_call").length;
 
   /* the outcome, first */
   out.append(el("header", "outcome",
     el("p", "adii-eyebrow", compact ? r.label
-      : `${c.incident_id} · ${ran}${n.tool_calls} tool call${n.tool_calls === 1 ? "" : "s"} · ${seconds(n.latency_ms)}`),
+      : `${c.incident_id} · ${ran}${requests} tool request${requests === 1 ? "" : "s"} · ${seconds(n.latency_ms)}`),
     el("h1", "outcome__headline", d ? chip(d.disposition) : plain(PHRASING.outcome[r.termination]?.(r) ?? r.termination, "g-unresolved"),
       " ", PHRASING.headline[r.termination]?.(r) ?? r.termination),
     scriptedNote(cfg.model)));
@@ -354,7 +375,7 @@ function story(r, compact = false) {
     out.append(record("system", "What it concluded", `Asserted by ${INVESTIGATOR}`,
       el("p", "adii-assertion", d.root_cause_summary),
       el("p", "adii-field__hint adii-mt-sm", PHRASING.disposition[d.disposition]),
-      d.root_cause_id ? meta(["Root cause", d.root_cause_id]) : ""));
+      d.root_cause_id ? meta(["Cited evidence", d.root_cause_id]) : ""));
   } else {
     out.append(record("system", "Why there is no decision",
       `Reported by ${r.termination === "infrastructure_failure" ? "the runtime" : INVESTIGATOR}`,
@@ -370,7 +391,7 @@ function story(r, compact = false) {
   const rounds = turns(r.trace);
   out.append(record("system", "The investigation, turn by turn",
     `Recorded by the runtime as it happened · ${rounds.length} turn${rounds.length === 1 ? "" : "s"}`,
-    el("ol", "turns", ...rounds.map(turnCard))));
+    el("ol", "turns", ...rounds.map((turn, i) => turnCard(turn, i, r.validation)))));
 
   if (d && d.repair_id) {
     out.append(record("system", "The change it proposed", `Proposed by ${INVESTIGATOR}. Not applied by anyone.`,
@@ -382,10 +403,12 @@ function story(r, compact = false) {
   }
 
   if (r.validation) {
-    const v = r.validation, verdict = v.accepted ? "ACCEPT" : "REJECT";
+    const v = r.validation, verdict = PHRASING.verdictOf(v);
+    const mark = { ACCEPT: ["pass", "g-pass"], REJECT: ["fail", "g-fail"], UNCHECKED: ["none", "g-none"] }[verdict];
     out.append(record("validator", "What the validator said", `Asserted by ${VALIDATOR}`,
-      el("div", "adii-verdicts", el("div", `adii-check adii-check--${v.accepted ? "pass" : "fail"}`,
-        glyph(v.accepted ? "g-pass" : "g-fail", "adii-check__mark"),
+      el("p", null, PHRASING.validation[{ ACCEPT: "accepted", REJECT: "rejected", UNCHECKED: "unchecked" }[verdict]]),
+      el("div", "adii-verdicts", el("div", `adii-check adii-check--${mark[0]}`,
+        glyph(mark[1], "adii-check__mark"),
         el("p", "adii-check__body",
           el("span", "adii-check__name", "candidate repair"), " ",
           el("span", "adii-check__verdict", verdict), " ",
@@ -398,16 +421,72 @@ function story(r, compact = false) {
       el("p", "adii-field__hint adii-mt-sm", PHRASING.validation.notInvoked)));
   }
 
+  /* the evaluation authority's category, when the run has been scored: its report,
+   * verbatim in the mono values, with one sentence from the dictionary beside it */
+  if (evaluation) {
+    const e = evaluation;
+    const v = r.validation;
+    const atRuntime = v === null ? "none" : v.accepted ? "accepted" : v.checks_run.length ? "rejected" : "unchecked";
+    out.append(record(null, "What the evaluation said",
+      "Asserted by the evaluation authority, against an answer key ADII never saw",
+      el("p", "adii-assertion", PHRASING.evaluation[e.category] ?? e.category),
+      meta(["category", e.category], ...(e.sub_kind ? [["sub kind", e.sub_kind]] : []),
+        ...(e.verdict ? [["verdict", e.verdict]] : []),
+        ...(e.settled_by ? [["settled by", PHRASING.evaluation.settledBy[e.settled_by] ?? e.settled_by]] : []),
+        ...(e.reason ? [["reason", e.reason]] : [])),
+      el("p", "adii-field__hint adii-mt-sm", `At runtime: ${PHRASING.evaluation.runtime[atRuntime]}.`)));
+  }
+
+  if (!compact) out.append(feedbackBlock(label));
+
   out.append(el("details", "adii-panel tech",
     el("summary", null, "Details for engineers"),
     defs(["Run", r.label], ["Model", cfg.model ?? "none"], ["Endpoint", cfg.endpoint ?? "none"],
          ["Provider", cfg.provider ?? "not recorded"], ["Turns", String(n.model_turns)],
          ["Tool calls", String(n.tool_calls)], ["Duration", seconds(n.latency_ms)],
-         ["Cost", n.api_cost_usd ? `$${n.api_cost_usd}` : "nothing (no paid provider)"],
+         ["Cost", PHRASING.cost(r)],
          ["Ended", `${r.termination}: ${r.detail}`], ["Recorded", r.provenance.written_at ?? ""],
          ["Code revision", r.provenance.source_revision ?? "unknown"],
          ["Record schema", r.schema])));
   return out;
+}
+
+/* The operator's feedback on a run: recorded beside the record, attributed, shown back
+ * verbatim as text. The one write a read-only inspector accepts, because it spends nothing
+ * and asserts nothing about the run — it is the operator's word, labelled as such. */
+function feedbackBlock(label) {
+  const list = el("div", "feedback__list");
+  const show = (entries) => list.replaceChildren(...entries.map((f) =>
+    el("blockquote", "turn__quote",
+      el("p", "adii-field__hint", `${f.by}, ${when(f.written_at)} — useful: ${f.useful}`),
+      f.expected ? el("p", null, f.expected) : "")));
+  guard(list, async () => show(await load(`/api/runs/${encodeURIComponent(label)}/feedback`)));
+  const useful = el("fieldset", "adii-fieldset-plain feedback__useful",
+    el("legend", "adii-field__label", PHRASING.product.feedbackAsk),
+    ...["yes", "partly", "no"].map((v) => {
+      const input = el("input"); input.type = "radio"; input.name = "useful"; input.value = v;
+      return el("label", "feedback__option", input, ` ${v}`);
+    }));
+  const expected = el("textarea", "adii-input"); expected.rows = 3; expected.maxLength = 2000;
+  const by = el("input", "adii-input"); by.maxLength = 80;
+  const button = el("button", "adii-btn", "Record feedback"); button.type = "button";
+  const status = el("p", "adii-field__hint");
+  button.onclick = () => guard(status, async () => {
+    const chosen = useful.querySelector("input:checked");
+    if (!chosen) throw new Error("say whether it was useful first");
+    await load(`/api/runs/${encodeURIComponent(label)}/feedback`, { method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ useful: chosen.value, expected: expected.value, by: by.value }) });
+    status.replaceChildren(PHRASING.product.feedbackRecorded);
+    button.replaceChildren("Feedback recorded");
+    button.disabled = true;
+    show(await load(`/api/runs/${encodeURIComponent(label)}/feedback`));
+  });
+  return record("operator", "Your feedback", "Written by whoever leaves it, kept beside this record",
+    list, useful,
+    el("div", "adii-field adii-mt-md", el("label", "adii-field__label", PHRASING.product.feedbackExpected), expected),
+    el("div", "adii-field adii-mt-sm", el("label", "adii-field__label", PHRASING.product.feedbackBy), by),
+    el("p", "adii-mt-md", button), status);
 }
 
 /* Group the trace into turns: each model request and everything it caused, or, for a
@@ -428,28 +507,34 @@ function turns(trace) {
 
 /* One turn as a card: what was asked and what came back, what was committed, what the
  * validator said, or — when the model did none of those — what it wrote instead. */
-function turnCard(turn, i) {
+/* `validation` is the record's: the trace event says only whether the repair was accepted,
+ * and the verdict's third state — not checked — is stated by the record's `checks_run`. The
+ * live view has no record yet, so it leaves that line to the story that replaces it. */
+function turnCard(turn, i, validation) {
   const by = (kind) => turn.events.find((e) => e.kind === kind);
   const call = by("tool_call"), result = by("tool_result"), said = by("model_responded");
   const decided = by("decision_submitted"), validated = by("validation_completed");
   const body = el("div", "turn__body");
   if (call) {
     body.append(el("p", "turn__what", PHRASING.turn.asked(call.payload.name, call.payload.arguments)));
+    /* the observation's own id, minted by the tool layer as it answered — shown beside
+     * the sentence so a viewer can see what the decision may later cite */
+    const minted = result && result.payload.content && result.payload.content.evidence_id;
     body.append(result
       ? el("p", "turn__result", `The tool layer ${PHRASING.turn.answered(result.payload)}.`,
           result.payload.status !== "OK" ? " " : "",
-          result.payload.status !== "OK" ? plain(result.payload.status, "g-unresolved") : "")
+          result.payload.status !== "OK" ? plain(result.payload.status, "g-unresolved") : "",
+          minted ? " " : "", minted ? mono(minted) : "")
       : el("p", "turn__result", PHRASING.turn.unanswered));
   }
   if (decided) body.append(el("p", "turn__what", PHRASING.turn.decided(decided.payload.disposition)));
-  if (validated) body.append(el("p", "turn__what", PHRASING.turn.validated(validated.payload.accepted)));
+  if (validated && validation) body.append(el("p", "turn__what", PHRASING.turn.validated(validation)));
   if (!call && !decided && !validated) {
     body.append(said
       ? el("div", null, el("p", "turn__what", PHRASING.turn.wrote), el("blockquote", "turn__quote", said.payload.content))
       : el("p", "turn__what", turn.events.map((e) => e.kind).join(", ")));
   }
-  const kinds = turn.events.map((e) => e.kind).join(", ");
-  body.append(el("details", "step__raw", el("summary", null, `raw events · ${kinds}`),
+  body.append(el("details", "step__raw", el("summary", null, `Raw events (${turn.events.length})`),
     el("pre", null, turn.events.map((e) =>
       JSON.stringify({ sequence: e.sequence, kind: e.kind, payload: e.payload }, null, 2)).join("\n"))));
   return el("li", "turn", el("span", "turn__n", String(i + 1)), body);
@@ -457,23 +542,26 @@ function turnCard(turn, i) {
 
 /* A run in progress: the live trace, polled until the record lands, then the story. */
 async function watch(label) {
-  crumbs(["Incidents", "#"], [label]);
+  crumbs([label]);
   const list = el("ol", "turns");
   const status = el("p", "adii-field__hint", PHRASING.product.running);
+  const headline = el("h1", "outcome__headline", plain("running", "g-unresolved"), " Investigating");
   $("view").replaceChildren(el("div", "story",
-    el("header", "outcome", el("p", "adii-eyebrow", label),
-      el("h1", "outcome__headline", plain("running", "g-unresolved"), " Investigating")),
+    el("header", "outcome", el("p", "adii-eyebrow", label), headline),
     record("system", "The investigation, turn by turn", "Recorded by the runtime as it happens",
       status, list)));
-  foot("A run in progress. Nothing on this page can spend money.");
+  footer("A run in progress. ");
   let events = [];
   while (location.hash === `#r/${encodeURIComponent(label)}`) {
     const live = await load(`/api/runs/${label}/trace`);
     if (live.events.length !== events.length) {
       events = live.events;
+      const received = events.find((e) => e.kind === "incident_received");
+      if (received) headline.replaceChildren(plain("running", "g-unresolved"),
+        ` Investigating ${received.payload.incident_id}`);
       list.replaceChildren(...turns(events).map(turnCard));
     }
-    if (live.finished) {
+    if (live.finished || !live.running) {     /* the record landed — or the run went silent */
       state.runs = await load("/api/runs");
       return route();
     }
@@ -483,11 +571,11 @@ async function watch(label) {
 
 /* ── refusals: something this page will not interpret ───────────────── */
 function refused(title, why) {
-  crumbs(["Incidents", "#"]);
+  crumbs();
   $("view").replaceChildren(el("div", "adii-callout",
     el("p", "adii-callout__title", title),
     el("p", null, `${why} Nothing below is interpreted.`)),
-    el("p", "adii-mt-md", link("adii-btn", "Back to the incidents", "#")));
+    el("p", "adii-mt-md", link("adii-btn", "Back to ADII", "#")));
 }
 function mismatch(schema) {
   refused("This record is in a shape this inspector does not read",
@@ -495,8 +583,10 @@ function mismatch(schema) {
 }
 
 /* ── records: a container with a written owner ──────────────────────── */
+/* `owner` picks the identity's riser colour; an owner the identity has no colour for —
+ * the evaluation authority — is named in text only, which is the rule anyway. */
 function record(owner, title, ownerLine, ...kids) {
-  return el("article", `adii-record adii-record--${owner}`,
+  return el("article", owner ? `adii-record adii-record--${owner}` : "adii-record",
     el("div", "adii-record__head",
       el("h2", "adii-record__title", title),
       el("p", "adii-record__owner", ownerLine)),

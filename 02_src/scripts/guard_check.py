@@ -53,6 +53,9 @@ GUARDS = (
           "    if isinstance(max_turns, bool) or not isinstance(max_turns, int) "
           "or max_turns < 0:\n",
           "    if False:\n"),
+    Guard("A.patch_maps_path_to_text", "A", "investigator/loop.py",
+          "    if not all(isinstance(k, str) and isinstance(v, str) for k, v in patch.items()):\n",
+          "    if False:\n"),
     # ── B: the tool layer ───────────────────────────────────────────────────────────
     Guard("B.unknown_tool_denied", "B", "tools/executor.py",
           "        if tool is None:\n            return self._result(call, \"DENIED\", {\n",
@@ -114,7 +117,97 @@ GUARDS = (
           "  n.append(...kids);\n",
           "  kids.forEach((k) => (typeof k === \"string\" "
           "? n.insertAdjacentHTML(\"beforeend\", k) : n.append(k)));\n"),
-    # C's guards join here when the evaluation authority merges.
+    Guard("D.server_starts_local_only", "D", "demo/__main__.py",
+          "    if args.provider == \"local\" and not endpoint_is_local(args.endpoint):\n",
+          "    if False:\n"),
+    Guard("D.server_starts_paid_only_past_the_preconditions", "D", "demo/__main__.py",
+          "        why = refused_paid(args.model, args.max_cost_usd, args.endpoint, "
+          "args.served_as)\n",
+          "        why = None\n"),
+    Guard("D.paid_cap_is_finite", "D", "runtime/__main__.py",
+          "    if not (math.isfinite(max_cost_usd) and max_cost_usd > 0):\n",
+          "    if not max_cost_usd > 0:\n"),
+    Guard("D.paid_wire_name_is_the_priced_name", "D", "runtime/__main__.py",
+          "    if served_as not in (None, model):\n",
+          "    if False:\n"),
+    Guard("D.page_launch_needs_operator", "D", "demo/server.py",
+          "        if not LAUNCH:\n",
+          "        if False:\n"),
+    Guard("D.page_launch_known_incident", "D", "demo/server.py",
+          "        if not isinstance(incident, str) or incident not in "
+          "{i[\"incident_id\"] for i in incidents()}:\n",
+          "        if False:\n"),
+    Guard("D.page_launch_one_at_a_time", "D", "demo/server.py",
+          "        if any(row.get(\"running\") for row in index(ARCHIVE)) "
+          "or not RUNNING.acquire(blocking=False):\n",
+          "        if False:\n"),
+    Guard("D.page_launch_one_at_a_time_in_process", "D", "demo/server.py",
+          "        if any(row.get(\"running\") for row in index(ARCHIVE)) "
+          "or not RUNNING.acquire(blocking=False):\n",
+          "        if any(row.get(\"running\") for row in index(ARCHIVE)) "
+          "or not RUNNING.acquire(blocking=True):\n"),
+    Guard("D.post_body_declared_json", "D", "demo/server.py",
+          "        if self.headers.get(\"Content-Type\", \"\").split(\";\")[0].strip() "
+          "!= \"application/json\":\n",
+          "        if False:\n"),
+    Guard("D.feedback_useful_enumerated", "D", "demo/server.py",
+          "    if useful not in FEEDBACK_LIMITS[\"useful\"]:\n",
+          "    if False:\n"),
+    Guard("D.feedback_bounded", "D", "demo/server.py",
+          "    if len(expected) > FEEDBACK_LIMITS[\"expected\"] "
+          "or len(by) > FEEDBACK_LIMITS[\"by\"]:\n",
+          "    if False:\n"),
+    Guard("D.feedback_needs_record", "D", "demo/server.py",
+          "            if not LABEL.fullmatch(label) "
+          "or not (ARCHIVE / label / \"record.json\").is_file():\n",
+          "            if not LABEL.fullmatch(label) or not (ARCHIVE / label).is_dir():\n"),
+    # ── the seam between the record and the evaluation authority ──────────────────
+    Guard("D.reader_refuses_a_patch_that_is_not_text", "D", "reporting/record.py",
+          "    if not isinstance(patch, dict) or not all(\n",
+          "    if False and not all(\n"),
+    # ── the paid path: nothing is spent without a record, a price, a cap ────────────
+    Guard("D.paid_provider_needs_receipt", "D", "provider/openai_compatible.py",
+          "        if paid and not (receipt is not None and receipt.is_file()):\n",
+          "        if False:\n"),
+    Guard("D.cost_cap_between_requests", "D", "provider/openai_compatible.py",
+          "            if spent >= self._cap:            "
+          "# checked between requests: the overshoot is one\n",
+          "            if False:\n"),
+    Guard("D.paid_model_must_have_a_price", "D", "runtime/__main__.py",
+          "    if model not in PRICES:\n",
+          "    if False:\n"),
+    Guard("D.paid_endpoint_carries_no_secret", "D", "provider/openai_compatible.py",
+          "    if parts.query or parts.username or parts.password:\n        return False\n",
+          "    if False:\n        return False\n"),
+    Guard("D.paid_needs_credential_before_label", "D", "runtime/__main__.py",
+          "    if not os.environ.get(\"OPENAI_API_KEY\"):\n",
+          "    if False:\n"),
+    Guard("D.ledger_row_without_usage_is_unknown", "D", "reporting/ledger.py",
+          "        if isinstance(tokens_in, int) and isinstance(tokens_out, int) \\\n"
+          "                and not isinstance(tokens_in, bool) "
+          "and not isinstance(tokens_out, bool):\n",
+          "        if True:\n"
+          "            tokens_in, tokens_out = tokens_in or 0, tokens_out or 0\n"),
+    Guard("D.verify_lists_the_unattested", "D", "reporting/manifest.py",
+          "    present = {p.relative_to(root).as_posix() for p in root.glob(\"*/*\") "
+          "if p.is_file()}\n",
+          "    present = {p.relative_to(root).as_posix() for p in artefacts(root)}\n"),
+    Guard("C.score_needs_the_incidents_own_key", "C", "evaluation/__main__.py",
+          "    if key[\"incident_id\"] != incident:\n",
+          "    if False:\n"),
+    Guard("C.score_refuses_an_unchecked_repair", "C", "evaluation/__main__.py",
+          "    if unchecked and key[\"correct_disposition\"] == \"REPAIR\":\n",
+          "    if False:\n"),
+    Guard("C.report_never_overwritten", "C", "evaluation/__main__.py",
+          "    if path.exists():\n        raise FileExistsError(f\"{path} exists",
+          "    if False:\n        raise FileExistsError(f\"{path} exists"),
+    Guard("C.partition_assigns_one_of_two_classes", "C", "evaluation/commitment.py",
+          "        if assigned not in CLASSES:\n",
+          "        if False:\n"),
+    Guard("C.commitment_made_once", "C", "evaluation/commitment.py",
+          "        if out.exists():\n",
+          "        if False:\n"),
+    # C's own guards (the key loaders, the scorer's refusals) join here from C's tests.
 )
 
 PYTEST = [sys.executable, "-m", "pytest", "-q", "-x", "-p", "no:cacheprovider"]

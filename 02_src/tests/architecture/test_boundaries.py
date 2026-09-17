@@ -192,7 +192,8 @@ def test_the_demo_backend_stays_dependency_free():
     server = SRC / "demo" / "server.py"
     if not server.is_file():
         return
-    allowed = {"__future__", "json", "http", "pathlib", "sys", "os", "typing", "datetime", "time"}
+    allowed = {"__future__", "json", "http", "pathlib", "sys", "os", "typing", "datetime", "time",
+               "threading"}          # one lock: one run at a time in the process
     offending = imported_modules(server) - allowed
     assert not offending, (
         f"demo/server.py imports {sorted(offending)}. Standard library only: the "

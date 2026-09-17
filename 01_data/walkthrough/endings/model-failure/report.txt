@@ -22,5 +22,5 @@ INDEPENDENT VALIDATION
   never reached — no decision was submitted
 
 COST OF THIS RUN
-  tool calls 1   model turns 0   $0.0000   0 ms
+  tool calls 1   model turns 0   nothing spent (no paid provider)   0 ms
 ------------------------------------------------------------------------------

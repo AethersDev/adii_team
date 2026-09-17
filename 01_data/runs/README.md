@@ -24,8 +24,17 @@ first paid run, say. The original is never deleted on the strength of an unverif
 
 Every run folder also holds `receipt.json`, written and flushed after the label was
 reserved and before the investigator ran: the incident and world by digest, the
-configuration, the source revision, and the reason the spend is permitted. A folder with a
-receipt and no record is a run that did not finish, and the inspector says so.
+configuration, the source revision, and the reason the spend is permitted; and
+`trace.jsonl`, every event as the runtime recorded it. A folder that has written nothing
+for three minutes and has no record is a run that did not finish, and the inspector says
+so. A person may leave `feedback.jsonl` beside a finished run, from the inspector.
+
+What is kept, by name: `receipt.json`, `trace.jsonl` and `record.json` are **evidence** —
+what the run left of itself; `feedback.jsonl` is an **annotation** — what someone said
+about it afterwards; `evaluation_report.json` is an **evaluation** — what the authority
+said against a key the run never saw (`python -m adii.evaluation --run <label> --key
+PATH`). The manifest attests and preservation copies all five, each in its class; a file
+under any other name in a run folder is listed by verification, not archived.
 
 To produce a run:
 

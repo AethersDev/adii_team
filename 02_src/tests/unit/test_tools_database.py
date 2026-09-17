@@ -128,6 +128,10 @@ class TestSchema:
     def test_an_unknown_table_is_rejected_and_the_known_ones_named(self, db):
         with pytest.raises(Rejected, match="notes"):
             db.schema("customers")
+        # and a query that names one: the same answer, so a guess can be corrected rather
+        # than turned into a finding (R0 of 17 Sep concluded a table was "missing")
+        with pytest.raises(Rejected, match="no such table.*known tables.*notes"):
+            db.query("SELECT * FROM customers", max_rows=5)
 
 
 class TestFromFile:

@@ -18,7 +18,8 @@ _RULE = "-" * 78
 ENDED = {
     "model_failure": ("MODEL FAILURE", "the model's failure, filed as the model's"),
     "bound_hit": ("BOUND HIT", "the loop stopped at a bound it set"),
-    "infrastructure_failure": ("INFRASTRUCTURE FAILURE", "our defect, not the model's"),
+    "infrastructure_failure": ("INFRASTRUCTURE FAILURE",
+                               "not the model's: the runtime's or the provider's"),
 }
 
 
@@ -33,6 +34,20 @@ def _wrap(text: str, width: int = 76, indent: str = "  ") -> str:
     if line:
         lines.append(indent + line)
     return "\n".join(lines)
+
+
+def _cost(record: RunRecord) -> str:
+    """A paid run's cost is the ledger's lower bound, and says how many requests it could
+    not price; a run with no paid provider spent nothing, and says that rather than $0."""
+    if record.configuration.get("provider") != "openai":
+        return (f"${record.api_cost_usd:.4f}" if record.api_cost_usd
+                else "nothing spent (no paid provider)")
+    unpriced = sum(1 for e in record.trace if e.kind == "model_requested") - sum(
+        1 for e in record.trace if e.kind == "model_responded"
+        and isinstance(e.payload.get("usage"), dict)
+        and isinstance(e.payload["usage"].get("prompt_tokens"), int))
+    bound = f"at least ${record.api_cost_usd:.4f}"
+    return bound + (f" ({unpriced} request(s) without usage)" if unpriced else "")
 
 
 def render_run(record: RunRecord) -> str:
@@ -70,9 +85,12 @@ def render_run(record: RunRecord) -> str:
                 out.append(f"  --- {path}")
                 out += [f"      {line}" for line in body.rstrip("\n").splitlines()]
             verdict = record.validation
+            # three states the record distinguishes: accepted; rejected after checks; and
+            # not checked at all — a placeholder verdict, which is not a finding
+            state = ("ACCEPTED" if verdict.accepted else "REJECTED" if verdict.checks_run
+                     else "UNCHECKED")
             out += ["", "INDEPENDENT VALIDATION",
-                    f"  {'ACCEPTED' if verdict.accepted else 'REJECTED'}"
-                    "   (decided by the validator, never by the agent)",
+                    f"  {state}   (decided by the validator, never by the agent)",
                     _wrap(verdict.report),
                     f"  checks: {', '.join(verdict.checks_run) or '(none recorded)'}"]
         else:
@@ -80,7 +98,7 @@ def render_run(record: RunRecord) -> str:
 
     out += ["", "COST OF THIS RUN",
             f"  tool calls {record.tool_calls}   model turns {record.model_turns}"
-            f"   ${record.api_cost_usd:.4f}   {record.latency_ms} ms", _RULE]
+            f"   {_cost(record)}   {record.latency_ms} ms", _RULE]
     return "\n".join(out) + "\n"
 
 

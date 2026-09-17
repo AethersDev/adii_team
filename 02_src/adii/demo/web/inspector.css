@@ -1,4 +1,4 @@
-/* ADII run inspector — the page-specific rules over the design system.
+/* ADII's page — the page-specific rules over the design system.
    tokens.css, base.css and components.css are the identity handoff (03_assets/identity),
    copied here by 02_src/scripts/sync_identity.py. This file adds layout only. Every value
    is a token; every device is one of the system's three. Nothing here is a colour. */
@@ -68,3 +68,9 @@
 .turn__what { max-width: var(--adii-measure); }
 .turn__result { max-width: var(--adii-measure); color: var(--adii-ink-2); font-size: var(--adii-text-sm); }
 .turn__quote { margin: 0; padding: var(--adii-space-sm) var(--adii-space-md); border-left: var(--adii-rule-width) solid var(--adii-border-default); color: var(--adii-ink-2); font-size: var(--adii-text-sm); white-space: pre-wrap; overflow-wrap: anywhere; max-width: var(--adii-measure); }
+
+/* ── feedback: the operator's words, beside the record ─────────────── */
+.feedback__list { display: grid; gap: var(--adii-space-sm); margin-bottom: var(--adii-space-md); }
+.feedback__useful { display: flex; flex-wrap: wrap; gap: var(--adii-space-md); align-items: center; }
+.feedback__useful legend { margin-bottom: var(--adii-space-2xs); }
+.feedback__option { font-size: var(--adii-text-sm); }

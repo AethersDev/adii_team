@@ -53,7 +53,7 @@ class Terminated(Exception):
     runtime adds no interpretation (plan D-14). `detail` says which failure or which bound,
     in the loop's words."""
 
-    ENDINGS = ("model_failure", "bound_hit")
+    ENDINGS = ("model_failure", "bound_hit", "infrastructure_failure")
 
     def __init__(self, termination: str, detail: str) -> None:
         if termination not in self.ENDINGS:

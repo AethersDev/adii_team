@@ -8,7 +8,7 @@ import shutil
 
 import pytest
 from adii.examples.walkthrough import main as walkthrough
-from adii.reporting.manifest import NAME, SCHEMA, main, preserve, verify, write_manifest
+from adii.reporting.manifest import NAME, RETENTION, SCHEMA, main, preserve, verify, write_manifest
 
 
 @pytest.fixture
@@ -28,6 +28,37 @@ def test_attestation_lists_every_record_with_path_size_digest_and_retention(arch
     assert entry["bytes"] == (archive / entry["path"]).stat().st_size
     assert entry["digest"].startswith("sha256:") and entry["retention"] == "evidence"
     assert verify(archive).ok
+
+
+def test_every_artefact_of_a_run_is_attested_in_its_retention_class(archive, tmp_path):
+    """A run leaves its receipt, its trace and its record; a person may leave feedback beside
+    them; the authority may leave its report. All five are attested and preserved — the
+    evidence, what was said about it, and what it scored, each in its own class — and a file
+    under any other name is a finding verification names, never silently archived."""
+    run = archive / "demo-learning-001"
+    (run / "receipt.json").write_text('{"schema": "adii.receipt/v1"}', encoding="utf-8")
+    (run / "trace.jsonl").write_text('{"kind": "incident_received"}\n', encoding="utf-8")
+    (run / "feedback.jsonl").write_text('{"useful": "yes"}\n', encoding="utf-8")
+    (run / "evaluation_report.json").write_text('{"category": "success"}\n', encoding="utf-8")
+    manifest = json.loads(write_manifest(archive).read_text(encoding="utf-8"))
+    assert {e["path"]: e["retention"] for e in manifest["entries"]} == {
+        "demo-learning-001/receipt.json": "evidence",
+        "demo-learning-001/trace.jsonl": "evidence",
+        "demo-learning-001/record.json": "evidence",
+        "demo-learning-001/feedback.jsonl": "annotation",
+        "demo-learning-001/evaluation_report.json": "evaluation"}
+    assert set(RETENTION.values()) == {"evidence", "annotation", "evaluation"}
+    assert verify(archive).ok
+    (run / "notes.txt").write_text("not archived", encoding="utf-8")
+    assert verify(archive).unlisted == ("demo-learning-001/notes.txt",)
+    (run / "notes.txt").unlink()
+    (run / "feedback.jsonl").unlink()
+    assert verify(archive).missing == ("demo-learning-001/feedback.jsonl",)
+    (run / "feedback.jsonl").write_text('{"useful": "yes"}\n', encoding="utf-8")
+    copy = tmp_path / "copy"
+    assert preserve(archive, copy).ok
+    for name in RETENTION:
+        assert (copy / "demo-learning-001" / name).read_bytes() == (run / name).read_bytes()
 
 
 def test_a_payload_change_without_a_manifest_change_fails(archive):

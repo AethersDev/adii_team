@@ -1,6 +1,8 @@
 """The model boundary: the only package that talks to a model.
 
-    SPIKE — local endpoints only, not merged to main.
+    SPIKE placeholders for trace-contract rows 1, 5 and 6 — on main since 16 September;
+    D-6b replaces them in place. Paid endpoints since 17 September, behind the receipt,
+    a nominal price and a spend cap.
 
 A `ChatProvider` sits behind A's `respond()` seam and speaks A's protocol to an
 OpenAI-compatible chat endpoint. Every request and every response is recorded at this
@@ -9,6 +11,14 @@ This writes trace-contract code before the D-1 rows in docs/trace_event_contract
 resolved; it exists to make a live run possible and to give that review working evidence,
 and it is labelled a spike for that reason.
 """
-from .openai_compatible import ChatProvider, endpoint_is_local
+from .openai_compatible import (
+                                PROTOCOL,
+                                ChatProvider,
+                                CostBudgetExceeded,
+                                ProviderFailure,
+                                endpoint_is_local,
+    endpoint_may_carry_a_credential,
+)
 
-__all__ = ["ChatProvider", "endpoint_is_local"]
+__all__ = ["PROTOCOL", "ChatProvider", "CostBudgetExceeded", "ProviderFailure",
+           "endpoint_is_local", "endpoint_may_carry_a_credential"]

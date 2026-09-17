@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from ..contracts import IncidentContext, InvestigationDecision, ValidationResult
 from ..investigator.loop import ProviderFailureError, TurnBudgetExceededError, run
-from ..provider import ChatProvider
+from ..provider import ChatProvider, CostBudgetExceeded, ProviderFailure
 from .run import Recorder, Terminated, Tools
 
 
@@ -39,20 +39,30 @@ class NoValidatorYet:
 
 class LoopInvestigator:
     def __init__(self, *, endpoint: str, model: str, max_turns: int, recorder: Recorder,
-                 served_as: str | None = None) -> None:
+                 served_as: str | None = None, **paid: object) -> None:
+        """`paid`, when given, is what ChatProvider needs for a paid endpoint — credential,
+        receipt, max_tokens, price, max_cost_usd — passed through untouched."""
         self._endpoint, self._model, self._max_turns = endpoint, model, max_turns
-        self._recorder, self._served_as = recorder, served_as
+        self._recorder, self._served_as, self._paid = recorder, served_as, paid
 
     def investigate(self, context: IncidentContext, tools: Tools) -> InvestigationDecision:
         provider = ChatProvider(endpoint=self._endpoint, model=self._model, context=context,
                                 tools=tools.advertised(), recorder=self._recorder,
-                                served_as=self._served_as)
+                                served_as=self._served_as, **self._paid)
         try:
             decision, _ = run(context, provider, tools, max_turns=self._max_turns)
         except TurnBudgetExceededError as bound:
             raise Terminated("bound_hit",
                              f"model_turns: {bound.limit} of {bound.limit} used") from None
         except ProviderFailureError as failed:
+            # A wraps whatever the provider raised and chains it; the class is read from the
+            # type of the cause, never from the message. The endpoint failing is not the
+            # model failing (inherited D14); a spend cap is a bound like any other.
+            cause = failed.__cause__
+            if isinstance(cause, CostBudgetExceeded):
+                raise Terminated("bound_hit", str(cause)) from None
+            if isinstance(cause, ProviderFailure):
+                raise Terminated("infrastructure_failure", str(cause)) from None
             raise Terminated("model_failure", failed.reason) from None
         if decision is None:
             raise Terminated("model_failure", "the model stopped without a decision "

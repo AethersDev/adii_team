@@ -57,8 +57,9 @@ python -m adii.demo                                                     # → ht
 ```
 
 `scripted` replays the investigator and the validator — no model, no cost — and drives them
-through the real runtime over the real tool layer. Every archived run appears in the inspector, a
-read-only page: the trace, the decision, the verdict, the cost. See
+through the real runtime over the real tool layer. Every archived run appears in the inspector:
+the trace, the decision, the verdict, the cost — read-only, unless it was started with a
+model, and then runs can be started and watched from the page. See
 [02_src/adii/runtime/README.md](02_src/adii/runtime/README.md) and
 [02_src/adii/demo/README.md](02_src/adii/demo/README.md).
 
@@ -108,7 +109,7 @@ packaging migration at the deadline.
   adii/reporting/            telemetry — traces, artifacts, reports
   adii/runtime/              one incident end to end — the harness that owns the trace
   adii/examples/             the walkthrough, and one produced record per ending
-  adii/demo/                 the run inspector — read-only over the archive
+  adii/demo/                 ADII's page over the archive; starts runs only as the operator configured the server
   tests/contract/            the contracts are pinned here
   tests/architecture/        the boundaries, as tests that fail the build
   tests/unit/  integration/  everything else, including the browser check on the inspector

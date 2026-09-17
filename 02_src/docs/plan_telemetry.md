@@ -140,15 +140,16 @@ preservation, then provider. Within a phase the order is the dependency order.
 | D-8 ✔ 14 Sep (source-level rule in `test_demo_design_rules.py`; the D12 browser regression in `test_the_page_executes_nothing.py` drives the shipped page in Chrome, which every CI runner ships) | The escape invariant — nothing drawn from a record is interpolated raw into any rendering surface; a source-level assertion that runs without a browser (the demo already has one for its own scripts) | reverting the escape turns the test red | D12 |
 | D-9 | `reporting/bounds.py` — `Budget(cost_usd, context_tokens, wall_clock_s)`, each optional, each named in a `bound_hit` event; the cost cap is documented as soft and post-spend with its worst-case overshoot stated | each bound trips with the other two unset; the documented overshoot is asserted | D9 |
 | D-10 ✔ 16 Sep | `python -m adii.reporting.manifest` — manifest-first preservation: hash the source, copy, re-hash the destination against the manifest made before the copy; verification re-runs from the manifest alone; each artefact declares its retention class | a payload change without a manifest change fails a test; the original is never deleted on the strength of an unverified copy | D13 |
+| D-10b ✔ 16 Sep | retention classes for what a run leaves beside its record: `receipt.json`, `trace.jsonl` and `record.json` are **evidence** — the run's own; `feedback.jsonl` is an **annotation** — what a person said afterwards; `evaluation_report.json` is an **evaluation** — what the authority said against a key the run never saw. All five are attested and preserved; a file under any other name in a run's folder is an unlisted finding | preserving an archive drops nothing a run left; a test removes each artefact and verification names it, and plants a stranger and verification lists it | D13 |
 
 ### Phase 3 — provider and money · week 4 (28 Sep – 4 Oct) · M8
 
 | # | Unit | Done when | Ids |
 |---|---|---|---|
-| D-11 | `adii/provider/` — configuration validated before the client is built; requested *and* effective configuration recorded; one fingerprint slot per response, nullable | with the credential absent *and* the model id absent, the error names the model id; a run with N responses stores N fingerprint entries; a null fingerprint is recorded as null, not omitted | D7 |
-| D-12 (waits on the trace contract: where a response's usage lands is row 1) | `reporting/ledger.py` — three evidence classes: proved usage, provider-confirmed without usage, failed before the provider; a client-side timeout is never in the third class; a submitted job stays open until fetched or written off; nominal prices pinned per model id | a synthetic ledger with one proved response, one timed-out attempt and one uncollected job aggregates to a value tagged lower-bound with two unknown rows; an untagged total fails | D15, D9 |
+| D-11 ✔ 17 Sep (`--provider openai`: model priced, cap above zero, https and no secret in the endpoint, credential from `OPENAI_API_KEY` — each checked before the label is claimed, each a guard; the requested configuration — model, temperature, max_tokens, timeout, cap, price table, credential *name* — in the receipt and the record; the fingerprint recorded per response, null when absent; the key on the wire and in no artefact, pinned by a test that greps the run folder and a 401 whose body echoes the masked key) | `adii/provider/` — configuration validated before the client is built; requested *and* effective configuration recorded; one fingerprint slot per response, nullable | with the credential absent *and* the model id absent, the error names the model id; a run with N responses stores N fingerprint entries; a null fingerprint is recorded as null, not omitted | D7 |
+| D-12 ✔ 17 Sep, pre-empting row 1 as the spike did (usage read from `model_responded`, matched by turn, null when absent; `reporting/ledger.py`: proved usage at nominal prices pinned per model id with a table id, every other row unknown; the record's `api_cost_usd` is the lower bound and both renderers say "at least $x (n request(s) without usage)", never $0 for a paid run; the provider checks the bound between requests against `--max-cost-usd` and ends the run as a `bound_hit` with one request of overshoot — the third class, "failed before the provider", and the open-job case wait for a provider that has them) | `reporting/ledger.py` — three evidence classes: proved usage, provider-confirmed without usage, failed before the provider; a client-side timeout is never in the third class; a submitted job stays open until fetched or written off; nominal prices pinned per model id | a synthetic ledger with one proved response, one timed-out attempt and one uncollected job aggregates to a value tagged lower-bound with two unknown rows; an untagged total fails | D15, D9 |
 | D-13 | X2 floor job — a CI job that builds an isolated environment at the declared SDK floor and asserts every pinned parameter is accepted and every advertised module imports; versions compared with a parser, never as strings | the job is green at the floor and red one version below it | X2 |
-| D-14 | Outcome classification is A's word — a bound hit, a model failure and a platform failure each travel from the loop to the archive unchanged; D adds no interpretation | walkthrough variants for each termination reason land in the record verbatim | M8, A5, A9 |
+| D-14 ✔ 17 Sep, by type (A raises `ProviderFailureError` *from* the provider's exception; the runtime reads the cause's type — `ProviderFailure` → `infrastructure_failure`, `CostBudgetExceeded` → `bound_hit`, anything else → `model_failure` — never the message; HTTP 401/429/500 and a timeout are the provider's failure, exit 4, and the three renderers say "outside the model") | Outcome classification is A's word — a bound hit, a model failure and a platform failure each travel from the loop to the archive unchanged; D adds no interpretation | walkthrough variants for each termination reason land in the record verbatim | M8, A5, A9 |
 
 ### Phase 4 — freeze and the blind run · weeks 5–6 (5–18 Oct) · M9, M10
 
@@ -158,7 +159,7 @@ preservation, then provider. Within a phase the order is the dependency order.
 | D-16 | `python -m adii.freeze` — records digests of the model-facing surface (prompts, tool schemas, configuration) and of the scoring code as *separate* artefacts, because they freeze at different times ([inherited/AUTHORITY_LIFECYCLE.md](inherited/AUTHORITY_LIFECYCLE.md)); a test that a frozen digest still matches | the three M9 checkboxes | M9, C3 |
 | D-17 | The grid runner — N incidents × R repeats; every promised repeat is materialised as a record, success or classified failure; one failing unit does not abort the rest | a unit failing mid-grid leaves a classified record for every promised repeat and the remaining units still run | D5 |
 | D-18 ✔ 16 Sep (20 guards across A, B, contracts and D, all killed; C's join on merge; a CI job runs the pass on every pull request) | `scripts/guard_check.py` — a registry of named guards across A, B, C and D (file, exact snippet, neutralised snippet) plus controls; neutralise, run pytest, restore; survivors listed by name; non-zero on any survivor or on a control that survives; a registered snippet that is not found is itself a failure | a deliberately kept survivor fails the pipeline; runs in CI before freeze | X1, X1a–c, X4 |
-| D-19 | The M10 report — from C's scoring output: success, failure, false repair, correct abstention, unnecessary escalation and repair rejection, each labelled in its own terms | one archive of each class renders distinctly and completely | D11, M10 |
+| D-19 (the seam ✔ 16 Sep: `python -m adii.evaluation --run L --key K` scores the record the runtime wrote, through its own reader, against a frozen key, and keeps `evaluation_report.json` beside the record in its own retention class; the page serves it and says the category in the authority's terms; the M10 grid itself waits on D-17 and a key per incident) | The M10 report — from C's scoring output: success, failure, false repair, correct abstention, unnecessary escalation and repair rejection, each labelled in its own terms | one archive of each class renders distinctly and completely | D11, M10 |
 
 X1a, X1b and X1c are review questions D asks of every guard in the registry, not code: is
 the check independent of the code it checks; are the boundary cases named tests rather than a
@@ -192,7 +193,7 @@ git history, so "reserve first" is true in the execution graph and not only in p
 
 | # | Unit | Done when | Ids |
 |---|---|---|---|
-| D-20 | The reserve commitment received — the custodian's `adii.reserve_commitment/v1` document and its digest committed under `02_src/adii/evaluation/`, verified against the private original by digest | the file exists in the repository and predates every development incident in git history; the digest matches the custodian's | D8, D13 |
+| D-20 (the receiving side ✔ 17 Sep: `evaluation/commitment.py` — the private partition, every candidate to `reserve` or `development_candidate`, canonicalised and digested; the team-visible document carries the digest, the counts, the campaign and the custodian, never an assignment; `--verify` re-derives the digest from the private original; made once. Waits on the custodian's partition and document) | The reserve commitment received — the custodian's `adii.reserve_commitment/v1` document and its digest committed under `02_src/adii/evaluation/`, verified against the private original by digest | the file exists in the repository and predates every development incident in git history; the digest matches the custodian's | D8, D13 |
 | D-21 | The receiving machinery — `python -m adii.runtime --incident <id>` loads `01_data/incidents/<id>/` through the tool layer's world opener; the guard tests: every incident has a truth file marked `public_development` with a public `development_selection_class`, and nothing in the repository is blind-eligible | the walkthrough still runs by its own path; a compiled incident runs end to end with the scripted provider; both guard tests are red against a planted violation | D1, X4 |
 | D-22 | The declassified development catalogue — six incidents compiled by the custodian from the private corpus into the receiving contract, one per selection class, each passing the four questions, reachability tested against the real tool layer | six records in the archive, one per incident, each rendering in the inspector with its own disposition; additive from then on | M3, M4, M5 |
 
@@ -205,12 +206,15 @@ git history, so "reserve first" is true in the execution graph and not only in p
 - **Screenshots** of real runs into `03_assets/screenshots/` for the presentation.
 - **Housekeeping** that only D notices: GitHub handles in `CODEOWNERS`, the generated docs
   staying generated, `current_status.md` regenerated with every package that grows.
-- **The live spike**, 15 Sep, branch `spike/live-local`, not merged: `adii/provider/`
-  behind A's seam over a local OpenAI-compatible endpoint, `runtime/live.py` driving A's
-  loop from the runtime, `--provider local`. One trace, recorded at the provider and tool
-  boundaries. It pre-empts D-1 in code on purpose, as working evidence for the review, and
-  makes the one policy choice main must not (a stop with no decision → `model_failure`).
-  D-6b and D-11 are carved from it after the rows resolve; nothing is merged before.
+- **The live spike**, 15 Sep, branch `spike/live-local`: `adii/provider/` behind A's seam
+  over a local OpenAI-compatible endpoint, `runtime/live.py` driving A's loop from the
+  runtime, `--provider local`. One trace, recorded at the provider and tool boundaries. It
+  pre-empts D-1 in code on purpose, as working evidence for the review, and makes the one
+  policy choice main must not (a stop with no decision → `model_failure`). It was meant to
+  stay on its branch until the rows resolved; it reached `main` on 16 Sep with the live
+  console (PRs #20, #21, #23). So its placeholders are on the main command line and in the
+  page's launcher, marked SPIKE in the code, and D-6b replaces them in place once rows 1,
+  5 and 6 are decided. Nothing produced through them is quoted as an ADII result.
 - **Frontend specimens**, 15 Sep: `python -m adii.examples.specimens` archives six
   hand-authored development incidents with ten scripted runs, produced through the real
   runtime and B's tools, every record marked scripted with no model and no evaluation
@@ -285,8 +289,11 @@ python 02_src/scripts/guard_check.py          # every guard killed, none survivi
   receipt was written first. D-15 is a precondition of D-11 going live, whatever the week.
 - **The browser becoming a launcher.** It became one on 16 September, on purpose and
   narrowly: only when the operator starts the server with a local model, only against that
-  endpoint, with the receipt written before the investigator runs (D8). No paid provider is
-  reachable from the page; that stays on the command line behind D-11 and D-15.
+  endpoint, with the receipt written before the investigator runs (D8). On 17 September,
+  with D-11 and D-15 built, the paid path followed under the same shape: the operator
+  starts the server with `--provider openai`, a priced model and a cap, the credential in
+  the server's environment and checked before the port is bound; the browser still sends
+  the incident id and nothing else, and the run goes through the runtime's own entry point.
 - **The guard registry drifting from the code.** A registered snippet that is not found fails
   the harness, because a guard that moved is a guard that may be gone.
 - **Reporting a number that is not ours.** The report labels every figure with the run it came

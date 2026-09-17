@@ -18,6 +18,17 @@ STOP_SIGNAL: str = "<STOP>"
 TOOL_CALL_PREFIX: str = "<TOOL_CALL>"
 DECISION_PREFIX: str = "<DECISION>"
 
+
+def _body(response: str, prefix: str) -> str:
+    """The JSON after a protocol tag. Chat models close the tag they opened —
+    `<DECISION>{...}</DECISION>` — and a closing tag is not part of the JSON, so a
+    matching one at the end is dropped. Nothing else is repaired."""
+    body = response.removeprefix(prefix).rstrip()
+    closing = "</" + prefix[1:]
+    if body.endswith(closing):
+        body = body[: -len(closing)]
+    return body
+
 _CREDENTIAL_PATTERN = re.compile(
     # API-key prefixes are deliberately case-sensitive; HTTP auth schemes are not.
     r"(?<![A-Za-z0-9_*-])sk-(?:"
@@ -143,7 +154,7 @@ def run(
 
         if response.startswith(DECISION_PREFIX):
             try:
-                decision = _parse_decision(response.removeprefix(DECISION_PREFIX))
+                decision = _parse_decision(_body(response, DECISION_PREFIX))
             except (TypeError, ValueError) as error:
                 trace.append(
                     TraceEvent(
@@ -198,7 +209,7 @@ def run(
         if response.startswith(TOOL_CALL_PREFIX):
             call_id = f"tool-call-{turn_index}"
             try:
-                intent = json.loads(response.removeprefix(TOOL_CALL_PREFIX))
+                intent = json.loads(_body(response, TOOL_CALL_PREFIX))
             except (json.JSONDecodeError, RecursionError):
                 intent = None
 
@@ -315,6 +326,8 @@ def _parse_decision(payload: str) -> InvestigationDecision:
     root_cause_id = submission.get("root_cause_id")
     repair_id = submission.get("repair_id")
     patch = submission.get("patch", {})
+    if patch is None:          # "patch": null — a decision that changes nothing carries none
+        patch = {}
     if not isinstance(root_cause_summary, str):
         raise ValueError("root_cause_summary must be a string")
     if root_cause_id is not None and not isinstance(root_cause_id, str):
@@ -323,6 +336,8 @@ def _parse_decision(payload: str) -> InvestigationDecision:
         raise ValueError("repair_id must be a string or null")
     if not isinstance(patch, dict):
         raise ValueError("patch must be an object")
+    if not all(isinstance(k, str) and isinstance(v, str) for k, v in patch.items()):
+        raise ValueError("patch must map each path to its new contents, as text")
 
     return InvestigationDecision(
         disposition=disposition,

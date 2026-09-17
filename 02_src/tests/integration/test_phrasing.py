@@ -57,7 +57,8 @@ def load(name: str) -> dict:
     ("bound", "The investigator reached a bound it set after 0 model turns and 3 tool calls, "
               "and stopped without a decision."),
     ("model", "The model failed and the run stopped without a decision."),
-    ("infra", "Something in the runtime failed — a defect of ours, not the model's — and the run "
+    ("infra", "Something outside the model failed — the runtime or the provider, not the "
+              "model's — and the run "
               "stopped without a decision."),
 ])
 def test_how_a_run_ended_is_a_projection_of_its_fields(name, expected):
@@ -68,9 +69,9 @@ def test_how_a_run_ended_is_a_projection_of_its_fields(name, expected):
 @pytest.mark.parametrize(("name", "expected"), [
     ("accepted", "REPAIR · accepted by the validator"),
     ("rejected", "REPAIR · not accepted by the validator"),
-    ("bound", "Ended at a bound, no decision"),
-    ("model", "Ended by a model failure, no decision"),
-    ("infra", "Ended by a failure of ours, no decision"),
+    ("bound", "Stopped at its limit, no decision"),
+    ("model", "Stopped: the model failed, no decision"),
+    ("infra", "Stopped: a failure outside the model, no decision"),
 ])
 def test_the_short_outcome_inherits_exactly_the_records_authority(name, expected):
     record = load(name)
@@ -97,20 +98,35 @@ def test_a_turn_says_what_was_asked_and_what_came_back_quoting_only_the_payload(
     refused = next(r for r in results if r["status"] == "DENIED")
     assert turn_text("turn", "answered", refused).startswith("refused: unknown tool")
     assert turn_text("turn", "decided", "REPAIR") == "Committed to REPAIR"
-    assert turn_text("turn", "validated", True) == "The validator accepted the repair"
-    assert turn_text("turn", "validated", False) == "The validator did not accept the repair"
+    checked = {"accepted": False, "report": "no", "checks_run": ["rebuild"]}
+    assert turn_text("turn", "validated", {**checked, "accepted": True}) == \
+        "The validator accepted the repair"
+    assert turn_text("turn", "validated", checked) == "The validator did not accept the repair"
+    assert turn_text("turn", "validated", {**checked, "checks_run": []}) == \
+        "No validator checked the repair"
 
 
 @pytest.mark.parametrize(("name", "expected"), [
     ("accepted", "Decided: REPAIR — accepted by the validator"),
     ("rejected", "Decided: REPAIR — not accepted by the validator"),
-    ("bound", "Stopped at the turn limit, no decision"),
-    ("model", "Stopped by a model failure, no decision"),
-    ("infra", "Stopped by a failure of ours, no decision"),
+    ("bound", "Stopped at its limit, no decision"),
+    ("model", "Stopped: the model failed, no decision"),
+    ("infra", "Stopped: a failure outside the model, no decision"),
 ])
 def test_the_headline_inherits_exactly_the_records_authority(name, expected):
     record = load(name)
     assert phrase("headline", record["termination"], record) == expected
+
+
+def test_a_repair_nobody_checked_is_not_called_rejected():
+    """A validation result with `checks_run` empty states that no check ran; the record's
+    own placeholder verdict says so in its report. The page must not read `accepted: false`
+    as a verdict against the repair — that would assert a finding the record disclaims."""
+    record = load("rejected")
+    record["validation"] = {"accepted": False, "checks_run": [],
+                            "report": "No independent validator exists yet."}
+    assert phrase("headline", "submitted", record) == "Decided: REPAIR — not checked by a validator"
+    assert phrase("outcome", "submitted", record) == "REPAIR · not checked by a validator"
 
 
 @pytest.mark.parametrize("name", list(RECORDS))
@@ -123,6 +139,34 @@ def test_no_projection_asserts_a_cause_the_record_does_not_state(name):
                        for e in record["trace"] if e["kind"] == "tool_result")]).lower()
     hits = [w for w in FORBIDDEN if w in text]
     assert not hits, f"a projection asserts a cause the record does not state: {hits}"
+
+
+def test_the_evaluations_categories_are_said_in_the_authoritys_own_terms():
+    """One sentence per category, from outcome_classification.py's definitions; the
+    category itself is always shown beside it, so the sentence never replaces it."""
+    from adii.evaluation.outcome_classification import CATEGORIES
+    for category in (*CATEGORIES, "not_evaluable"):
+        assert phrase("evaluation", category, {}).endswith("."), category
+    assert phrase("evaluation", "success", {}) == "The decision matched the answer key."
+
+
+def test_the_cost_is_a_labelled_lower_bound_never_a_zero_for_a_paid_run():
+    """Inherited D15 on the page: a run with no paid provider spent nothing and says so; a
+    paid run shows the ledger's lower bound and counts the requests it could not price."""
+    record = {**load("accepted"), "configuration": {"provider": "scripted", "model": None}}
+    record["counters"] = {**record["counters"], "api_cost_usd": 0.0}
+    paid = {**record, "configuration": {"provider": "openai"},
+            "counters": {**record["counters"], "api_cost_usd": 0.0012},
+            "trace": [{"sequence": 0, "kind": "model_requested", "payload": {"turn": 1}},
+                      {"sequence": 1, "kind": "model_responded",
+                       "payload": {"turn": 1, "usage": {"prompt_tokens": 100}}},
+                      {"sequence": 2, "kind": "model_requested", "payload": {"turn": 2}}]}
+    script = (f"{(WEB / 'phrasing.js').read_text(encoding='utf-8')}\n"
+              f"process.stdout.write(PHRASING.cost({json.dumps(record)}) + '|' + "
+              f"PHRASING.cost({json.dumps(paid)}));")
+    out = subprocess.run([node(), "-e", script], capture_output=True, text=True,
+                         encoding="utf-8", check=True, timeout=30).stdout
+    assert out == "nothing spent (no paid provider)|at least $0.0012 (1 request(s) without usage)"
 
 
 def test_a_run_without_a_model_is_always_marked_scripted():
@@ -141,6 +185,8 @@ def test_the_readme_lists_every_sentence_the_page_adds():
     source = (WEB / "phrasing.js").read_text(encoding="utf-8")
     for key in ("submitted", "bound_hit", "model_failure", "infrastructure_failure",
                 "notInvoked", "asked", "answered", "wrote", "decided", "validated",
-                "unanswered", "scripted"):
+                "unanswered", "scripted", "cost", "runtime", "success", "correct_abstention",
+                "unnecessary_escalation", "false_repair", "repair_rejection", "failure",
+                "not_evaluable"):
         assert key in source, f"phrasing.js lost {key}"
         assert f"`{key}`" in readme, f"README does not list the {key} sentence"

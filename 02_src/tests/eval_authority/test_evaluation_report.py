@@ -75,7 +75,31 @@ class TestSubmittedRuns:
             "sub_kind": None,
             "verdict": "correct",
             "settled_by": "deterministic",
+            "runtime_validation": {"state": "checked", "accepted": True, "checks_run": []},
         }
+
+    def test_runtime_validation_is_a_dimension_orthogonal_to_the_verdict(self):
+        """The same category — an unwarranted repair — means a different system behaviour
+        depending on whether the runtime blocked it before action or only preserved it for
+        this scorer to find afterwards. The report keeps both, separately."""
+        decision = {"disposition": "REPAIR", "root_cause_id": "X", "root_cause_summary": "x",
+                    "repair_id": "R", "patch": {"a": "b"}}
+        key = {**ANSWER_KEY, "correct_disposition": "NO_REPAIR"}
+        unchecked = build_evaluation_report(submitted_run_record(decision, {
+            "accepted": False, "report": "No independent validator exists yet.",
+            "checks_run": []}), key)
+        rejected = build_evaluation_report(submitted_run_record(decision, {
+            "accepted": False, "report": "rebuilt; wrong", "checks_run": ["rebuild"]}), key)
+        assert unchecked["category"] == rejected["category"] == "failure"
+        assert unchecked["sub_kind"] == rejected["sub_kind"] == "unwarranted_repair"
+        assert unchecked["runtime_validation"] == {"state": "unchecked", "accepted": False,
+                                                   "checks_run": []}
+        assert rejected["runtime_validation"] == {"state": "checked", "accepted": False,
+                                                  "checks_run": ["rebuild"]}
+        no_repair = build_evaluation_report(submitted_run_record(
+            {**decision, "disposition": "NO_REPAIR", "repair_id": None, "patch": {}}, None), key)
+        assert no_repair["runtime_validation"] == {"state": "none", "accepted": None,
+                                                   "checks_run": []}
 
     def test_escalate_run_that_should_have_repaired_is_unnecessary_escalation(self):
         decision = {

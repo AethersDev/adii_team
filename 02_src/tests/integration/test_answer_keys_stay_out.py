@@ -20,8 +20,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 AUTHORITY = ("02_src", "adii", "evaluation")
+# Both vocabularies: the development catalogue's proposal and the evaluation authority's
+# answer_key.schema.json, so a key in either shape is caught wherever it is copied.
 MARKERS = ("answer_key", "expected_disposition", "evidence_sufficient",
-           "revenue_oracle", "accepted_repair_ids", "canonical_root_cause_id")
+           "revenue_oracle", "accepted_repair_ids", "canonical_root_cause_id",
+           "correct_disposition", "correct_root_cause_id", "reference_repair_id")
 
 
 def test_evaluation_shaped_data_lives_only_with_the_evaluation_authority():
