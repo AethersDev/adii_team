@@ -19,7 +19,7 @@ without changing what the sequence produces.
 | 1 | one canonical trace — one vocabulary, recorded at the provider and tool boundaries, A's own events carried, not dropped | `trace_event_contract.md` rows 1 and 6 decided; `reporting/events.py` (D-1); `test_live_provider.py` pins the kinds | ✗ rows open; two vocabularies in one trace, `decision_rejected` dropped (`runtime/live.py:51`) |
 | 2 | no policy choice of the spike's survives — a stop without a decision has the class the team chose | row 5 decided; D-6b replaces `runtime/live.py` in place | ✗ `<STOP>` → `model_failure` with "row 5" in the detail, pinned by a test |
 | 3 | every ending is represented honestly — decided, stopped at a limit, model failed, our failure — in the record, the text report and the page, with the same words | `test_phrasing.py`, `test_endings.py`, the browser routes | ✔ four classes; the validator's three states (accepted / rejected / unchecked) said the same way in all three renderers |
-| 4 | hard bounds — turns, tool calls, cost, wall clock — each named in the `bound_hit` it causes | D-9 `Budget`; the page's one-at-a-time gate | partial: turns, tool calls and — for a paid run — cost are bound (`cost_usd: x of y used`, one request of overshoot); no wall clock, so a stalled model holds the slot up to 12 × 120 s |
+| 4 | hard bounds — turns, tool calls, cost, wall clock — each named in the `bound_hit` it causes | D-9 `Budget`; the page's one-at-a-time gate | partial: turns and — for a paid run — cost are bound (`cost_usd: x of y used`, one request of overshoot); **tool calls are not**: `ToolExecutor.max_calls` exists and nothing on the runtime path sets it (a correction of 17 Sep — this row said otherwise); no wall clock, so a stalled model holds the slot up to 12 × 120 s |
 | 5 | the receipt exists before the first model request | `test_the_receipt_is_on_disk_when_the_first_model_request_arrives` | ✔ observed at the model, not inferred |
 | 6 | a cited evidence id resolves to a minted observation | D-3 counters; contract row 3 (`evidence_refs`) | ✗ no `evidence_refs` on the decision yet; nothing checks citations |
 | 7 | the archived run survives: attested, preserved with everything it left, reloadable | `python -m adii.reporting.manifest --verify / --preserve`; retention classes evidence / annotation / evaluation | ✔ five names attested; anything else in a run folder is an unlisted finding |
@@ -274,6 +274,47 @@ In the record, check: `configuration.credential` is the name `OPENAI_API_KEY (en
 `api_cost_usd` is a lower bound and the report says "at least"; every `model_responded`
 carries `usage` and a `fingerprint`; the receipt's reason names the cap.
 
+## Against the previous system, 17 September
+
+The apple-to-apple the reserve rules allow: our archive against what `docs/inherited/`
+transfers of the previous system — requirements, reproduced defects, and one results
+table with every symbol, count, model id and cost stripped by design. The old archive
+itself does not cross (inheritance rule), and a declassified incident would give a
+controlled replication on the same world and truth, never a number to quote beside the
+old one (CONTROLS.md, "whose numbers these are").
+
+| | previous system, as transferred | ours, as archived |
+|---|---|---|
+| world | eight evidence sources — extracts, schemas, transforms, a warehouse, logs — addressed by table / log / transform id | two or three SQL tables per incident; two tools |
+| discovery | not recorded | `get_schema()` lists tables; the protocol says begin there |
+| bounds | a tool budget with a derived turn budget | turns (12), a paid spend cap; tool calls not bound on the runtime path; no wall clock |
+| before action | a per-incident write surface; a rehearsal sandbox documented as structural only; a validator that rebuilt from frozen inputs and rejected a rehearsal-green repair; minted ids, unminted citations rejected | permitted paths told and recorded, enforced nowhere; no validator (every live REPAIR *not checked*); no citation check — one Qwen run cited an id one character off a minted one and nothing noticed; the evidence gate counts a REJECTED result as an observation (`delivery-duplicated-qwen4b-1` submitted REPAIR on one refusal) |
+| results | 6 frozen incidents × 3 repeats × 3 arms: always-escalate 2/6, alert-only 6/18, full 18/18, zero false repairs — no variance, no failure taxonomy | 26 live runs, 7 hand-authored incidents, 7 code revisions, 2 protocols, 1 key, 0 control arms, 2 identical pairs; gpt-4.1 diverged at temperature 0 |
+| custody | first exposure discarded; archive untracked, unversioned, no sampling configuration | receipt before spend, observed at the model; every response's usage and fingerprint; cost as a priced lower bound; a manifest — and three paid runs whose `source_revision` names a commit that is not the code that ran (a dirty tree), recoverable only because the receipt now carries the protocol's digest |
+
+What the new runs show that the old record could not: a priced lower bound per run; the
+credential in no artefact; an unchecked-vs-checked dimension beside the verdict; and a
+failure taxonomy — table guessing, protocol-shape collapse, a fabricated premise, an
+escalation with the decisive table in view, evidence found then bound, right diagnosis
+then REPAIR anyway, an unjustified NO_REPAIR on a conflict — that an 18/18 never produced.
+
+What we are missing that the old system had or paid for, ranked by what it changes:
+
+1. **Gate before action** — a write-path gate (patch keys ⊆ `permitted_write_paths`), an
+   evidence gate that counts only OK observations, and M6's first check ("does it
+   rebuild"); each a refusal at the boundary with a guard. Changes what every archived
+   REPAIR means.
+2. **Make the numbers mean something** — D-16 freeze (the model-facing surface's own
+   digest, so a run's protocol is provable from the record and a dirty tree cannot hide
+   behind a commit hash); a key per incident, authored by the evaluation authority; the
+   two control arms (alert-only is one configuration away: the same protocol with no
+   tools); D-17 repeats, since one run at temperature 0 is one sample; A's own trace
+   carried (row 6). Changes what any score can claim.
+3. **Close the world gap** — read what may be written (`get_transform` over exactly the
+   permitted paths, an allow-listed id, never a path); logs and transforms as evidence
+   sources; then the first declassified incident through the catalogue's sequence.
+   Changes what future runs can see.
+
 ## Decisions the line waits on
 
 1. **Trace contract rows 1, 5, 6** (`trace_event_contract.md`, "What is genuinely open") —
@@ -321,6 +362,10 @@ carries `usage` and a `fingerprint`; the receipt's reason names the cap.
 | adapter → trace | A's `decision_rejected` events, with reasons, are discarded (`decision, _ = run(...)`) | `runtime/live.py:51`; contract row 6, then D-6b |
 | scoring semantics | a NO_REPAIR scores `success` on disposition alone; runs 2–3 are the case | `evaluation/scoring.py` — the authority's |
 | decision → permitted paths | `permitted_write_paths` is told to the model and recorded; nothing enforces it — R0 archived a REPAIR where none was permitted | decision 5 |
+| loop → evidence gate | a REJECTED result counts as an observation: `delivery-duplicated-qwen4b-1` submitted REPAIR after one refused request and nothing else; `decision_policy.md` says "observed" | the loop's owner; decision 5's sibling |
+| decision → evidence ids | nothing checks a cited id against the minted ones: `shipment-counts-disagree-qwen4b-1` cited `ev-ee53eb377d154e4` for minted `ev-ee53eb377d7154e4` | D-3; contract row 3 |
+| runtime → tools | `ToolExecutor.max_calls` is never set on the runtime path; the only bounds are turns and, paid, cost | D-9 |
+| record → code | three paid runs carry `source_revision 8ac508e` with the protocol digest of `b09dc48`: a dirty working tree; the receipt's protocol artefact is what makes it recoverable | D-16 |
 | protocol → parser | a patch that is not path → text was accepted and crashed both renderers (R0) | `investigator/loop.py`, `reporting/record.py` (fixed 17 Sep, two guards) |
 | tool → model | `run_sql` "no such table" did not name the known tables, and R0 built a false premise on it | `tools/database.py` (fixed 17 Sep; the tool layer's owner reviews) |
 | context → tools | a permitted write path is named to the model and no tool can read it; three runs (`openai-1`, `41-1`, `41-2`) asked for it and were refused; `41-2` then wrote it blind | decision 6 |
