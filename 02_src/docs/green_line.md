@@ -173,6 +173,37 @@ evaluator (there is no key for this incident yet). The system recorded it faithf
 had nothing to say; that is the correct behaviour of the system and the wrong behaviour
 of the model, and the trace lets a reader tell which.
 
+`revenue-after-deploy-openai-41-1` (gpt-4.1, the model change in the lineage; $0.038,
+twelve turns, eleven tool calls): it **found the evidence** — turn 8 `distributors`
+(Northwind and Harbor, contracts ended 2026-03-07, 0.45 of revenue between them), turn 9
+`deploys` ("checkout UI copy; no pricing or pipeline change") — and then spent turns 10
+to 12 re-reading `revenue_daily` rows it already had, and the twelve-turn bound ended the
+run with no decision. Turn 7 was again `get_schema` on `transforms/revenue_daily.sql`: a
+second model asking to read the permitted path (decision 6). What this run establishes:
+the demo's story exists with this model — it looks where the evidence is — and the
+bound, a default in the runtime, cut it off with the evidence in hand. The next change in
+the lineage is the bound, not the prompt: one run at `--max-turns 20`, recorded as such.
+
+`revenue-after-deploy-openai-41-2` (gpt-4.1, the bound change: `--max-turns 20`; $0.035,
+eleven turns, nine tool calls) — **Moment 2, empirically.** It found the truth and said
+so in its own summary: "the drop … is due to the expiration of contracts for distributors
+Northwind and Harbor on 2026-03-07"; the deploy touched UI copy only. Then it proposed
+**REPAIR** anyway: a rewrite of `transforms/revenue_daily.sql` — a file it asked to read
+on turn 7 and was refused — joining a `raw_revenue` table that does not exist in the
+world, on the premise that the `all` rows are "likely incorrect". Right diagnosis,
+unjustified action, on the word *likely*. What the system did with it: the validator's
+slot said *not checked* (M6 does not exist; it would have rejected SQL that cannot run);
+the scorer filed it as **failure / unwarranted_repair** against the frozen key —
+disposition alone decides that, no validator needed. This is the run the demo opens on:
+the best model in the lineage, the evidence found, the fix still reached for, and the
+system declining to call it justified. Lineage: 4B smoke → R0/R1 → 4.1-mini → 4.1 at 12
+turns (bound) → 4.1 at 20 turns. Every configuration archived; nothing rerun.
+
+A refinement the run forced in the scorer's refusal: an unchecked REPAIR is refused only
+where the key also says REPAIR — there the validator's verdict would decide between
+success and rejection. Where the key says the right call was not a repair, the disposition
+alone decides, no validator is consulted, and the run scores as what it is.
+
 And the scoring comparison the pair makes: the 4B model's shallow NO_REPAIR scored
 `success`; the 4.1-mini's investigated, stated, honest abstention scored
 `unnecessary_escalation`. Disposition-only scoring rewards the lucky guess over the

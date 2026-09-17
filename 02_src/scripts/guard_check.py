@@ -179,8 +179,7 @@ GUARDS = (
           "    if key[\"incident_id\"] != incident:\n",
           "    if False:\n"),
     Guard("C.score_refuses_an_unchecked_repair", "C", "evaluation/__main__.py",
-          "    if verdict is not None and not verdict[\"accepted\"] "
-          "and not verdict[\"checks_run\"]:\n",
+          "    if unchecked and key[\"correct_disposition\"] == \"REPAIR\":\n",
           "    if False:\n"),
     Guard("C.report_never_overwritten", "C", "evaluation/__main__.py",
           "    if path.exists():\n        raise FileExistsError(f\"{path} exists",
