@@ -125,6 +125,8 @@ it in this order, and keep the third line exact — the runtime did **not** stop
 > established existed, in a file it had asked to read and been refused.
 >
 > At runtime, our current system recorded that repair as *unchecked*. It did not stop it.
+> It had refused the model permission to read that file — and let it propose rewriting it.
+> Declaring a boundary and enforcing it are different things, and this run shows the gap.
 >
 > Because the run was preserved — every request, every answer, the decision — a different
 > program, against a key frozen the day before that the investigator cannot reach, could
