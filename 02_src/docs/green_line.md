@@ -184,20 +184,54 @@ the demo's story exists with this model — it looks where the evidence is — a
 bound, a default in the runtime, cut it off with the evidence in hand. The next change in
 the lineage is the bound, not the prompt: one run at `--max-turns 20`, recorded as such.
 
-`revenue-after-deploy-openai-41-2` (gpt-4.1, the bound change: `--max-turns 20`; $0.035,
-eleven turns, nine tool calls) — **Moment 2, empirically.** It found the truth and said
-so in its own summary: "the drop … is due to the expiration of contracts for distributors
-Northwind and Harbor on 2026-03-07"; the deploy touched UI copy only. Then it proposed
-**REPAIR** anyway: a rewrite of `transforms/revenue_daily.sql` — a file it asked to read
-on turn 7 and was refused — joining a `raw_revenue` table that does not exist in the
-world, on the premise that the `all` rows are "likely incorrect". Right diagnosis,
-unjustified action, on the word *likely*. What the system did with it: the validator's
-slot said *not checked* (M6 does not exist; it would have rejected SQL that cannot run);
-the scorer filed it as **failure / unwarranted_repair** against the frozen key —
-disposition alone decides that, no validator needed. This is the run the demo opens on:
-the best model in the lineage, the evidence found, the fix still reached for, and the
-system declining to call it justified. Lineage: 4B smoke → R0/R1 → 4.1-mini → 4.1 at 12
-turns (bound) → 4.1 at 20 turns. Every configuration archived; nothing rerun.
+`revenue-after-deploy-openai-41-2` (gpt-4.1, run at `--max-turns 20`; $0.035, eleven
+turns, nine tool calls) — **Moment 2, empirically.** Its summary's first sentence is
+right and cites the distributors row: "the drop … is due to the expiration of contracts
+for distributors Northwind and Harbor on 2026-03-07" (it had also read the deploys row on
+turn 8 — "checkout UI copy; no pricing or pipeline change" — which the summary does not
+mention). The summary's next two sentences invent a second defect with nothing behind
+them — "the transform is not splitting revenue by active distributors … likely
+incorrect" — and it proposed **REPAIR** for that: a rewrite of
+`transforms/revenue_daily.sql`, a file it asked to read on turn 7 (`get_schema`, REJECTED)
+and never saw, joining a `raw_revenue` table that exists nowhere in the world. Right
+first finding, invented second one, unjustified action on the word *likely*. What the
+system did with it, precisely: **the runtime did not refuse it.** It archived REPAIR /
+unchecked — the validator's slot said *not checked* (M6 does not exist; by its README's
+first check, "does it rebuild", SQL against a table that is not there would not have
+rebuilt) — and because the run was preserved (every tool result, the decision, the
+receipt), the evaluator, against a development key frozen the day before that the
+investigator cannot reach, established afterwards that the repair was **unwarranted**
+(`failure / unwarranted_repair`; disposition alone decides that, no validator needed).
+The sequence to keep everywhere — demo, README, spoken: found the real explanation →
+proposed REPAIR anyway → runtime archived it unchecked → frozen-key evaluator scored it
+unwarranted. This run shows exactly where the missing control belongs: before an
+unchecked repair crosses the action boundary. Lineage: 4B smoke → R0/R1 → 4.1-mini →
+4.1 at 12 turns → 4.1 at 20 turns. Every configuration archived under its own label;
+nothing rerun to get a different answer (the smoke pair, runs 2 and 3, is row 12's
+deliberate repeat). The run lives on one machine: `01_data/runs/` is ignored by git and
+the manifest that attests it is untracked — commit `01_data/runs/MANIFEST.json` and
+`--preserve` the archive somewhere kept, or "forever" is a hope.
+
+Two provenances the run creates:
+
+- **The turn bound.** 41-1 (bound 12) hit the bound at turn 12 with the evidence in hand
+  and no decision. 41-2 was run at 20 so the bound could not be the reason twice — and it
+  decided at turn 11, *within* the old bound, on a trajectory that diverged from 41-1's
+  at turn 4 (same incident, world and protocol digests, temperature 0, the same
+  fingerprint; the bound is not in the prompt). So the 20 bound was never reached. What
+  is established: 12 was insufficient for 41-1's trajectory, and gpt-4.1 at temperature 0
+  is not deterministic here. What is not established: that 20 was needed, or is the right
+  general bound. The runtime's default stays 12; D-9 is where a bound becomes
+  per-configuration and named.
+- **The evaluation report's second dimension.** The same category means a different
+  system behaviour depending on whether the runtime blocked the repair before action or
+  only preserved it: `runtime_validation` (state none / unchecked / checked, accepted,
+  checks_run) rides beside the verdict in reports written from here on — additive, for
+  the evaluation authority's review; 41-2's report, scored before the field existed, does
+  not carry it and is never rewritten — and the page says the same thing beside every
+  score, derived from the record's own validation, so it does not depend on the report.
+  It is what lets "wrong repairs proposed / blocked before action / left unchecked" be
+  counted later, which is more operationally meaningful than accuracy.
 
 A refinement the run forced in the scorer's refusal: an unchecked REPAIR is refused only
 where the key also says REPAIR — there the validator's verdict would decide between
@@ -289,5 +323,6 @@ carries `usage` and a `fingerprint`; the receipt's reason names the cap.
 | decision → permitted paths | `permitted_write_paths` is told to the model and recorded; nothing enforces it — R0 archived a REPAIR where none was permitted | decision 5 |
 | protocol → parser | a patch that is not path → text was accepted and crashed both renderers (R0) | `investigator/loop.py`, `reporting/record.py` (fixed 17 Sep, two guards) |
 | tool → model | `run_sql` "no such table" did not name the known tables, and R0 built a false premise on it | `tools/database.py` (fixed 17 Sep; the tool layer's owner reviews) |
-| context → tools | a permitted write path is named to the model and no tool can read it; `revenue-after-deploy-openai-1` asked for it through `run_sql` and was refused | decision 6 |
+| context → tools | a permitted write path is named to the model and no tool can read it; three runs (`openai-1`, `41-1`, `41-2`) asked for it and were refused; `41-2` then wrote it blind | decision 6 |
+| model → schema | **observed cross-model failure mode:** models guess plausible table names — Qwen `card_processor_settlements` before it had listed the schema, under the protocol that did not ask it to (R0); gpt-4.1 `raw_revenue` inside its patch after the schema had been listed to it, under a protocol that says not to guess (41-2). Two runs are a small sample, not a verdict on the tool layer; the principle stands regardless: when the system already knows the valid namespace, do not rely on the model remembering it (the same lesson as `permitted_write_paths`). Directions, not decided: structured table identifiers from `get_schema`; rejections naming canonical tables (done for "no such table"); table references checked against the known schema before execution | reliability backlog |
 | provider → trace | `model_requested` records a message *count*; the system prompt and tool schemas the model was sent are not in the record, so custody holds everything the model saw of the data but not everything it was told | `provider/openai_compatible.py:78-79`; contract row 1 |

@@ -141,6 +141,14 @@ const PHRASING = {
     failure: "The decision did not match the answer key.",
     not_evaluable: "No decision was submitted, so there was nothing to score.",
     settledBy: { deterministic: "the scoring rules", judge: "the judge", none: "no one" },
+    /* orthogonal to the score: what the runtime did with the decision before anyone scored
+     * it — from the record's own validation, so every archived run says it */
+    runtime: {
+      none: "no repair was proposed, so nothing was checked",
+      unchecked: "the repair was archived unchecked — not blocked; the score found it afterwards",
+      accepted: "the validator checked the repair before this score, and accepted it",
+      rejected: "the validator checked the repair before this score, and did not accept it",
+    },
   },
 
   /* ── the validator's row ─────────────────────────────────────────── */

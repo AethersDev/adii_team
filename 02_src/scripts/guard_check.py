@@ -184,6 +184,12 @@ GUARDS = (
     Guard("C.report_never_overwritten", "C", "evaluation/__main__.py",
           "    if path.exists():\n        raise FileExistsError(f\"{path} exists",
           "    if False:\n        raise FileExistsError(f\"{path} exists"),
+    Guard("C.partition_assigns_one_of_two_classes", "C", "evaluation/commitment.py",
+          "        if assigned not in CLASSES:\n",
+          "        if False:\n"),
+    Guard("C.commitment_made_once", "C", "evaluation/commitment.py",
+          "        if out.exists():\n",
+          "        if False:\n"),
     # C's own guards (the key loaders, the scorer's refusals) join here from C's tests.
 )
 

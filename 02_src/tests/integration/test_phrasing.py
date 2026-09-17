@@ -185,7 +185,7 @@ def test_the_readme_lists_every_sentence_the_page_adds():
     source = (WEB / "phrasing.js").read_text(encoding="utf-8")
     for key in ("submitted", "bound_hit", "model_failure", "infrastructure_failure",
                 "notInvoked", "asked", "answered", "wrote", "decided", "validated",
-                "unanswered", "scripted", "cost", "success", "correct_abstention",
+                "unanswered", "scripted", "cost", "runtime", "success", "correct_abstention",
                 "unnecessary_escalation", "false_repair", "repair_rejection", "failure",
                 "not_evaluable"):
         assert key in source, f"phrasing.js lost {key}"

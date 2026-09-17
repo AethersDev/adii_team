@@ -423,13 +423,16 @@ function story(r, compact = false, label = r.label, evaluation = null) {
    * verbatim in the mono values, with one sentence from the dictionary beside it */
   if (evaluation) {
     const e = evaluation;
+    const v = r.validation;
+    const atRuntime = v === null ? "none" : v.accepted ? "accepted" : v.checks_run.length ? "rejected" : "unchecked";
     out.append(record(null, "What the evaluation said",
       "Asserted by the evaluation authority, against an answer key ADII never saw",
       el("p", "adii-assertion", PHRASING.evaluation[e.category] ?? e.category),
       meta(["category", e.category], ...(e.sub_kind ? [["sub kind", e.sub_kind]] : []),
         ...(e.verdict ? [["verdict", e.verdict]] : []),
         ...(e.settled_by ? [["settled by", PHRASING.evaluation.settledBy[e.settled_by] ?? e.settled_by]] : []),
-        ...(e.reason ? [["reason", e.reason]] : []))));
+        ...(e.reason ? [["reason", e.reason]] : [])),
+      el("p", "adii-field__hint adii-mt-sm", `At runtime: ${PHRASING.evaluation.runtime[atRuntime]}.`)));
   }
 
   if (!compact) out.append(feedbackBlock(label));
