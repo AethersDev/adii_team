@@ -164,7 +164,8 @@ function crumbs(...items) {
 
 /* every screen's footer says whether this page can start a run, and against what */
 const footer = (prefix = "") => foot(prefix + (state.launch.enabled
-  ? PHRASING.product.footLive(shortModel(state.launch.model)) : PHRASING.product.footReadOnly));
+  ? PHRASING.product.footLive(shortModel(state.launch.model), state.launch.provider)
+  : PHRASING.product.footReadOnly));
 
 function foot(text) {
   $("foot").replaceChildren(text);
@@ -191,8 +192,8 @@ function howto(incident) {
     el("pre", null, PHRASING.product.liveCommand));
 }
 
-/* Start a run against the local model the server was started with. The server answers
- * with the label at once and runs the investigation; the page goes to the run and watches. */
+/* Start a run against the model the server was started with. The server answers with
+ * the label at once and runs the investigation; the page goes to the run and watches. */
 function launcher(preset) {
   const running = state.runs.find((r) => r.running);
   const select = el("select", "adii-select");
@@ -220,7 +221,8 @@ function launcher(preset) {
     el("div", "adii-toolbar",
       el("div", "adii-field", el("label", "adii-field__label", "Incident"), select),
       button),
-    el("p", "adii-type-sm", PHRASING.product.runsWith(shortModel(state.launch.model))),
+    el("p", "adii-type-sm", PHRASING.product.runsWith(shortModel(state.launch.model),
+                                                       state.launch.provider)),
     el("p", "adii-field__hint", ...(running
       ? [link("adii-nav__link", PHRASING.product.busy(running.label), `#r/${encodeURIComponent(running.label)}`)]
       : [PHRASING.product.idle])),

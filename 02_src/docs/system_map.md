@@ -60,7 +60,7 @@ that proposes a repair never gets to say whether the repair was accepted.
 | Reporting | `02_src/adii/reporting/` | traces, run artifacts, human-readable output |
 | Runtime | `02_src/adii/runtime/` | one incident end to end: investigator, validation, archive, report |
 | Examples | `02_src/adii/examples/` | the runnable walkthrough, and one produced record per ending |
-| The page | `02_src/adii/demo/` | ADII's one page: investigate (against a local model, when the operator allows it), watch, read the archive, answer |
+| The page | `02_src/adii/demo/` | ADII's one page: investigate (against the model the operator configured the server with — local, or paid under a cap), watch, read the archive, answer |
 | Run archive | `01_data/runs/` | one record per run, what the inspector reads |
 | Design system | `03_assets/identity/` | the identity handoff; the inspector's stylesheet is a synced copy of its `css/` |
 | Demo data | `01_data/demo/` | the team-visible operational world (a work order today) |
@@ -228,7 +228,8 @@ trace, the decision, the verdict, the cost, and where the record came from.
 
 **OUTPUT** A local web page. Read-only by default: no model, no database, no agent in this
 process. Started with `--model`, it also starts runs — the runtime, in this process, against
-a local endpoint only, one at a time — and the page watches them through the live trace.
+the provider and model the operator configured, one at a time — and the page watches them
+through the live trace.
 
 **CALLS** The standard library; `reporting/` to read records; `runtime/` to start a run when
 the operator allowed it. Its stylesheet is the
@@ -238,9 +239,14 @@ and held byte-identical by a test.
 **CALLED BY** `python -m adii.demo`. Nothing in the implementation.
 
 **MUST NOT DO** Be imported by any other `adii` package, launch a run against anything but
-a local model the operator configured when starting the server (rule 12 of the design
-system, amended in writing on 16 September 2026), or invent a field that is not in the
-record. A page that can reach a paid provider can spend money; a page that fills in a blank
-is asserting something the runtime never said.
+the provider and model the operator configured when starting the server — a paid provider
+only with the credential already in the server's environment and a cap, checked before the
+port is bound (rule 12 of the design system, amended in writing on 16 September 2026 for a
+local model and on 17 September for the paid path) — let the browser choose anything but
+the incident, or invent a field that is not in the record. A page that can choose what a
+run costs can spend money; a page that fills in a blank is asserting something the runtime
+never said.
 *Enforced by* `test_the_demo_is_never_imported_by_the_implementation`,
-`test_the_demo_backend_stays_dependency_free`.
+`test_the_demo_backend_stays_dependency_free`,
+`test_the_server_refuses_to_start_when_a_run_from_the_page_could_spend_unchecked`,
+`test_a_paid_run_from_the_page_keeps_the_credential_off_every_response_and_artefact`.

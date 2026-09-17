@@ -1,7 +1,7 @@
 # The page: investigate, watch, read, answer
 
 **ADII's one page.** Its first screen is the action — pick an incident, Investigate — when
-the operator started the server with a local model; below it, the investigation history:
+the operator started the server with a model; below it, the investigation history:
 every run the runtime archived, with the trace, the decision, the verdict, what it cost,
 and where the record came from. Without a model the page is read-only over that history.
 
@@ -35,7 +35,8 @@ screen, it is in the record, or it is one of the sentences below.
 ## Starting a run from the page
 
 Read-only by default: the page cannot start a run, because a page that can start a run can
-spend money and create a first exposure. The operator lifts that for one kind of run only:
+spend money and create a first exposure. The operator lifts that at the terminal, and the
+free way first — a model on this machine:
 
 ```bash
 python -m adii.demo 8000 --endpoint http://127.0.0.1:8090/v1 --model <id> --served-as default_model
@@ -44,14 +45,44 @@ python -m adii.demo 8000 --endpoint http://127.0.0.1:8090/v1 --model <id> --serv
 Started this way, every screen offers **Investigate**: pick an
 incident, and the server reserves a label, writes the receipt, and runs A's loop against
 that model — a local endpoint, nothing spent — while the page shows every step as the
-runtime records it, then the record when it lands. The two concerns that made the page
-read-only are met structurally: only a local endpoint is accepted, checked when the server
-starts, and the receipt precedes the investigator. No paid provider is reachable from the
-page. This amends rule 12 of the design system in writing, as that rule requires: the
-page may start a run only against a local model the operator configured, never otherwise.
-One run at a time: while the archive shows one running, a second is refused (409). A run
-that has written nothing for three minutes is shown as one that did not finish, and the
-page stops watching it.
+runtime records it, then the record when it lands. The browser chooses the incident and
+nothing else: provider, model, endpoint, bounds and cap are the server's, fixed when it
+started, and forwarded to the same `python -m adii.runtime` entry point the command line
+uses — a run from the page and a run from the terminal meet there. One run at a time:
+while the archive shows one running, a second is refused (409). A run that has written
+nothing for three minutes is shown as one that did not finish, and the page stops
+watching it.
+
+The paid path, from the page — the second amendment of rule 12 of the design system, in
+writing as that rule requires (the first, on 16 September, allowed a local model only):
+
+```bash
+<credential wrapper> python -m adii.demo 8000 --provider openai --model gpt-4.1 --max-cost-usd 0.25 --max-turns 20
+```
+
+The wrapper is the operator's, outside this repository: whatever puts `OPENAI_API_KEY`
+into this process's environment from wherever the operator keeps it. The server asks the
+runtime's own question (`refused_paid`) before it binds a port — a priced model, a cap
+above zero, an endpoint that carries no secret, the credential present — and stops the
+process with the reason when any fails; a page never renders a "credential missing" state
+because the page never exists without the credential in its environment. Whether the
+provider *accepts* it is the free pre-flight's question (`python -m adii.provider --check`),
+asked by the operator before the audience is in the room; a revoked key past that point
+gives one archived `infrastructure_failure` per Investigate, rendered as such, with the
+runtime's cap and receipt around each. From there the credential goes
+to the wire as a bearer header and nowhere else: not into `/api/launch`, which reports the
+runtime's flags and nothing more, not into any response, receipt, trace or record — the
+runtime's paid path owns that, and
+`test_a_paid_run_from_the_page_keeps_the_credential_off_every_response_and_artefact`
+holds it for the page. The two concerns that made the page read-only are met the same
+way on both paths: the receipt precedes the investigator (D-15, guarded), and what can be
+spent is capped per run — a finite cap, checked between requests, so the overshoot is one
+request — and permitted by the person who started the server, in their terminal, with the
+cap in the receipt's reason; the name on the wire is the priced name (`--served-as` is
+refused on the paid path). The server binds loopback only, and holds one run at a time in
+this process as well as by the archive. What the
+page may not do remains: choose a provider, a model, an endpoint or a cap; carry a
+credential; or start a run the operator did not configure.
 
 Without a model the page says how to start one, and shows the commands that create runs.
 Every screen's footer says which of the two the page is.
@@ -92,7 +123,7 @@ record contains them. Strike any line below and the page stops saying it.
 | `wrote` | "The model wrote, instead of acting:" followed by its words, verbatim, as text |
 | `decided` / `validated` | "Committed to *disposition*", "The validator accepted (did not accept) the repair", "No validator checked the repair" |
 | `unanswered` | "The run ended before this call was answered" |
-| product copy | what ADII is; the launcher's context (the model it runs with, one at a time; whether something is running now, from the list the page loaded); the history count; the footers (read-only, or what runs here — and that nothing is sent to an outside service); the commands that create a run or the six specimens — UI text about the product, never about a particular run |
+| product copy | what ADII is; the launcher's context (the model it runs with, one at a time; whether something is running now, from the list the page loaded); the history count; the footers (read-only, or what runs here — on this machine and nothing sent outside, or at a paid provider, each run receipted and capped); the commands that create a run or the six specimens — UI text about the product, never about a particular run |
 | `scripted` | "Scripted investigator · development demonstration, not a model result" — shown on every run and counted on every incident card whose record has `configuration.model` null, so a screenshot can never pass for a model result |
 | `runtime` | beside the score, orthogonal to it, from the record's own `validation`: "no repair was proposed, so nothing was checked" / "the repair was archived unchecked — not blocked; the score found it afterwards" / "the validator checked the repair before this score, and accepted (did not accept) it" — the same category means a different system behaviour depending on which, and the page never lets the score imply the runtime blocked anything |
 | `success` / `correct_abstention` / `unnecessary_escalation` / `false_repair` / `repair_rejection` / `failure` / `not_evaluable` | one sentence per category the evaluation authority may score — "The decision matched the answer key.", "The decision to escalate matched the answer key.", "The decision escalated where the answer key names a call.", "A repair was proposed for a root cause the answer key does not name.", "The repair named the answer key's root cause and was not accepted by the validator.", "The decision did not match the answer key.", "No decision was submitted, so there was nothing to score." — from `evaluation/outcome_classification.py`'s definitions; the category, verdict and who settled it are shown beside it, verbatim from `evaluation_report.json` |
@@ -134,10 +165,11 @@ tested against each other.
 
 ## What it is not
 
-- **Not a launcher for anything that costs money.** A page that can reach a paid provider
-  can spend money and create a first exposure without a receipt, so this one reaches none:
-  it starts runs only against a local model the operator named when starting the server,
-  and otherwise runs start from the command line.
+- **Not a place to choose what a run costs.** A page that can reach a paid provider can
+  spend money, so this one spends only what the operator permitted when starting the
+  server — that provider, that model, that cap, with the credential in the server's
+  environment and never in the page's hands — and otherwise runs start from the command
+  line. The receipt precedes every investigator, on both paths.
 - **Not the implementation.** Nothing in `02_src/adii/` may import it, and a test enforces
   that. It shows what the runtime produced; it produces nothing.
 

@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -84,6 +85,30 @@ def artefacts(context, world_digest: str) -> dict[str, str]:
                          "permitted_write_paths": list(context.permitted_write_paths)},
                         sort_keys=True)
     return {"incident": digest_of(handed), "world": world_digest, "protocol": digest_of(PROTOCOL)}
+
+
+def refused_paid(model: str | None, max_cost_usd: float, endpoint: str,
+                 served_as: str | None = None) -> str | None:
+    """Why a paid run may not start, or None. Every precondition of spending, checked
+    before anything irreversible — a label claimed, a port bound (inherited D6, D7): a priced
+    model that is the model on the wire, a finite cap, an endpoint that carries no secret,
+    and the credential in the environment. The demo server asks the same question when it
+    starts, so the page never learns it."""
+    if model not in PRICES:
+        return (f"--provider openai needs --model with a nominal price in reporting/ledger.py; "
+                f"priced: {', '.join(sorted(PRICES))}")
+    if served_as not in (None, model):
+        return (f"--served-as {served_as!r}: a paid run is billed by the name on the wire and "
+                f"priced by --model; they must be the same — --served-as is for local endpoints")
+    if not (math.isfinite(max_cost_usd) and max_cost_usd > 0):
+        return "--max-cost-usd must be a finite amount above zero: a paid run needs a cap"
+    if not endpoint_may_carry_a_credential(endpoint):
+        return (f"--endpoint {endpoint!r}: a paid endpoint is https (unless on this machine) and "
+                "carries no query string or credentials — the key comes from OPENAI_API_KEY")
+    if not os.environ.get("OPENAI_API_KEY"):
+        return ("OPENAI_API_KEY is not set; a paid run takes its credential from the "
+                "environment and nowhere else")
+    return None
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -145,25 +170,11 @@ def main(argv: list[str] | None = None) -> int:
         reason = (f"a local model, {args.model}, at {args.endpoint}: no nominal price, "
                   "nothing is spent")
     else:
-        # Every precondition of spending, before the label is claimed (inherited D6, D7):
-        # a priced model, a cap, an endpoint that carries no secret, and the credential.
-        if args.model not in PRICES:
-            print(f"--provider openai needs --model with a nominal price in reporting/ledger.py; "
-                  f"priced: {', '.join(sorted(PRICES))}")
+        why = refused_paid(args.model, args.max_cost_usd, args.endpoint, args.served_as)
+        if why:
+            print(why)
             return 2
-        if not args.max_cost_usd > 0:
-            print("--max-cost-usd must be above zero: a paid run needs a cap")
-            return 2
-        if not endpoint_may_carry_a_credential(args.endpoint):
-            print(f"--endpoint {args.endpoint!r}: a paid endpoint is https (unless on this "
-                  "machine) and carries no query string or credentials — the key comes from "
-                  "OPENAI_API_KEY")
-            return 2
-        credential = os.environ.get("OPENAI_API_KEY")
-        if not credential:
-            print("OPENAI_API_KEY is not set; a paid run takes its credential from the "
-                  "environment and nowhere else")
-            return 2
+        credential = os.environ["OPENAI_API_KEY"]
         price = PRICES[args.model]
         configuration = {"provider": "openai", "model": args.model, "endpoint": args.endpoint,
                          "max_turns": args.max_turns, "max_tokens": args.max_tokens,

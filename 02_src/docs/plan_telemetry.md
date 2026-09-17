@@ -289,8 +289,11 @@ python 02_src/scripts/guard_check.py          # every guard killed, none survivi
   receipt was written first. D-15 is a precondition of D-11 going live, whatever the week.
 - **The browser becoming a launcher.** It became one on 16 September, on purpose and
   narrowly: only when the operator starts the server with a local model, only against that
-  endpoint, with the receipt written before the investigator runs (D8). No paid provider is
-  reachable from the page; that stays on the command line behind D-11 and D-15.
+  endpoint, with the receipt written before the investigator runs (D8). On 17 September,
+  with D-11 and D-15 built, the paid path followed under the same shape: the operator
+  starts the server with `--provider openai`, a priced model and a cap, the credential in
+  the server's environment and checked before the port is bound; the browser still sends
+  the incident id and nothing else, and the run goes through the runtime's own entry point.
 - **The guard registry drifting from the code.** A registered snippet that is not found fails
   the harness, because a guard that moved is a guard that may be gone.
 - **Reporting a number that is not ours.** The report labels every figure with the run it came

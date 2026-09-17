@@ -1,15 +1,21 @@
 """The inspector's backend: serves the run archive to the browser, and, when the operator
-says so, starts a run against a local model.
+says so, starts a run against the model the operator configured.
 
     python -m adii.demo                                  # read-only: the archive, nothing else
     python -m adii.demo 8000 --endpoint http://127.0.0.1:8090/v1 \\
         --model Qwen3-4B-Instruct-2507-4bit --served-as default_model    # and live runs
+    python -m adii.demo 8000 --provider openai --model gpt-4.1 \\
+        --max-cost-usd 0.25 --max-turns 20         # paid runs; OPENAI_API_KEY in this process
 
 Read-only by default: it lists `01_data/runs/<label>/record.json`, serves each record
 verbatim, and serves the static page. A page that can start a run can spend money and
 create a first exposure, so launching exists only when the person at the terminal
-configured a model — and then only a local endpoint, which costs nothing, with the receipt
-written before the investigator runs. No paid provider is reachable from here, ever.
+configured a model, and the browser chooses nothing but the incident: provider, model,
+endpoint, bounds and cap are the server's, fixed when it started, forwarded to the same
+`python -m adii.runtime` entry point the command line uses. A paid provider is reachable
+only when the operator said so at startup, with the credential already in this process's
+environment and checked before the port was bound; it goes from there to the wire and to
+nothing the page can read — the runtime's paid path owns that, and its tests hold it.
 
 Standard library only: the team repository has zero dependencies and this must not be the
 thing that adds one. A launched run executes inside the request that started it, in the
@@ -20,6 +26,7 @@ refused while the archive shows one running.
 from __future__ import annotations
 
 import json
+import threading
 import time
 from datetime import UTC, datetime
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -32,10 +39,15 @@ from ..runtime.__main__ import main as run_main
 
 WEB = Path(__file__).resolve().parent / "web"
 
-# Set from the command line. Empty means read-only: the page can start nothing.
+# Set from the command line: the runtime's own flags, as the operator gave them. Empty
+# means read-only: the page can start nothing. Never a credential.
 LAUNCH: dict[str, object] = {}
 # A run whose live trace has not moved for this long is not running; it died.
 STALE_AFTER_S = 180
+# One run at a time in this process too: the archive shows a run only once the runtime has
+# reserved its folder, a moment after the label was answered — two requests in that moment
+# would both start, and on the paid path both would spend.
+RUNNING = threading.Lock()
 
 
 def incidents() -> list[dict[str, str]]:
@@ -221,9 +233,10 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         """Two writes, and only two. Feedback on a run: an operator's words, kept beside the
-        record. Starting a run: refused unless the operator configured a local model when
-        starting the server; the label is answered at once and the run then executes in
-        this request's thread while the page watches the live trace."""
+        record. Starting a run: refused unless the operator configured a model when starting
+        the server; the label is answered at once and the run then executes in this
+        request's thread — the runtime's command, the server's flags — while the page
+        watches the live trace."""
         parts = self.route()
         if len(parts) == 4 and parts[:2] == ["api", "runs"] and parts[3] == "feedback":
             label = parts[2]
@@ -237,25 +250,27 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json({"error": "no such endpoint"}, 404)
         if not LAUNCH:
             return self.send_json({"error": "this inspector is read-only: start it with "
-                                            "--model to allow runs against a local model"}, 403)
+                                            "--model to allow runs from the page"}, 403)
         try:
             incident = self.body().get("incident")
         except ValueError as why:
             return self.send_json({"error": str(why)}, 400)
-        if incident not in {i["incident_id"] for i in incidents()}:
+        if not isinstance(incident, str) or incident not in {i["incident_id"] for i in incidents()}:
             return self.send_json({"error": f"no such incident {incident!r}"}, 400)
-        if any(row.get("running") for row in index(ARCHIVE)):
-            return self.send_json({"error": "a run is in progress; this machine investigates "
-                                            "one at a time"}, 409)
-        now = datetime.now(UTC)
-        label = f"{incident}-{now:%Y%m%dT%H%M%S}-{now.microsecond // 1000:03d}Z"
-        self.send_json({"label": label})              # the page navigates and starts watching
-        self.wfile.flush()
-        run_main(["--incident", incident, "--provider", "local", "--label", label, "--no-report",
-                  "--archive", str(ARCHIVE),
-                  "--endpoint", str(LAUNCH["endpoint"]), "--model", str(LAUNCH["model"]),
-                  "--max-turns", str(LAUNCH["max_turns"]),
-                  *(["--served-as", str(LAUNCH["served_as"])] if LAUNCH.get("served_as") else [])])
+        busy = {"error": "a run is in progress; this machine investigates one at a time"}
+        if any(row.get("running") for row in index(ARCHIVE)) or not RUNNING.acquire(blocking=False):
+            return self.send_json(busy, 409)
+        try:
+            now = datetime.now(UTC)
+            label = f"{incident}-{now:%Y%m%dT%H%M%S}-{now.microsecond // 1000:03d}Z"
+            self.send_json({"label": label})          # the page navigates and starts watching
+            self.wfile.flush()
+            run_main(["--incident", incident, "--label", label, "--no-report",
+                      "--archive", str(ARCHIVE),
+                      *(flag for key, value in LAUNCH.items() if value is not None
+                        for flag in (f"--{key.replace('_', '-')}", str(value)))])
+        finally:
+            RUNNING.release()
 
     def send_json(self, payload: object, status: int = 200) -> None:
         self.send(json.dumps(payload, indent=2, allow_nan=False).encode("utf-8"), status)
@@ -278,11 +293,16 @@ def main(port: int = 8000, launch: dict[str, object] | None = None) -> int:
     runs = index(ARCHIVE)
     print(f"ADII — http://127.0.0.1:{port}")
     print(f"  {len(runs)} archived run(s) in {ARCHIVE.relative_to(REPO)}.", end=" ")
-    if LAUNCH:
+    if LAUNCH.get("provider") == "openai":
+        print(f"Runs may be started from the page, against {LAUNCH['model']} at "
+              f"{LAUNCH['endpoint']} — a paid provider, up to ${LAUNCH['max_cost_usd']:.2f} "
+              "per run at nominal prices, checked between requests; the credential is this "
+              "process's, from its environment.")
+    elif LAUNCH:
         print(f"Runs may be started from the page, against {LAUNCH['model']} at "
               f"{LAUNCH['endpoint']} — a local endpoint, nothing is spent.")
     else:
-        print("Read-only: start with --model to allow runs against a local model.")
+        print("Read-only: start with --model to allow runs from the page.")
     if not runs:
         print("  Produce one now:  python -m adii.runtime --incident demo-learning-001 "
               "--provider scripted")

@@ -206,6 +206,11 @@ def test_a_paid_run_is_refused_before_the_label_unless_every_precondition_holds(
     assert cli.main(unpriced) == 2 and "nominal price" in capsys.readouterr().out
     assert cli.main([*PAID, "--max-cost-usd", "0", "--archive", str(tmp_path)]) == 2
     assert "cap" in capsys.readouterr().out
+    assert cli.main([*PAID, "--max-cost-usd", "inf", "--archive", str(tmp_path)]) == 2
+    assert "finite" in capsys.readouterr().out      # inf passes `> 0` and dies in the receipt
+    # billed by the name on the wire, priced by --model: a paid run may not split them
+    assert cli.main([*PAID, "--served-as", "gpt-4.1", "--archive", str(tmp_path)]) == 2
+    assert "on the wire" in capsys.readouterr().out
     assert cli.main([*PAID, "--endpoint", "https://api.openai.com/v1?key=x",
                      "--archive", str(tmp_path)]) == 2
     assert "carries no" in capsys.readouterr().out

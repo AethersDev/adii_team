@@ -184,14 +184,36 @@ the morning of.
 
 ## Running it
 
+With the model the demo opens on — gpt-4.1, the paid path — the server is started through
+the operator's credential wrapper, so that `OPENAI_API_KEY` is in the server's environment
+and nowhere else; the wrapper is outside the repository and is not shown here. The
+pre-flight first, free, so the credential is known good before the audience is in the
+room — the server checks that the credential is *present*, not that the provider accepts
+it; then the server, with the twenty-turn bound 41-2 ran under and a cap (41-2's was $0.50;
+it spent $0.035):
+
+```bash
+<credential wrapper> python -m adii.provider --check --model gpt-4.1
+<credential wrapper> python -m adii.demo 8000 --provider openai --model gpt-4.1 --max-cost-usd 0.25 --max-turns 20
+```
+
+Started without the credential, the server stops with the reason before it binds a port —
+there is no page to show a missing credential on. A key the provider then refuses gives
+one archived `infrastructure_failure` per Investigate, shown as such. The browser sends
+the incident id and nothing else; the cap and the model are in the receipt, and the page's
+footer says the run is at a paid provider, receipted and capped.
+
+The local model, costing nothing, for rehearsing the mechanism:
+
 ```bash
 ~/ai-models/.venv/bin/python -m mlx_lm server --model ~/ai-models/Qwen3-4B-Instruct-2507-4bit --port 8090
 python -m adii.demo 8000 --endpoint http://127.0.0.1:8090/v1 --model Qwen3-4B-Instruct-2507-4bit --served-as default_model
 ```
 
-Open http://127.0.0.1:8000, choose `revenue-after-deploy`, press Investigate. Rehearsed
-runs took 6 s; the bound-hit run took 39 s; there is no wall-clock bound yet, so a stalled
-model can hold the page for minutes (D-9). Then, for Layer 3:
+Either way: open http://127.0.0.1:8000, choose `revenue-after-deploy`, press Investigate.
+Rehearsed local runs took 6 s; the bound-hit run took 39 s; 41-2 took 17 s for its eleven
+turns; there is no wall-clock bound yet, so a stalled model can hold the page for minutes
+(D-9). Then, for Layer 3:
 
 ```bash
 python -m adii.evaluation --run <label> --key 02_src/adii/evaluation/fixtures/revenue-after-deploy.answer.json

@@ -118,17 +118,34 @@ GUARDS = (
           "  kids.forEach((k) => (typeof k === \"string\" "
           "? n.insertAdjacentHTML(\"beforeend\", k) : n.append(k)));\n"),
     Guard("D.server_starts_local_only", "D", "demo/__main__.py",
-          "    if not endpoint_is_local(args.endpoint):\n",
+          "    if args.provider == \"local\" and not endpoint_is_local(args.endpoint):\n",
+          "    if False:\n"),
+    Guard("D.server_starts_paid_only_past_the_preconditions", "D", "demo/__main__.py",
+          "        why = refused_paid(args.model, args.max_cost_usd, args.endpoint, "
+          "args.served_as)\n",
+          "        why = None\n"),
+    Guard("D.paid_cap_is_finite", "D", "runtime/__main__.py",
+          "    if not (math.isfinite(max_cost_usd) and max_cost_usd > 0):\n",
+          "    if not max_cost_usd > 0:\n"),
+    Guard("D.paid_wire_name_is_the_priced_name", "D", "runtime/__main__.py",
+          "    if served_as not in (None, model):\n",
           "    if False:\n"),
     Guard("D.page_launch_needs_operator", "D", "demo/server.py",
           "        if not LAUNCH:\n",
           "        if False:\n"),
     Guard("D.page_launch_known_incident", "D", "demo/server.py",
-          "        if incident not in {i[\"incident_id\"] for i in incidents()}:\n",
+          "        if not isinstance(incident, str) or incident not in "
+          "{i[\"incident_id\"] for i in incidents()}:\n",
           "        if False:\n"),
     Guard("D.page_launch_one_at_a_time", "D", "demo/server.py",
-          "        if any(row.get(\"running\") for row in index(ARCHIVE)):\n",
+          "        if any(row.get(\"running\") for row in index(ARCHIVE)) "
+          "or not RUNNING.acquire(blocking=False):\n",
           "        if False:\n"),
+    Guard("D.page_launch_one_at_a_time_in_process", "D", "demo/server.py",
+          "        if any(row.get(\"running\") for row in index(ARCHIVE)) "
+          "or not RUNNING.acquire(blocking=False):\n",
+          "        if any(row.get(\"running\") for row in index(ARCHIVE)) "
+          "or not RUNNING.acquire(blocking=True):\n"),
     Guard("D.post_body_declared_json", "D", "demo/server.py",
           "        if self.headers.get(\"Content-Type\", \"\").split(\";\")[0].strip() "
           "!= \"application/json\":\n",
@@ -157,14 +174,14 @@ GUARDS = (
           "# checked between requests: the overshoot is one\n",
           "            if False:\n"),
     Guard("D.paid_model_must_have_a_price", "D", "runtime/__main__.py",
-          "        if args.model not in PRICES:\n",
-          "        if False:\n"),
+          "    if model not in PRICES:\n",
+          "    if False:\n"),
     Guard("D.paid_endpoint_carries_no_secret", "D", "provider/openai_compatible.py",
           "    if parts.query or parts.username or parts.password:\n        return False\n",
           "    if False:\n        return False\n"),
     Guard("D.paid_needs_credential_before_label", "D", "runtime/__main__.py",
-          "        if not credential:\n",
-          "        if False:\n"),
+          "    if not os.environ.get(\"OPENAI_API_KEY\"):\n",
+          "    if False:\n"),
     Guard("D.ledger_row_without_usage_is_unknown", "D", "reporting/ledger.py",
           "        if isinstance(tokens_in, int) and isinstance(tokens_out, int) \\\n"
           "                and not isinstance(tokens_in, bool) "

@@ -94,8 +94,8 @@ def test_a_stranger_starts_watches_reads_and_answers_a_run_in_the_browser(tmp_pa
     monkeypatch.setattr(server, "ARCHIVE", archive)
     monkeypatch.setattr(server, "WEB", web)
     monkeypatch.setattr(server, "LAUNCH", {
-        "endpoint": f"http://127.0.0.1:{model.server_port}/v1", "model": "test-model-1",
-        "served_as": None, "max_turns": 6})
+        "provider": "local", "endpoint": f"http://127.0.0.1:{model.server_port}/v1",
+        "model": "test-model-1", "served_as": None, "max_turns": 6})
     httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     try:

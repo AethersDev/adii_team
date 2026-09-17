@@ -20,8 +20,10 @@ const PHRASING = {
       "recording every step, and never grading its own work.",
     readOnly: "This page is read-only. It shows runs the runtime archived and can start " +
       "none: a page that can start a run can spend money.",
-    /* the launcher's one line of context: the model is the server's choice, not a control */
-    runsWith: (model) => `Runs with ${model} on this machine. One investigation at a time.`,
+    /* the launcher's one line of context: the model and where it runs are the server's
+     * choice, not a control; a paid provider is named as such */
+    runsWith: (model, provider) => `Runs with ${model} ${provider === "openai"
+      ? "at a paid provider" : "on this machine"}. One investigation at a time.`,
     idle: "Nothing is running now.",
     busy: (label) => `Investigating now: ${label}`,
     history: (incidents, runs) => `${incidents} incident${incidents === 1 ? "" : "s"} · ` +
@@ -34,8 +36,11 @@ const PHRASING = {
     /* the footer of every screen: what this page can start, and what it never reaches */
     footReadOnly: "Read-only: runs are started from the command line. Nothing is sent to an " +
       "outside service.",
-    footLive: (model) => `Investigations run on this machine with ${model}, one at a time. ` +
-      "Nothing is sent to an outside service.",
+    footLive: (model, provider) => (provider === "openai"
+      ? `Investigations run with ${model} at a paid provider, one at a time; each is ` +
+        "receipted and capped before it starts."
+      : `Investigations run on this machine with ${model}, one at a time. ` +
+        "Nothing is sent to an outside service."),
     empty: "An incident appears here once the runtime has investigated it and archived the run.",
     /* feedback: the operator's assertion about a run, kept beside the record, attributed */
     feedbackAsk: "Was this investigation useful to you?",

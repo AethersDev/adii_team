@@ -274,6 +274,14 @@ python -m adii.evaluation --run revenue-after-deploy-openai-1 --key 02_src/adii/
 python -m adii.demo                                          # read-only: the paid run's page
 ```
 
+Since 17 September the page can start the paid path itself, under the same preconditions
+and through the same runtime entry point: `<credential wrapper> python -m adii.demo 8000
+--provider openai --model gpt-4.1 --max-cost-usd 0.25 --max-turns 20`. The wrapper is the
+operator's and puts `OPENAI_API_KEY` in the server's environment; the server asks
+`refused_paid` before binding a port and stops with the reason; the browser sends the
+incident id and nothing else; the credential appears in no response and no artefact
+(`test_a_paid_run_from_the_page_keeps_the_credential_off_every_response_and_artefact`).
+
 In the record, check: `configuration.credential` is the name `OPENAI_API_KEY (environment)`;
 `api_cost_usd` is a lower bound and the report says "at least"; every `model_responded`
 carries `usage` and a `fingerprint`; the receipt's reason names the cap.
