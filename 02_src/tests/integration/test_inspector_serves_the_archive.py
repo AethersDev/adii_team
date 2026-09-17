@@ -148,9 +148,9 @@ def test_a_taken_port_is_a_message_not_a_traceback(capsys):
 
 def test_a_run_can_be_started_from_the_page_only_when_the_operator_allowed_it(tmp_path,
                                                                               monkeypatch):
-    """Read-only by default: POST is refused. Started with a local model: POST answers a
-    label at once, the receipt and the live trace appear while the run executes, and the
-    record lands — the same adii.run_record/v1 the command line writes."""
+    """Read-only by default: POST is refused. Started with a model: POST answers a label
+    at once, the receipt and the live trace appear while the run executes, and the record
+    lands — the same adii.run_record/v1 the command line writes."""
     from .fake_model import FakeModel
     FakeModel.script[:] = [
         '<TOOL_CALL>{"name": "get_schema", "arguments": {"table": "orders"}}',
@@ -178,10 +178,12 @@ def test_a_run_can_be_started_from_the_page_only_when_the_operator_allowed_it(tm
         assert [i["incident_id"] for i in call("GET", "/api/incidents")[1]][:2] == \
             ["demo-learning-001", "orders-missing-day"]
 
-        server.LAUNCH.update({"endpoint": f"http://127.0.0.1:{model.server_port}/v1",
+        server.LAUNCH.update({"provider": "local",
+                              "endpoint": f"http://127.0.0.1:{model.server_port}/v1",
                               "model": "test-model-1", "served_as": None, "max_turns": 6})
         assert call("GET", "/api/launch")[1]["enabled"] is True
         assert call("POST", "/api/runs", {"incident": "nope"})[0] == 400
+        assert call("POST", "/api/runs", {"incident": ["orders-missing-day"]})[0] == 400
         # A write this server does not read is answered, never dropped: no body at all, and
         # a JSON-shaped body that is not declared JSON — the shape a form on another site takes.
         form = ('{"incident": "orders-missing-day"}', {"Content-Type": "text/plain"})
@@ -223,6 +225,52 @@ def test_a_run_can_be_started_from_the_page_only_when_the_operator_allowed_it(tm
         model.server_close()
 
 
+def test_two_requests_in_the_same_moment_start_one_run(tmp_path, monkeypatch):
+    """The archive shows a run only once the runtime has reserved its folder, a moment
+    after the label was answered. Two requests inside that moment must not both start —
+    on the paid path both would spend — so the server holds one run at a time itself."""
+    from .fake_model import FakeModel
+    FakeModel.script[:] = [
+        '<DECISION>{"disposition": "ESCALATE", "root_cause_id": null, '
+        '"root_cause_summary": "not enough here", "repair_id": null, "patch": {}}']
+    FakeModel.delay = 1.0
+    model = ThreadingHTTPServer(("127.0.0.1", 0), FakeModel)
+    threading.Thread(target=model.serve_forever, daemon=True).start()
+    archive = tmp_path / "archive"
+    archive.mkdir()
+    monkeypatch.setattr(server, "ARCHIVE", archive)
+    monkeypatch.setattr(server, "LAUNCH", {
+        "provider": "local", "endpoint": f"http://127.0.0.1:{model.server_port}/v1",
+        "model": "test-model-1", "served_as": None, "max_turns": 4})
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    statuses = []
+
+    def post():
+        conn = http.client.HTTPConnection("127.0.0.1", httpd.server_port, timeout=30)
+        conn.request("POST", "/api/runs", body=json.dumps({"incident": "orders-missing-day"}),
+                     headers={"Content-Type": "application/json"})
+        statuses.append(conn.getresponse().status)
+
+    try:
+        first, second = threading.Thread(target=post), threading.Thread(target=post)
+        first.start()
+        second.start()
+        first.join(30)
+        second.join(30)
+        assert sorted(statuses) == [200, 409]
+        deadline = time.time() + 30
+        while time.time() < deadline and not list(archive.glob("*/record.json")):
+            time.sleep(0.2)
+        assert len(list(archive.glob("*/record.json"))) == 1
+    finally:
+        FakeModel.delay = 0.0
+        httpd.shutdown()
+        httpd.server_close()
+        model.shutdown()
+        model.server_close()
+
+
 def test_a_run_is_running_while_it_keeps_writing(tmp_path):
     """Between the server answering a label and the first trace event, the folder holds a
     receipt at most — that run is starting, not dead. A run silent for STALE_AFTER_S died."""
@@ -238,14 +286,95 @@ def test_a_run_is_running_while_it_keeps_writing(tmp_path):
     assert row["running"] is False and "a receipt was written, but no record" in row["error"]
 
 
-def test_the_server_refuses_to_start_against_anything_but_a_local_endpoint(monkeypatch):
-    """The one check that makes the launcher safe to expose: it happens when the server
-    starts, before any port is bound, and it stops the process."""
-    monkeypatch.setattr(sys, "argv", ["adii.demo", "0", "--endpoint",
-                                      "https://api.openai.com/v1", "--model", "any"])
-    with pytest.raises(SystemExit) as stopped:
-        runpy.run_module("adii.demo", run_name="__main__")
-    assert "not a local endpoint" in str(stopped.value.code)
+def test_the_server_refuses_to_start_when_a_run_from_the_page_could_spend_unchecked(
+        monkeypatch):
+    """The checks that make the launcher safe to expose happen when the server starts,
+    before any port is bound, and stop the process: a local model must be on this machine;
+    a paid one needs a priced model and the credential already in this process's
+    environment — the page never learns whether a credential exists, only that it may or
+    may not start a run."""
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    def start(*argv):
+        monkeypatch.setattr(sys, "argv", ["adii.demo", "0", *argv])
+        with pytest.raises(SystemExit) as stopped:
+            runpy.run_module("adii.demo", run_name="__main__")
+        return str(stopped.value.code)
+
+    assert "not a local endpoint" in start("--endpoint", "https://api.openai.com/v1",
+                                           "--model", "any")
+    without = start("--provider", "openai", "--model", "gpt-4.1-mini")
+    assert "OPENAI_API_KEY is not set" in without and "credential wrapper" in without
+    assert "nominal price" in start("--provider", "openai", "--model", "no-such-model")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-present")
+    assert "cap" in start("--provider", "openai", "--model", "gpt-4.1-mini",
+                          "--max-cost-usd", "0")
+    assert "on the wire" in start("--provider", "openai", "--model", "gpt-4.1-nano",
+                                  "--served-as", "gpt-4.1")   # priced as nano, billed as 4.1
+
+
+def test_a_paid_run_from_the_page_keeps_the_credential_off_every_response_and_artefact(
+        tmp_path, monkeypatch):
+    """The page can start the paid path only through the same runtime command the terminal
+    uses, with the server's flags; the credential goes from this process's environment to
+    the wire as a bearer header and appears in no response, no file, and not in what
+    /api/launch reports — the browser chose nothing but the incident."""
+    from .fake_model import FakeModel
+    key = "sk-test-DISTINCTIVE-page-7b2e"
+    monkeypatch.setenv("OPENAI_API_KEY", key)
+    FakeModel.script[:] = [
+        '<DECISION>{"disposition": "ESCALATE", "root_cause_id": null, '
+        '"root_cause_summary": "not enough here", "repair_id": null, "patch": {}}']
+    FakeModel.authorization[:] = []
+    model = ThreadingHTTPServer(("127.0.0.1", 0), FakeModel)
+    threading.Thread(target=model.serve_forever, daemon=True).start()
+    archive = tmp_path / "archive"
+    archive.mkdir()
+    monkeypatch.setattr(server, "ARCHIVE", archive)
+    monkeypatch.setattr(server, "LAUNCH", {
+        "provider": "openai", "endpoint": f"http://127.0.0.1:{model.server_port}/v1",
+        "model": "gpt-4.1-mini", "served_as": None, "max_turns": 4, "max_cost_usd": 0.05,
+        "max_tokens": 64})
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    try:
+        def call(method, path, body=None):
+            conn = http.client.HTTPConnection("127.0.0.1", httpd.server_port, timeout=30)
+            conn.request(method, path, body=json.dumps(body) if body else None,
+                         headers={"Content-Type": "application/json"} if body else {})
+            response = conn.getresponse()
+            return response.status, response.read().decode("utf-8")
+
+        responses = [call("GET", "/api/launch")[1]]
+        assert json.loads(responses[0])["provider"] == "openai"
+        status, answer = call("POST", "/api/runs", {"incident": "orders-missing-day"})
+        assert status == 200
+        label = json.loads(answer)["label"]
+        deadline = time.time() + 30
+        while time.time() < deadline:
+            status, live = call("GET", f"/api/runs/{label}/trace")
+            responses.append(live)
+            if status == 200 and json.loads(live)["finished"]:
+                break
+            time.sleep(0.2)
+        assert json.loads(live)["finished"]
+        for path in ("/api/runs", f"/api/runs/{label}"):
+            responses.append(call("GET", path)[1])
+        assert FakeModel.authorization == [f"Bearer {key}"]      # on the wire, once
+        assert not any(key in text or "sk-test" in text for text in responses)
+        for path in sorted((archive / label).iterdir()):
+            assert key not in path.read_text(encoding="utf-8") and \
+                "sk-test" not in path.read_text(encoding="utf-8"), path.name
+        record = json.loads(call("GET", f"/api/runs/{label}")[1])
+        assert record["configuration"]["provider"] == "openai"
+        assert record["configuration"]["credential"] == "OPENAI_API_KEY (environment)"
+        assert record["configuration"]["max_cost_usd"] == 0.05
+        assert record["counters"]["api_cost_usd"] == pytest.approx(100 * 0.40e-6 + 20 * 1.60e-6)
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+        model.shutdown()
+        model.server_close()
 
 
 def test_a_tab_learns_when_the_code_it_runs_is_stale(tmp_path, monkeypatch):

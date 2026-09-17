@@ -746,6 +746,10 @@ def test_stop_still_returns_none_decision():
             decision_response(patch=[]),
             "patch must be an object",
         ),
+        (
+            decision_response(patch={"ledger": {"day": "2026-03-09", "settled_usd": 91340.0}}),
+            "patch must map each path to its new contents, as text",
+        ),
     ],
 )
 def test_structurally_invalid_decision_is_rejected_and_loop_continues(

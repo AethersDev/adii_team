@@ -53,12 +53,22 @@ def build_evaluation_report(run_record: dict, answer_key: dict, judge=None) -> d
     Returns:
       {"schema": "adii.evaluation_report/v1", "run_label": str,
        "incident_id": str, "category": ..., "sub_kind": ..., "verdict": ...,
-       "settled_by": ...}
+       "settled_by": ..., "runtime_validation": {...}}
     for a submitted run, or
       {"schema": "adii.evaluation_report/v1", "run_label": str,
        "incident_id": str, "category": "not_evaluable",
-       "reason": "termination was <x>, not submitted"}
+       "reason": "termination was <x>, not submitted",
+       "runtime_validation": {...}}
     for a run with no decision to score.
+
+    `runtime_validation` is a dimension orthogonal to the verdict: what the runtime's
+    validator did with the decision before anyone scored it — "none" (no repair, so
+    nothing to check), "unchecked" (a repair nobody checked: accepted false with no
+    checks run — the runtime's placeholder until a validator exists), or "checked" (a
+    verdict, accepted or not, with the checks that produced it). The same evaluation
+    category — an unwarranted repair, say — means a different system behaviour depending
+    on whether the runtime blocked it before action or merely preserved it for this
+    scorer to find; this field is what lets that be counted.
 
     Raises ValueError if run_record is missing "termination", "label", or
     "context" — the same "fail loudly, name the field" style the rest of
@@ -70,6 +80,7 @@ def build_evaluation_report(run_record: dict, answer_key: dict, judge=None) -> d
 
     incident_id = run_record["context"]["incident_id"]
     label = run_record["label"]
+    runtime_validation = describe_runtime_validation(run_record.get("validation"))
 
     if run_record["termination"] != "submitted":
         return {
@@ -81,6 +92,7 @@ def build_evaluation_report(run_record: dict, answer_key: dict, judge=None) -> d
                 f"termination was {run_record['termination']!r}, "
                 "not 'submitted' — no decision to evaluate"
             ),
+            "runtime_validation": runtime_validation,
         }
 
     decision = run_record["decision"]
@@ -95,7 +107,19 @@ def build_evaluation_report(run_record: dict, answer_key: dict, judge=None) -> d
         "sub_kind": classified["sub_kind"],
         "verdict": classified["verdict"],
         "settled_by": classified["settled_by"],
+        "runtime_validation": runtime_validation,
     }
+
+
+def describe_runtime_validation(validation: dict | None) -> dict:
+    """What the runtime's validator did with the decision, as the record states it —
+    never inferred from the category."""
+    if validation is None:
+        return {"state": "none", "accepted": None, "checks_run": []}
+    checks = list(validation.get("checks_run") or [])
+    unchecked = not validation.get("accepted") and not checks
+    return {"state": "unchecked" if unchecked else "checked",
+            "accepted": bool(validation.get("accepted")), "checks_run": checks}
 
 
 def to_json(report: dict) -> str:

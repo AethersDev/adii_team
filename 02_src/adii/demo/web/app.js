@@ -164,7 +164,8 @@ function crumbs(...items) {
 
 /* every screen's footer says whether this page can start a run, and against what */
 const footer = (prefix = "") => foot(prefix + (state.launch.enabled
-  ? PHRASING.product.footLive(shortModel(state.launch.model)) : PHRASING.product.footReadOnly));
+  ? PHRASING.product.footLive(shortModel(state.launch.model), state.launch.provider)
+  : PHRASING.product.footReadOnly));
 
 function foot(text) {
   $("foot").replaceChildren(text);
@@ -191,8 +192,8 @@ function howto(incident) {
     el("pre", null, PHRASING.product.liveCommand));
 }
 
-/* Start a run against the local model the server was started with. The server answers
- * with the label at once and runs the investigation; the page goes to the run and watches. */
+/* Start a run against the model the server was started with. The server answers with
+ * the label at once and runs the investigation; the page goes to the run and watches. */
 function launcher(preset) {
   const running = state.runs.find((r) => r.running);
   const select = el("select", "adii-select");
@@ -220,7 +221,8 @@ function launcher(preset) {
     el("div", "adii-toolbar",
       el("div", "adii-field", el("label", "adii-field__label", "Incident"), select),
       button),
-    el("p", "adii-type-sm", PHRASING.product.runsWith(shortModel(state.launch.model))),
+    el("p", "adii-type-sm", PHRASING.product.runsWith(shortModel(state.launch.model),
+                                                       state.launch.provider)),
     el("p", "adii-field__hint", ...(running
       ? [link("adii-nav__link", PHRASING.product.busy(running.label), `#r/${encodeURIComponent(running.label)}`)]
       : [PHRASING.product.idle])),
@@ -423,13 +425,16 @@ function story(r, compact = false, label = r.label, evaluation = null) {
    * verbatim in the mono values, with one sentence from the dictionary beside it */
   if (evaluation) {
     const e = evaluation;
+    const v = r.validation;
+    const atRuntime = v === null ? "none" : v.accepted ? "accepted" : v.checks_run.length ? "rejected" : "unchecked";
     out.append(record(null, "What the evaluation said",
       "Asserted by the evaluation authority, against an answer key ADII never saw",
       el("p", "adii-assertion", PHRASING.evaluation[e.category] ?? e.category),
       meta(["category", e.category], ...(e.sub_kind ? [["sub kind", e.sub_kind]] : []),
         ...(e.verdict ? [["verdict", e.verdict]] : []),
         ...(e.settled_by ? [["settled by", PHRASING.evaluation.settledBy[e.settled_by] ?? e.settled_by]] : []),
-        ...(e.reason ? [["reason", e.reason]] : []))));
+        ...(e.reason ? [["reason", e.reason]] : [])),
+      el("p", "adii-field__hint adii-mt-sm", `At runtime: ${PHRASING.evaluation.runtime[atRuntime]}.`)));
   }
 
   if (!compact) out.append(feedbackBlock(label));
@@ -439,7 +444,7 @@ function story(r, compact = false, label = r.label, evaluation = null) {
     defs(["Run", r.label], ["Model", cfg.model ?? "none"], ["Endpoint", cfg.endpoint ?? "none"],
          ["Provider", cfg.provider ?? "not recorded"], ["Turns", String(n.model_turns)],
          ["Tool calls", String(n.tool_calls)], ["Duration", seconds(n.latency_ms)],
-         ["Cost", n.api_cost_usd ? `$${n.api_cost_usd}` : "nothing (no paid provider)"],
+         ["Cost", PHRASING.cost(r)],
          ["Ended", `${r.termination}: ${r.detail}`], ["Recorded", r.provenance.written_at ?? ""],
          ["Code revision", r.provenance.source_revision ?? "unknown"],
          ["Record schema", r.schema])));

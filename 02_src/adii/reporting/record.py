@@ -132,6 +132,15 @@ def _not_json(constant: str) -> None:
     raise ValueError(f"{constant} is not JSON")
 
 
+def _patch(patch: object) -> dict[str, str]:
+    """The contract's `dict[str, str]`: each path to its new contents. Anything else is a
+    record no renderer should meet."""
+    if not isinstance(patch, dict) or not all(
+            isinstance(k, str) and isinstance(v, str) for k, v in patch.items()):
+        raise TypeError("patch must map each path to its new contents, as text")
+    return patch
+
+
 def from_json(text: str) -> RunRecord:
     """Parse one record. Refuses any schema but SCHEMA — a reader that guesses at a shape
     it does not know is how an archive drifts from its source without anyone noticing."""
@@ -152,7 +161,7 @@ def from_json(text: str) -> RunRecord:
             decision=None if d is None else InvestigationDecision(
                 disposition=Disposition(d["disposition"]), root_cause_id=d["root_cause_id"],
                 root_cause_summary=d["root_cause_summary"], repair_id=d["repair_id"],
-                patch=d["patch"]),
+                patch=_patch(d["patch"])),
             validation=None if v is None else ValidationResult(
                 accepted=v["accepted"], report=v["report"], checks_run=tuple(v["checks_run"])),
             tool_calls=n["tool_calls"], model_turns=n["model_turns"],

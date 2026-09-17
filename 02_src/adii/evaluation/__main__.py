@@ -5,9 +5,12 @@
 The seam between the runtime's record and the evaluation authority, and nothing more: the
 record is read through the runtime's own reader, so an unknown schema is refused there
 rather than guessed at here; the key must be frozen (`freeze.py`), so what scored the run
-can be named by digest; the two must name the same incident; a REPAIR nobody checked is
-refused, not scored — the runtime's placeholder verdict says "not checked", and only a
-validator's verdict is a rejection; and the report is written once, never overwritten.
+can be named by digest; the two must name the same incident; a REPAIR nobody checked,
+where the key also says REPAIR, is refused, not scored — there the verdict would decide
+between success and rejection, and the runtime's placeholder says "not checked". Where
+the key says the right call was not a repair, the disposition alone decides and no
+validator is consulted, so an unchecked REPAIR scores as what it is: unwarranted. The
+report is written once, never overwritten.
 No score is decided here. `build_evaluation_report` decides it, from the record and the
 key alone.
 
@@ -36,10 +39,11 @@ def score(folder: Path, key_path: Path) -> dict:
         raise ValueError(f"the key is for {key['incident_id']!r}; this run investigated "
                          f"{incident!r} — a run is scored against its own incident's key only")
     verdict = record["validation"]
-    if verdict is not None and not verdict["accepted"] and not verdict["checks_run"]:
-        raise ValueError("the repair was never checked (checks_run is empty): a placeholder "
-                         "verdict is not a rejection, so this run is not scored until a "
-                         "validator has run")
+    unchecked = verdict is not None and not verdict["accepted"] and not verdict["checks_run"]
+    if unchecked and key["correct_disposition"] == "REPAIR":
+        raise ValueError("the repair was never checked (checks_run is empty) and the key "
+                         "says REPAIR: a placeholder verdict is not a rejection, so this run "
+                         "is not scored until a validator has run")
     return build_evaluation_report(record, key)
 
 

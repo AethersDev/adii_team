@@ -51,7 +51,7 @@ def test_every_archived_run_carries_a_receipt_written_before_it_ran(tmp_path):
     folder = tmp_path / "one"
     receipt, record = read_receipt(folder / NAME), json.loads((folder / "record.json").read_text())
     assert receipt["label"] == "one" and receipt["configuration"] == record["configuration"]
-    assert set(receipt["artefacts"]) == {"incident", "world"}
+    assert set(receipt["artefacts"]) == {"incident", "world", "protocol"}
     assert all(v.startswith("sha256:") for v in receipt["artefacts"].values())
     assert "nothing is spent" in receipt["reason"]
     assert os.stat(folder / NAME).st_mtime <= os.stat(folder / "record.json").st_mtime

@@ -110,13 +110,62 @@ Hashes, schema versions, event kinds, token counts, receipts, manifests, revisio
 endpoint and bounds stay under **Details for engineers**, the per-turn **Raw events**, and
 in the archive. They are proof, not story. The model's name is on the page, and stays.
 
+## The run the demo opens on
+
+`revenue-after-deploy-openai-41-2` (17 September, gpt-4.1, run at a twenty-turn bound,
+decided on turn 11, $0.035). Today it is the newest run in the archive, so the front door
+opens on it; after any rehearsal, reach it at `#r/revenue-after-deploy-openai-41-2`. Say
+it in this order, and keep the third line exact — the runtime did **not** stop it:
+
+> GPT-4.1 correctly discovered that the revenue decline came from expired distributor
+> contracts. Then it added a second claim with nothing behind it — that the pipeline is
+> mis-splitting revenue, "likely incorrect" — and set out to repair that.
+>
+> It proposed rewriting the pipeline. Its repair referenced a table it had never
+> established existed, in a file it had asked to read and been refused.
+>
+> At runtime, our current system recorded that repair as *unchecked*. It did not stop it.
+> It had refused the model permission to read that file — and let it propose rewriting it.
+> Declaring a boundary and enforcing it are different things, and this run shows the gap.
+>
+> Because the run was preserved — every request, every answer, the decision — a different
+> program, against a key frozen the day before that the investigator cannot reach, could
+> later establish that the repair was unwarranted.
+>
+> That run is why the next boundary exists.
+
+The key is a development key with no evaluation claim; say so if asked, and never call
+the number a result.
+
+Then the reveal — not the architecture tree, but the four questions a repair will have
+to answer before it crosses the action boundary, each with a run behind it now:
+
+```text
+BEFORE ACTION
+1. Is the target permitted?          (R0: a repair where no path was permitted)
+2. Is the proposed repair executable? (41-2: SQL against a table that does not exist)
+3. Is the action supported by observed evidence?   (41-2: "likely incorrect")
+4. Does the independent validator accept it?       (M6 — the slot every live REPAIR shows as 'not checked')
+```
+
+This is not a spotless demo, and that is the point: we ran the system, it exposed a real
+autonomy failure, and the architecture says exactly where that failure must be
+controlled. Keep 41-2 forever. When the controls land, the before/after is the class of
+failure, not the exact trajectory: 41-2 — correct diagnosis, unjustified repair, runtime
+did not block, evaluator caught it afterwards — against the same kind of candidate
+rejected at the boundary, the rejection preserved. Not "look, the model behaved" but
+"look, the model did not have to behave." Its configuration is in its receipt and its
+lineage (4B smoke → R0/R1 → 4.1-mini → 4.1 at twelve turns → this) is on the green line;
+keeping it means committing `01_data/runs/MANIFEST.json` and preserving the archive
+somewhere kept — the run folder itself is ignored by git.
+
 ## The risk, decided now
 
-No model run of `revenue-after-deploy` has yet queried the distributors table. The 16
-September smoke runs reached NO_REPAIR by querying only the days after the deploy — right
-for the wrong reason — and the same model has also archived a live REPAIR on this incident
-(`revenue-after-deploy-qwen4b-1`): the rollback instinct itself, which the scorer then
-refuses because no validator has checked it, so there is no evaluation row to show.
+The live run on stage is the mechanism, not the result. No model has yet produced the
+clean NO_REPAIR with the evidence named: the 4B runs reached NO_REPAIR without looking
+(smoke-2, -3) — and one earlier 4B run, `revenue-after-deploy-qwen4b-1`, proposed a
+REPAIR on the same two queries, archived unchecked; 4.1-mini escalated; 4.1 found the
+evidence and reached for a fix.
 
 So the demo runs the mechanism live and does not depend on the live result:
 
@@ -125,23 +174,46 @@ So the demo runs the mechanism live and does not depend on the live result:
   distributors." Open the archived specimen run `revenue-after-deploy-run-1` (the page
   labels it scripted): "This is what the evidence shows when it is all looked at." Then
   Layer 3 with the live run; the score is real either way.
-- **REPAIR:** "That is the rollback instinct, and it is exactly what ADII exists to
-  question. The scorer refuses to grade it because no checker has run — the page says so."
-  Then the specimen run for the finding.
+- **REPAIR:** "That is the instinct to change something, and it is exactly what ADII
+  exists to question. The runtime archived it unchecked — it did not stop it; once
+  scored, the evaluation row will say unwarranted." Then 41-2, the same story told by the
+  strongest model.
 
 Rehearse with the model that will be used. `green_line.md` is the current state; read it
 the morning of.
 
 ## Running it
 
+With the model the demo opens on — gpt-4.1, the paid path — the server is started through
+the operator's credential wrapper, so that `OPENAI_API_KEY` is in the server's environment
+and nowhere else; the wrapper is outside the repository and is not shown here. The
+pre-flight first, free, so the credential is known good before the audience is in the
+room — the server checks that the credential is *present*, not that the provider accepts
+it; then the server, with the twenty-turn bound 41-2 ran under and a cap (41-2's was $0.50;
+it spent $0.035):
+
+```bash
+<credential wrapper> python -m adii.provider --check --model gpt-4.1
+<credential wrapper> python -m adii.demo 8000 --provider openai --model gpt-4.1 --max-cost-usd 0.25 --max-turns 20
+```
+
+Started without the credential, the server stops with the reason before it binds a port —
+there is no page to show a missing credential on. A key the provider then refuses gives
+one archived `infrastructure_failure` per Investigate, shown as such. The browser sends
+the incident id and nothing else; the cap and the model are in the receipt, and the page's
+footer says the run is at a paid provider, receipted and capped.
+
+The local model, costing nothing, for rehearsing the mechanism:
+
 ```bash
 ~/ai-models/.venv/bin/python -m mlx_lm server --model ~/ai-models/Qwen3-4B-Instruct-2507-4bit --port 8090
 python -m adii.demo 8000 --endpoint http://127.0.0.1:8090/v1 --model Qwen3-4B-Instruct-2507-4bit --served-as default_model
 ```
 
-Open http://127.0.0.1:8000, choose `revenue-after-deploy`, press Investigate. Rehearsed
-runs took 6 s; the bound-hit run took 39 s; there is no wall-clock bound yet, so a stalled
-model can hold the page for minutes (D-9). Then, for Layer 3:
+Either way: open http://127.0.0.1:8000, choose `revenue-after-deploy`, press Investigate.
+Rehearsed local runs took 6 s; the bound-hit run took 39 s; 41-2 took 17 s for its eleven
+turns; there is no wall-clock bound yet, so a stalled model can hold the page for minutes
+(D-9). Then, for Layer 3:
 
 ```bash
 python -m adii.evaluation --run <label> --key 02_src/adii/evaluation/fixtures/revenue-after-deploy.answer.json

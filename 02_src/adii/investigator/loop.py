@@ -336,6 +336,8 @@ def _parse_decision(payload: str) -> InvestigationDecision:
         raise ValueError("repair_id must be a string or null")
     if not isinstance(patch, dict):
         raise ValueError("patch must be an object")
+    if not all(isinstance(k, str) and isinstance(v, str) for k, v in patch.items()):
+        raise ValueError("patch must map each path to its new contents, as text")
 
     return InvestigationDecision(
         disposition=disposition,

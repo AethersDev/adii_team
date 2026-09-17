@@ -20,8 +20,10 @@ const PHRASING = {
       "recording every step, and never grading its own work.",
     readOnly: "This page is read-only. It shows runs the runtime archived and can start " +
       "none: a page that can start a run can spend money.",
-    /* the launcher's one line of context: the model is the server's choice, not a control */
-    runsWith: (model) => `Runs with ${model} on this machine. One investigation at a time.`,
+    /* the launcher's one line of context: the model and where it runs are the server's
+     * choice, not a control; a paid provider is named as such */
+    runsWith: (model, provider) => `Runs with ${model} ${provider === "openai"
+      ? "at a paid provider" : "on this machine"}. One investigation at a time.`,
     idle: "Nothing is running now.",
     busy: (label) => `Investigating now: ${label}`,
     history: (incidents, runs) => `${incidents} incident${incidents === 1 ? "" : "s"} · ` +
@@ -34,8 +36,11 @@ const PHRASING = {
     /* the footer of every screen: what this page can start, and what it never reaches */
     footReadOnly: "Read-only: runs are started from the command line. Nothing is sent to an " +
       "outside service.",
-    footLive: (model) => `Investigations run on this machine with ${model}, one at a time. ` +
-      "Nothing is sent to an outside service.",
+    footLive: (model, provider) => (provider === "openai"
+      ? `Investigations run with ${model} at a paid provider, one at a time; each is ` +
+        "receipted and capped before it starts."
+      : `Investigations run on this machine with ${model}, one at a time. ` +
+        "Nothing is sent to an outside service."),
     empty: "An incident appears here once the runtime has investigated it and archived the run.",
     /* feedback: the operator's assertion about a run, kept beside the record, attributed */
     feedbackAsk: "Was this investigation useful to you?",
@@ -67,7 +72,8 @@ const PHRASING = {
       `model turn${r.counters.model_turns === 1 ? "" : "s"} and ${r.counters.tool_calls} tool ` +
       `call${r.counters.tool_calls === 1 ? "" : "s"}, and stopped without a decision.`,
     model_failure: () => "The model failed and the run stopped without a decision.",
-    infrastructure_failure: () => "Something in the runtime failed — a defect of ours, not " +
+    infrastructure_failure: () => "Something outside the model failed — the runtime or the " +
+      "provider, not " +
       "the model's — and the run stopped without a decision.",
   },
 
@@ -86,7 +92,7 @@ const PHRASING = {
       ? ` — ${PHRASING.verdict[PHRASING.verdictOf(r.validation)]}` : ""),
     bound_hit: () => "Stopped at its limit, no decision",
     model_failure: () => "Stopped: the model failed, no decision",
-    infrastructure_failure: () => "Stopped: a failure of ours, no decision",
+    infrastructure_failure: () => "Stopped: a failure outside the model, no decision",
   },
 
   /* the same classes as a short label for lists and cards */
@@ -95,7 +101,20 @@ const PHRASING = {
       ? ` · ${PHRASING.verdict[PHRASING.verdictOf(r.validation)]}` : ""),
     bound_hit: () => "Stopped at its limit, no decision",
     model_failure: () => "Stopped: the model failed, no decision",
-    infrastructure_failure: () => "Stopped: a failure of ours, no decision",
+    infrastructure_failure: () => "Stopped: a failure outside the model, no decision",
+  },
+
+  /* what the run cost: nothing without a paid provider; otherwise the ledger's lower bound
+   * — proved usage at nominal prices — with the requests it could not price counted */
+  cost: (r) => {
+    if (!r.configuration || r.configuration.provider !== "openai") {
+      return r.counters.api_cost_usd ? `$${r.counters.api_cost_usd}` : "nothing spent (no paid provider)";
+    }
+    const asked = r.trace.filter((e) => e.kind === "model_requested").length;
+    const priced = r.trace.filter((e) => e.kind === "model_responded" && e.payload.usage
+      && Number.isInteger(e.payload.usage.prompt_tokens)).length;
+    return `at least $${r.counters.api_cost_usd.toFixed(4)}` +
+      (asked > priced ? ` (${asked - priced} request(s) without usage)` : "");
   },
 
   /* ── a turn: the model's request and everything it caused, in one sentence each ──── */
@@ -127,6 +146,14 @@ const PHRASING = {
     failure: "The decision did not match the answer key.",
     not_evaluable: "No decision was submitted, so there was nothing to score.",
     settledBy: { deterministic: "the scoring rules", judge: "the judge", none: "no one" },
+    /* orthogonal to the score: what the runtime did with the decision before anyone scored
+     * it — from the record's own validation, so every archived run says it */
+    runtime: {
+      none: "no repair was proposed, so nothing was checked",
+      unchecked: "the repair was archived unchecked — not blocked; the score found it afterwards",
+      accepted: "the validator checked the repair before this score, and accepted it",
+      rejected: "the validator checked the repair before this score, and did not accept it",
+    },
   },
 
   /* ── the validator's row ─────────────────────────────────────────── */
