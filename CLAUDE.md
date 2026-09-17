@@ -128,6 +128,7 @@ can explain to a large one they cannot.
 02_src/adii/demo/          ADII's page over the archive — the rest of adii/ may never import it
 02_src/tests/architecture/ the boundaries, executable
 01_data/demo/world/        the shared operational world (work order; not built)
+01_data/demo/csv/          the specimens' worlds as CSV — the data to bring to the page's form
 01_data/runs/              the archive: one record per run, what the inspector reads
 01_data/walkthrough/       the teaching fixture
 ```

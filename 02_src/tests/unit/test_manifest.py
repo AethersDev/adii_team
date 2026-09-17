@@ -31,13 +31,16 @@ def test_attestation_lists_every_record_with_path_size_digest_and_retention(arch
 
 
 def test_every_artefact_of_a_run_is_attested_in_its_retention_class(archive, tmp_path):
-    """A run leaves its receipt, its trace and its record; a person may leave feedback beside
-    them; the authority may leave its report. All five are attested and preserved — the
-    evidence, what was said about it, and what it scored, each in its own class — and a file
-    under any other name is a finding verification names, never silently archived."""
+    """A run leaves its receipt, its trace and its record — and, when the operator brought
+    the incident, that incident and its world; a person may leave feedback beside them; the
+    authority may leave its report. All seven are attested and preserved — the evidence,
+    what was said about it, and what it scored, each in its own class — and a file under
+    any other name is a finding verification names, never silently archived."""
     run = archive / "demo-learning-001"
     (run / "receipt.json").write_text('{"schema": "adii.receipt/v1"}', encoding="utf-8")
     (run / "trace.jsonl").write_text('{"kind": "incident_received"}\n', encoding="utf-8")
+    (run / "incident.json").write_text('{"incident_id": "demo-learning-001"}', encoding="utf-8")
+    (run / "world.sql").write_text('CREATE TABLE t (x);\n', encoding="utf-8")
     (run / "feedback.jsonl").write_text('{"useful": "yes"}\n', encoding="utf-8")
     (run / "evaluation_report.json").write_text('{"category": "success"}\n', encoding="utf-8")
     manifest = json.loads(write_manifest(archive).read_text(encoding="utf-8"))
@@ -45,6 +48,8 @@ def test_every_artefact_of_a_run_is_attested_in_its_retention_class(archive, tmp
         "demo-learning-001/receipt.json": "evidence",
         "demo-learning-001/trace.jsonl": "evidence",
         "demo-learning-001/record.json": "evidence",
+        "demo-learning-001/incident.json": "evidence",
+        "demo-learning-001/world.sql": "evidence",
         "demo-learning-001/feedback.jsonl": "annotation",
         "demo-learning-001/evaluation_report.json": "evaluation"}
     assert set(RETENTION.values()) == {"evidence", "annotation", "evaluation"}

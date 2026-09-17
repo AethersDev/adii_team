@@ -214,5 +214,5 @@ def test_every_screen_fits_the_viewport_at_desktop_and_phone_width(tmp_path, mon
         assert "Creating a run" in text
     else:
         assert "Autonomous Data Incident Investigator" in text
-        assert "Investigation history" in text and "View runs" in text
+        assert "Previous investigations" in text and "View runs" in text
     assert "did not load" not in text, "the page rendered an error state"

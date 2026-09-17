@@ -22,7 +22,7 @@ without changing what the sequence produces.
 | 4 | hard bounds — turns, tool calls, cost, wall clock — each named in the `bound_hit` it causes | D-9 `Budget`; the page's one-at-a-time gate | partial: turns and — for a paid run — cost are bound (`cost_usd: x of y used`, one request of overshoot); **tool calls are not**: `ToolExecutor.max_calls` exists and nothing on the runtime path sets it (a correction of 17 Sep — this row said otherwise); no wall clock, so a stalled model holds the slot up to 12 × 120 s |
 | 5 | the receipt exists before the first model request | `test_the_receipt_is_on_disk_when_the_first_model_request_arrives` | ✔ observed at the model, not inferred |
 | 6 | a cited evidence id resolves to a minted observation | D-3 counters; contract row 3 (`evidence_refs`) | ✗ no `evidence_refs` on the decision yet; nothing checks citations |
-| 7 | the archived run survives: attested, preserved with everything it left, reloadable | `python -m adii.reporting.manifest --verify / --preserve`; retention classes evidence / annotation / evaluation | ✔ five names attested; anything else in a run folder is an unlisted finding |
+| 7 | the archived run survives: attested, preserved with everything it left, reloadable | `python -m adii.reporting.manifest --verify / --preserve`; retention classes evidence / annotation / evaluation | ✔ seven names attested (the brought incident's `incident.json` and `world.sql` since 17 Sep); anything else in a run folder is an unlisted finding |
 | 8 | the evaluator consumes the runtime's record directly | `python -m adii.evaluation --run L --key K`; `test_scoring_an_archived_run.py` | ✔ same JSON, no adapter; refuses a foreign key and an unchecked repair |
 | 9 | a score and a report exist for a run the real investigator produced | the sequence below, steps 4–6; `01_data/runs/revenue-after-deploy-smoke-{1,2,3}/` | ✔ 16 Sep, as a smoke with no evaluation claim: run 1 `not_evaluable` (bound hit), runs 2 and 3 `success` — see "The first run" below |
 | 10 | the page renders the same archived truth, the evaluation included | `test_the_page_executes_nothing.py` (route `r/accepted` carries a report), `GET /api/runs/{label}/evaluation` | ✔ "What the evaluation said", in the authority's own terms, beside the validator's row |
@@ -274,12 +274,22 @@ python -m adii.evaluation --run revenue-after-deploy-openai-1 --key 02_src/adii/
 python -m adii.demo                                          # read-only: the paid run's page
 ```
 
+Since 17 September the page is also the product's front: *what looks wrong?* over the
+visitor's own CSV files (`POST /api/investigations` → `tools/user_world.py` →
+`--incident-dir` → the same loop, tools and archive; `incident.json` and `world.sql` kept
+beside the record), with the archive's incidents one layer down as examples, and the
+answer first on the run page — decision, action, what it looked at — the turns behind a
+disclosure. No model has yet been run over a brought file; the path is tested with the
+stand-in model in the browser.
+
 Since 17 September the page can start the paid path itself, under the same preconditions
 and through the same runtime entry point: `<credential wrapper> python -m adii.demo 8000
 --provider openai --model gpt-4.1 --max-cost-usd 0.25 --max-turns 20`. The wrapper is the
 operator's and puts `OPENAI_API_KEY` in the server's environment; the server asks
 `refused_paid` before binding a port and stops with the reason; the browser sends the
-incident id and nothing else; the credential appears in no response and no artefact
+incident id and, under Run settings, at most what the operator's flags allow — a priced
+model, a cap, a turn budget — refused above them; the credential appears in no response
+and no artefact
 (`test_a_paid_run_from_the_page_keeps_the_credential_off_every_response_and_artefact`).
 
 In the record, check: `configuration.credential` is the name `OPENAI_API_KEY (environment)`;

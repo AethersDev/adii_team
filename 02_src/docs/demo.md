@@ -36,7 +36,16 @@ Then the sentence everything hangs from, spoken once:
 
 ## Layer 2 — two minutes, ADII operating
 
-Click **Investigate** on `revenue-after-deploy`. Narrate the screen, not the code.
+Two ways in, and the first is the product. If someone in the room has a CSV — or you
+brought one — say: *"Give me a CSV. What do you think is wrong with it?"* They attach it
+under **Your data**, type the answer under **What looks wrong?**, and press
+**Investigate**. The data to bring is in `01_data/demo/csv/<incident>/`: for
+`revenue-after-deploy`, the three files `revenue_daily.csv`, `distributors.csv`,
+`deploys.csv`, and the alert to type in `alert.txt` — the specimen's own world, so the
+answer is known. Their words are the alert the investigator is told;
+their file is the only world it can see. Otherwise open **No data handy? Try an example**,
+pick `revenue-after-deploy`, and press **Investigate this example**. Either way, narrate
+the screen, not the code.
 
 | when the page shows | say |
 |---|---|
@@ -44,6 +53,7 @@ Click **Investigate** on `revenue-after-deploy`. Narrate the screen, not the cod
 | the answer (with its id) | "Everything it saw of the data was written down the moment it saw it, with an id, before it answered." |
 | a rejected request *(only if one appears)* | "It asked for something it is not allowed to do, or asked wrongly, and was told no. That is on the record too." |
 | the decision | "Notice it is allowed to say *do nothing*, or *I cannot justify a decision*. Those are outcomes, not failures." |
+| the answer | "The decision first; then what it looked at — every question it asked the data, one line each. If it decided without looking, this list is empty and the page says so." Then open **View the investigation** only if asked. |
 | the story | **Say the finding out loud.** If the run found it: "Two distributor contracts ended that week — 45% of revenue between them. The release only changed screen text. The drop is real. Rolling back would have destroyed correct data. That is NO_REPAIR." If the run did not find it, see "The risk", below. |
 
 Nothing else is narrated in Layer 2. The validator's row is not on this incident's page
@@ -68,6 +78,11 @@ Answer it on screen, not with a diagram:
 
 > The hard problem in enterprise agents is not getting them to act. It is knowing when
 > they are justified in acting.
+
+And the one-sentence version of the product, for whoever asks what it is:
+
+> Upload your data, tell ADII what looks suspicious, and it investigates before deciding
+> whether anything should actually be changed.
 
 If asked "so what is around the model?", the picture is in the presenter's pocket, not on
 a slide:
@@ -200,8 +215,14 @@ it spent $0.035):
 Started without the credential, the server stops with the reason before it binds a port —
 there is no page to show a missing credential on. A key the provider then refuses gives
 one archived `infrastructure_failure` per Investigate, shown as such. The browser sends
-the incident id and nothing else; the cap and the model are in the receipt, and the page's
-footer says the run is at a paid provider, receipted and capped.
+the incident id with a model, a cap and a turn budget — the server's own unless the visitor
+changed them under **Run settings**, and at most the server's either way; the server
+refuses more. The cap and the model are in
+the receipt, whose reason says the run was requested from the page and within what; the
+page's footer says the run is at a paid provider, receipted and capped. The settings stay
+closed on stage, prefilled with the flags above. If someone asks "can it run another
+model?", open them and pick `gpt-4.1-mini`: the architecture's indifference to the model
+is then on the screen, not on a slide.
 
 The local model, costing nothing, for rehearsing the mechanism:
 

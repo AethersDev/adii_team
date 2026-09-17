@@ -35,6 +35,7 @@ NAME = "MANIFEST.json"
 # run, and neither its evidence nor anyone's opinion. A file in a run's folder under any
 # other name is not attested, and verification lists it as unlisted.
 RETENTION = {"receipt.json": "evidence", "trace.jsonl": "evidence", "record.json": "evidence",
+             "incident.json": "evidence", "world.sql": "evidence",     # an operator's own incident
              "feedback.jsonl": "annotation", "evaluation_report.json": "evaluation"}
 
 

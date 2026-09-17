@@ -6,6 +6,7 @@ runtime — lands in one `adii.run_record/v1` the inspector renders. No model, n
 beyond the loopback, no money."""
 from __future__ import annotations
 
+import hashlib
 import json
 import threading
 from http.server import ThreadingHTTPServer
@@ -308,3 +309,59 @@ def test_the_scripted_provider_still_replays_the_walkthrough_only(tmp_path, caps
     assert "replays the walkthrough only" in capsys.readouterr().out
     assert cli.main(["--incident", "nope", *scripted]) == 2
     assert "known: demo-learning-001, orders-missing-day" in capsys.readouterr().out
+
+
+def test_an_operators_own_incident_runs_over_its_own_world_and_both_are_kept(tmp_path, endpoint,
+                                                                             capsys):
+    """`--incident-dir`: incident.json is what the investigator is told, world.sql is the
+    world behind the tools — the same loader a specimen uses — and both land beside the
+    record, so the archive holds what the system saw. A folder that is not that is refused
+    before any label is claimed."""
+    from adii.tools.user_world import world_from_files
+    brought = tmp_path / "brought"
+    brought.mkdir()
+    (brought / "incident.json").write_text(json.dumps({
+        "incident_id": "upload-1", "alert": "Revenue fell 45% after the deploy.",
+        "as_of": "2026-09-17T12:00:00+00:00", "permitted_write_paths": []}), encoding="utf-8")
+    world = world_from_files([("revenue.csv", "day,revenue\n2026-03-07,1200\n2026-03-08,660\n")])
+    (brought / "world.sql").write_text(world, encoding="utf-8")
+    FakeModel.script[:] = [
+        '<TOOL_CALL>{"name": "run_sql", "arguments": {"query": "SELECT * FROM revenue"}}',
+        '<DECISION>{"disposition": "NO_REPAIR", "root_cause_id": null, "root_cause_summary": '
+        '"Two days of revenue, one lower; nothing in the data is malformed.", '
+        '"repair_id": null, "patch": {}}']
+    assert cli.main(["--incident-dir", str(brought), "--provider", "local", "--endpoint",
+                     endpoint, "--model", "m", "--archive", str(tmp_path / "runs")]) == 0
+    [folder] = [p for p in (tmp_path / "runs").iterdir() if p.is_dir()]
+    assert folder.name.startswith("upload-1-")
+    r = read_record(folder / "record.json")
+    assert (r.context.incident_id, r.context.alert) == \
+        ("upload-1", "Revenue fell 45% after the deploy.")
+    assert r.decision.disposition.value == "NO_REPAIR"
+    seen = [e for e in r.trace if e.kind == "tool_result"][0].payload["content"]
+    assert seen["rows"] == [["2026-03-07", 1200], ["2026-03-08", 660]]
+    assert (folder / "world.sql").read_text(encoding="utf-8") == world
+    kept = json.loads((folder / "incident.json").read_text(encoding="utf-8"))
+    assert kept["alert"] == r.context.alert
+    receipt = read_receipt(folder / RECEIPT)
+    assert receipt["artefacts"]["world"] == "sha256:" + hashlib.sha256(world.encode()).hexdigest()
+    # refused before a label: a folder without its world, and a malformed incident
+    (brought / "world.sql").unlink()
+    assert cli.main(["--incident-dir", str(brought), "--provider", "local", "--endpoint",
+                     endpoint, "--model", "m", "--archive", str(tmp_path / "runs2")]) == 2
+    assert "must hold incident.json and world.sql" in capsys.readouterr().out
+    (brought / "world.sql").write_text(world, encoding="utf-8")
+    for malformed, said in (('{"incident_id": 5}', "as text"), ("[1, 2]", "as text"),
+                            ('"hello"', "as text")):
+        (brought / "incident.json").write_text(malformed, encoding="utf-8")
+        assert cli.main(["--incident-dir", str(brought), "--provider", "local", "--endpoint",
+                         endpoint, "--model", "m", "--archive", str(tmp_path / "runs2")]) == 2
+        assert said in capsys.readouterr().out
+    (brought / "incident.json").write_text(json.dumps({
+        "incident_id": "upload-1", "alert": "x", "as_of": "now", "permitted_write_paths": []}),
+        encoding="utf-8")
+    (brought / "world.sql").write_text("CREATE TABL t (a);", encoding="utf-8")
+    assert cli.main(["--incident-dir", str(brought), "--provider", "local", "--endpoint",
+                     endpoint, "--model", "m", "--archive", str(tmp_path / "runs2")]) == 2
+    assert "not one SQLite accepts" in capsys.readouterr().out
+    assert not (tmp_path / "runs2").exists() or not list((tmp_path / "runs2").iterdir())

@@ -43,6 +43,7 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
+from ..contracts import IncidentContext
 from ..examples.specimens import SPECIMENS
 from ..examples.walkthrough import load
 from ..provider import PROTOCOL, endpoint_may_carry_a_credential
@@ -74,6 +75,37 @@ def incident(incident_id: str):
                 tools.register(*specimen.extra_tool)
             return specimen.context, tools, digest_of(specimen.world), None
     return None
+
+
+INCIDENT_FILES = ("incident.json", "world.sql")
+
+
+def incident_from_dir(folder: Path):
+    """An incident the operator brought: `incident.json` (what the investigator is told —
+    the fields of IncidentContext) over `world.sql` (the build script of its world, as a
+    specimen declares one). The same tool layer over the same kind of world; nothing else
+    knows the difference. ValueError names what is missing or malformed."""
+    if not folder.is_dir() or not all((folder / name).is_file() for name in INCIDENT_FILES):
+        raise ValueError(f"{folder} must hold {' and '.join(INCIDENT_FILES)}")
+    told = json.loads((folder / "incident.json").read_text(encoding="utf-8"))
+    paths = told.get("permitted_write_paths", []) if isinstance(told, dict) else None
+    if not isinstance(told, dict) or not isinstance(paths, list) \
+            or not all(isinstance(told.get(k), str) for k in ("incident_id", "alert", "as_of")) \
+            or not all(isinstance(p, str) for p in paths):
+        raise ValueError("incident.json must hold incident_id, alert and as_of as text, and "
+                         "permitted_write_paths as a list of text")
+    context = IncidentContext(incident_id=told["incident_id"], alert=told["alert"],
+                              as_of=told["as_of"], permitted_write_paths=tuple(paths))
+    world = (folder / "world.sql").read_text(encoding="utf-8")
+    database = ReadOnlyDatabase.in_memory(world)      # ValueError when SQLite refuses the script
+    return context, build_sql_tools(database), digest_of(world), None
+
+
+def keep_incident(source: Path, folder: Path) -> None:
+    """The incident and its world, beside the record: custody of what the system saw,
+    byte for byte, so the run can be read and replayed from the archive alone."""
+    for name in INCIDENT_FILES:
+        (folder / name).write_bytes((source / name).read_bytes())
 
 
 def artefacts(context, world_digest: str) -> dict[str, str]:
@@ -114,7 +146,11 @@ def refused_paid(model: str | None, max_cost_usd: float, endpoint: str,
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m adii.runtime", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--incident", required=True, help="the incident id to investigate")
+    what = parser.add_mutually_exclusive_group(required=True)
+    what.add_argument("--incident", help="the incident id to investigate")
+    what.add_argument("--incident-dir", metavar="DIR",
+                      help="a folder holding incident.json and world.sql — an operator's own "
+                           "incident over their own data; both are kept beside the record")
     parser.add_argument("--provider", required=True, choices=["scripted", "local", "openai"],
                         help="scripted: a scripted investigator and validator over the real "
                              "tool layer — no model, no cost. local: A's loop with a model "
@@ -138,15 +174,25 @@ def main(argv: list[str] | None = None) -> int:
                                         "a label names one run forever")
     parser.add_argument("--archive", default=str(ARCHIVE), metavar="DIR",
                         help="archive root (default: 01_data/runs)")
+    parser.add_argument("--requested-from", default="the command line", metavar="TEXT",
+                        help="where this run was asked for, as the receipt's reason records it; "
+                             "the demo server names the page and the ceilings it checked")
     parser.add_argument("--no-report", action="store_true",
                         help="archive only; do not print the report")
     args = parser.parse_args(argv)
 
-    found = incident(args.incident)
-    if found is None:
-        known = [load()[0].incident_id, *(s.context.incident_id for s in SPECIMENS)]
-        print(f"no such incident {args.incident!r}; known: {', '.join(known)}")
-        return 2
+    if args.incident_dir:
+        try:
+            found = incident_from_dir(Path(args.incident_dir))
+        except (ValueError, json.JSONDecodeError) as bad:       # not an incident folder
+            print(f"not an incident: {bad}")
+            return 2
+    else:
+        found = incident(args.incident)
+        if found is None:
+            known = [load()[0].incident_id, *(s.context.incident_id for s in SPECIMENS)]
+            print(f"no such incident {args.incident!r}; known: {', '.join(known)}")
+            return 2
     context, tools, world_digest, recorded = found
     if args.endpoint is None:
         args.endpoint = ("https://api.openai.com/v1" if args.provider == "openai"
@@ -154,8 +200,9 @@ def main(argv: list[str] | None = None) -> int:
     paid: dict[str, object] = {}
     if args.provider == "scripted":
         if recorded is None:
-            print(f"the scripted provider replays the walkthrough only; {args.incident!r} has no "
-                  "recorded run — use --provider local, or python -m adii.examples.specimens")
+            print(f"the scripted provider replays the walkthrough only; "
+                  f"{context.incident_id!r} has no recorded run — use --provider local, or "
+                  "python -m adii.examples.specimens")
             return 2
         configuration = {"provider": "scripted", "model": None, "tools": list(tools.names)}
         reason = "scripted replay of a recorded run: no model, nothing is spent"
@@ -168,7 +215,7 @@ def main(argv: list[str] | None = None) -> int:
                          "tools": list(tools.names),
                          "execution_mode": "live", "cost_basis": "local endpoint, no price"}
         reason = (f"a local model, {args.model}, at {args.endpoint}: no nominal price, "
-                  "nothing is spent")
+                  f"nothing is spent; requested from {args.requested_from}")
     else:
         why = refused_paid(args.model, args.max_cost_usd, args.endpoint, args.served_as)
         if why:
@@ -185,8 +232,8 @@ def main(argv: list[str] | None = None) -> int:
                          "cost_basis": (f"lower bound: provider-reported usage at nominal "
                                         f"{args.model} prices, {price.table}")}
         reason = (f"a paid provider, {args.model} at {args.endpoint}: up to "
-                  f"${args.max_cost_usd:.2f} at nominal prices ({price.table}), permitted by "
-                  "the operator running this command")
+                  f"${args.max_cost_usd:.2f} at nominal prices ({price.table}); requested from "
+                  f"{args.requested_from}; permitted by the operator running this process")
         paid = {"credential": credential, "max_tokens": args.max_tokens,
                 "price": price, "max_cost_usd": args.max_cost_usd}
     label = args.label or f"{context.incident_id}-{datetime.now(UTC):%Y%m%dT%H%M%SZ}"
@@ -199,6 +246,8 @@ def main(argv: list[str] | None = None) -> int:
     except FileExistsError as taken:
         print(f"not archived: {taken}")
         return 1
+    if args.incident_dir:                 # the operator's incident and world, kept first
+        keep_incident(Path(args.incident_dir), folder)
     # The receipt, before anything is spent: written and flushed, kept on every path.
     write_receipt(folder, label=label, artefacts=artefacts(context, world_digest),
                   configuration=configuration, reason=reason)

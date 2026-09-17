@@ -1,0 +1,6 @@
+run_date,status,rows_loaded,note
+2026-03-10,SUCCESS,124,
+2026-03-11,SUCCESS,118,
+2026-03-12,FAILED,55,source connection reset at row 55; batch rolled back
+2026-03-13,SUCCESS,131,
+2026-03-14,SUCCESS,127,

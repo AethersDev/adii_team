@@ -20,6 +20,7 @@ database, behind an executor that keeps the four statuses apart.
 | `database.py` | `ReadOnlyDatabase`: SQLite behind an **authorizer**; row caps, cell caps, a step budget |
 | `sql_tools.py` | the two tool handlers, and `build_sql_tools(database)` to wire them up |
 | `walkthrough_world.py` | the `demo-learning-001` world as SQL, so the fixture can be replayed live |
+| `user_world.py` | an operator's CSV files as the same kind of world: one typed table per file, bounded, refused with the reason — pure text, the build script `in_memory` runs |
 
 ```python
 from adii.contracts import ToolCall
@@ -33,7 +34,17 @@ result.status                    # "OK" — and result.content["evidence_id"] is
 ```
 
 To run against a real database file, `ReadOnlyDatabase.from_file(path)` — the path is
-configuration the runtime holds, never something a tool accepts.
+configuration the runtime holds, never something a tool accepts. To run over an
+operator's own CSV files, `user_world.world_from_files([(name, text), …])` gives the
+build script for `in_memory`: one table per file named after it, every column typed from
+its values (INTEGER, REAL, else TEXT; a blank cell is NULL) and never altered by the typing
+— a leading zero, a non-ASCII numeral, an integer past 64 bits or a number past a float's
+range keeps the column text — cells are stripped, a row with no content is skipped, a
+header alone is an empty table; at most 8 files, 64 columns, 20,000 rows and 2,000,000
+characters each; a file that is not a table is refused with the reason — a row of the
+wrong width with its file line named, no header, a name SQLite reserves, text the CSV
+reader cannot parse. The same door, the same
+authorizer, the same caps; nothing downstream knows the world was brought.
 
 **How a call is decided, in order.** Unknown tool → `DENIED`. Budget spent → `DENIED`.
 Arguments fail the advertised schema → `REJECTED`, with every problem named. Then the

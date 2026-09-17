@@ -4,8 +4,15 @@ One command takes an incident to an archived run and a readable report.
 
 ```bash
 python -m adii.runtime --incident demo-learning-001 --provider scripted
+python -m adii.runtime --incident-dir DIR --provider local --model <id>   # the operator's own incident
 python -m adii.demo                     # the run is in the inspector
 ```
+
+`--incident-dir` takes a folder holding `incident.json` — the fields of `IncidentContext`:
+what the investigator is told — and `world.sql`, the build script of its world, as a
+specimen declares one; both are kept beside the record, byte for byte, so the archive
+holds what the system saw. The page's own form writes such a folder from a description
+and CSV files (`tools/user_world.py`) and starts the run through this command.
 
 ## What it does
 

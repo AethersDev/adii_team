@@ -150,3 +150,19 @@ class TestFromFile:
     def test_a_missing_file_is_an_error_at_construction_not_at_query_time(self, tmp_path):
         with pytest.raises(FileNotFoundError):
             ReadOnlyDatabase.from_file(tmp_path / "nope.db")
+
+
+class TestBuild:
+    """A world is built once, in memory, and the build is not a door either."""
+
+    def test_a_build_script_may_not_attach_a_file(self, tmp_path):
+        evil = tmp_path / "evil.db"
+        with pytest.raises(ValueError, match="not one SQLite accepts"):
+            ReadOnlyDatabase.in_memory(f"ATTACH DATABASE '{evil}' AS e; CREATE TABLE e.loot (x);")
+        assert not evil.exists()
+
+    def test_a_script_sqlite_refuses_is_a_value_error_naming_the_reason(self):
+        with pytest.raises(ValueError, match='near "TABL"'):
+            ReadOnlyDatabase.in_memory("CREATE TABL t (a);")
+        with pytest.raises(ValueError, match="reserved"):
+            ReadOnlyDatabase.in_memory('CREATE TABLE "sqlite_master" (a);')

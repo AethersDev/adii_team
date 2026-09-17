@@ -30,11 +30,14 @@ for three minutes and has no record is a run that did not finish, and the inspec
 so. A person may leave `feedback.jsonl` beside a finished run, from the inspector.
 
 What is kept, by name: `receipt.json`, `trace.jsonl` and `record.json` are **evidence** —
-what the run left of itself; `feedback.jsonl` is an **annotation** — what someone said
-about it afterwards; `evaluation_report.json` is an **evaluation** — what the authority
-said against a key the run never saw (`python -m adii.evaluation --run <label> --key
-PATH`). The manifest attests and preservation copies all five, each in its class; a file
-under any other name in a run folder is listed by verification, not archived.
+what the run left of itself — and so are `incident.json` and `world.sql` when the operator
+brought the incident (`python -m adii.runtime --incident-dir DIR`, or the page's own
+form): what the investigator was told and the world behind the tools, byte for byte;
+`feedback.jsonl` is an **annotation** — what someone said about it afterwards;
+`evaluation_report.json` is an **evaluation** — what the authority said against a key the
+run never saw (`python -m adii.evaluation --run <label> --key PATH`). The manifest attests
+and preservation copies all seven, each in its class; a file under any other name in a
+run folder is listed by verification, not archived.
 
 To produce a run:
 

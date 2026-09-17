@@ -178,6 +178,34 @@ def test_a_run_without_a_model_is_always_marked_scripted():
     assert "scriptedNote(cfg.model)" in source, "the run page does not show the scripted note"
 
 
+def test_the_answer_first_sentences_are_projections_of_the_decision_and_the_trace():
+    """The action is the disposition's meaning as an instruction and nothing more; what it
+    looked at is counted from answered requests; the live counter from the trace so far."""
+    for disposition, expected in (
+            ("NO_REPAIR", "Do not change the data or the pipeline."),
+            ("ESCALATE", "Hand this to a person. The evidence gathered does not settle it."),
+            ("REPAIR", "A change was proposed. Nobody has applied it; it is shown below, and "
+                       "until a validator accepts it, it stays a proposal.")):
+        assert phrase("action", disposition, {}) == expected
+    script = (f"{(WEB / 'phrasing.js').read_text(encoding='utf-8')}\n"
+              "process.stdout.write([PHRASING.product.looked(1), PHRASING.product.looked(3), "
+              "PHRASING.product.lookedAtNothing, PHRASING.product.soFar(1, 0), "
+              "PHRASING.product.soFar(4, 3), "
+              "PHRASING.product.runsWith('m', 'local', undefined, 12), "
+              "PHRASING.product.runsWith('gpt-4.1', 'openai', 0.25, 20)].join('|'));")
+    out = subprocess.run([node(), "-e", script], capture_output=True, text=True,
+                         encoding="utf-8", check=True, timeout=30).stdout
+    assert out.split("|") == [
+        "1 observation", "3 observations",
+        "It looked at nothing before deciding: no request was answered.",
+        "1 request so far · 0 answered.", "4 requests so far · 3 answered.",
+        "Runs with m on this machine · 12 turns. One investigation at a time.",
+        "Runs with gpt-4.1 at a paid provider · up to $0.25 · 20 turns. "
+        "One investigation at a time."]
+    text = " ".join(phrase("action", d, {}) for d in ("NO_REPAIR", "ESCALATE", "REPAIR")).lower()
+    assert not [w for w in FORBIDDEN if w in text]
+
+
 def test_the_readme_lists_every_sentence_the_page_adds():
     """The dictionary is reviewable because the README names every entry. A new entry
     without a README line is a sentence the team never saw."""
@@ -187,6 +215,6 @@ def test_the_readme_lists_every_sentence_the_page_adds():
                 "notInvoked", "asked", "answered", "wrote", "decided", "validated",
                 "unanswered", "scripted", "cost", "runtime", "success", "correct_abstention",
                 "unnecessary_escalation", "false_repair", "repair_rejection", "failure",
-                "not_evaluable"):
+                "not_evaluable", "action", "looked", "lookedAtNothing", "soFar"):
         assert key in source, f"phrasing.js lost {key}"
         assert f"`{key}`" in readme, f"README does not list the {key} sentence"

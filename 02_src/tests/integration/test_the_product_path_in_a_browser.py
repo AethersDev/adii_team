@@ -43,8 +43,12 @@ const tick = setInterval(async () => {
     const select = doc.getElementById("launch-incident");
     if (!select || !select.options.length) return;
     select.value = "orders-missing-day";
+    const turns = doc.getElementById("launch-turns");     /* Run settings: 12 of the server's 20 */
+    turns.value = "12";
+    turns.dispatchEvent(new Event("change"));
+    out("summary", doc.querySelector(".howto .adii-type-sm").textContent);
     go("launched");
-    doc.querySelector("button.adii-btn--primary").click();
+    doc.getElementById("launch-example").click();      /* the archive's incident, one layer down */
   } else if (step === "launched") {
     if (!frame.contentWindow.location.hash.startsWith("#r/")) return;
     label = decodeURIComponent(frame.contentWindow.location.hash.slice(3));
@@ -79,10 +83,13 @@ const tick = setInterval(async () => {
 def test_a_stranger_starts_watches_reads_and_answers_a_run_in_the_browser(tmp_path,
                                                                            monkeypatch):
     binary = chrome()
+    # a live REPAIR: the trace the page watches carries validation_completed (the runtime's
+    # placeholder verdict), which the live view must render without a verdict of its own
     FakeModel.script[:] = [
         '<TOOL_CALL>{"name": "get_schema", "arguments": {"table": "orders"}}',
-        '<DECISION>{"disposition": "ESCALATE", "root_cause_id": null, '
-        '"root_cause_summary": "not enough here", "repair_id": null, "patch": {}}']
+        '<DECISION>{"disposition": "REPAIR", "root_cause_id": "LOAD_FAILED", '
+        '"root_cause_summary": "the load for the day failed", "repair_id": "RERUN", '
+        '"patch": {"transforms/orders.sql": "-- rerun\\n"}}']
     FakeModel.delay = 0.2                     # two turns: long enough to be seen running
     model = ThreadingHTTPServer(("127.0.0.1", 0), FakeModel)
     threading.Thread(target=model.serve_forever, daemon=True).start()
@@ -95,7 +102,7 @@ def test_a_stranger_starts_watches_reads_and_answers_a_run_in_the_browser(tmp_pa
     monkeypatch.setattr(server, "WEB", web)
     monkeypatch.setattr(server, "LAUNCH", {
         "provider": "local", "endpoint": f"http://127.0.0.1:{model.server_port}/v1",
-        "model": "test-model-1", "served_as": None, "max_turns": 6})
+        "model": "test-model-1", "served_as": None, "max_turns": 20})
     httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     try:
@@ -120,7 +127,8 @@ def test_a_stranger_starts_watches_reads_and_answers_a_run_in_the_browser(tmp_pa
     assert "running" in flow["seen"].split(","), flow
     assert flow["unchanged"] == "true"
     text = dom[dom.index('<pre id="text">'):]
-    assert "Decided: ESCALATE" in text and "What it concluded" in text
+    assert "Decided: REPAIR" in text and "not checked by a validator" in text
+    assert "What it concluded" in text and "it stays a proposal" in text
     assert "The investigation, turn by turn" in text and "One investigation at a time." in text
     assert "Sam" in text and "why it stopped" in text     # shown back, verbatim
     assert " ev-" in text                          # the observation's minted id, on the turn
@@ -128,5 +136,102 @@ def test_a_stranger_starts_watches_reads_and_answers_a_run_in_the_browser(tmp_pa
     kept = (archive / label / "feedback.jsonl").read_text(encoding="utf-8").splitlines()
     assert [json.loads(line)["by"] for line in kept] == ["Sam"]
     assert (archive / label / "receipt.json").is_file()
-    assert json.loads((archive / label / "record.json").read_text(encoding="utf-8"))["decision"][
-        "disposition"] == "ESCALATE"
+    record = json.loads((archive / label / "record.json").read_text(encoding="utf-8"))
+    assert record["decision"]["disposition"] == "REPAIR"
+    # what the visitor chose under Run settings is what ran, and what the summary line said
+    assert record["configuration"]["max_turns"] == 12
+    assert flow["summary"] == "Runs with test-model-1 on this machine · 12 turns. " \
+                              "One investigation at a time."
+
+
+# The other entry path: what looks wrong, typed, over a CSV attached in the browser — the
+# form the product opens on. The file is attached the way a drop would attach it.
+BROUGHT = """<!doctype html><meta charset="utf-8"><title>brought</title><body>
+<script>
+const frame = document.createElement("iframe");
+frame.width = "1200"; frame.height = "12000"; frame.style.border = "0";
+frame.src = "/#";
+document.body.append(frame);
+const out = (k, v) => { document.documentElement.dataset[k] = v; };
+let step = "boot";
+const go = (next) => { step = next; out("step", next); };
+const tick = setInterval(async () => {
+  const doc = frame.contentDocument;
+  if (!doc || !doc.body) return;
+  const text = doc.body.textContent;
+  if (step === "boot") {
+    const ask = doc.getElementById("launch-description");
+    const files = doc.getElementById("launch-files");
+    if (!ask || !files) return;
+    ask.value = "Revenue fell 45% after yesterday's deploy.";
+    const dt = new DataTransfer();
+    dt.items.add(new File(["day,revenue\\n2026-03-07,1200\\n2026-03-08,660\\n"], "revenue.csv",
+      { type: "text/csv" }));
+    files.files = dt.files;
+    go("launched");
+    doc.getElementById("launch-investigate").click();
+  } else if (step === "launched") {
+    if (!frame.contentWindow.location.hash.startsWith("#r/")) return;
+    out("label", decodeURIComponent(frame.contentWindow.location.hash.slice(3)));
+    go("watching");
+  } else if (step === "watching") {
+    if (!(text.includes("Decided: ") && text.includes("Record feedback"))) return;
+    const pre = document.createElement("pre"); pre.id = "text"; pre.textContent = text;
+    document.body.append(pre);
+    clearInterval(tick);
+    go("done");
+  }
+}, 200);
+</script>"""
+
+
+def test_a_stranger_brings_their_own_data_and_gets_an_answer_in_the_browser(tmp_path,
+                                                                             monkeypatch):
+    binary = chrome()
+    FakeModel.script[:] = [
+        '<TOOL_CALL>{"name": "run_sql", "arguments": {"query": "SELECT * FROM revenue"}}',
+        '<DECISION>{"disposition": "NO_REPAIR", "root_cause_id": null, "root_cause_summary": '
+        '"Two days of revenue, one lower; nothing in the data is malformed.", '
+        '"repair_id": null, "patch": {}}']
+    FakeModel.delay = 0.2
+    model = ThreadingHTTPServer(("127.0.0.1", 0), FakeModel)
+    threading.Thread(target=model.serve_forever, daemon=True).start()
+    archive = tmp_path / "archive"
+    archive.mkdir()
+    web = tmp_path / "web"
+    shutil.copytree(server.WEB, web)
+    (web / "brought.html").write_text(BROUGHT, encoding="utf-8")
+    monkeypatch.setattr(server, "ARCHIVE", archive)
+    monkeypatch.setattr(server, "WEB", web)
+    monkeypatch.setattr(server, "LAUNCH", {
+        "provider": "local", "endpoint": f"http://127.0.0.1:{model.server_port}/v1",
+        "model": "test-model-1", "served_as": None, "max_turns": 6})
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    try:
+        dom = dump_dom(
+            [binary, "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage",
+             "--hide-scrollbars", "--no-first-run", f"--user-data-dir={tmp_path / 'chrome'}",
+             "--window-size=1280,900", "--virtual-time-budget=36000000", "--dump-dom",
+             f"http://127.0.0.1:{httpd.server_port}/brought.html"])
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+        model.shutdown()
+        model.server_close()
+        FakeModel.delay = 0.0
+    assert "</html>" in dom, f"no document within the deadline; dom tail: {dom[-300:]!r}"
+    flow = dict(re.findall(r'data-([a-zA-Z]+)="([^"]*)"', dom.split("<body", 1)[0]))
+    assert flow.get("step") == "done", f"the flow stopped at {flow.get('step')!r}: {flow}"
+    label = flow["label"]
+    assert label.startswith("upload-")
+    text = dom[dom.index('<pre id="text">'):]
+    # the answer, first: the decision, what it looked at, and what to do
+    assert "Decided: NO_REPAIR" in text and "What it looked at" in text
+    assert "run_sql with query = " in text and "answered with 2 rows" in text
+    assert "Do not change the data or the pipeline." in text
+    assert "View the investigation" in text and "The investigation, turn by turn" in text
+    assert "did not load" not in text
+    record = json.loads((archive / label / "record.json").read_text(encoding="utf-8"))
+    assert record["context"]["alert"] == "Revenue fell 45% after yesterday's deploy."
+    assert all((archive / label / name).is_file() for name in ("world.sql", "incident.json"))

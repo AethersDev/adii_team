@@ -193,7 +193,8 @@ def test_the_demo_backend_stays_dependency_free():
     if not server.is_file():
         return
     allowed = {"__future__", "json", "http", "pathlib", "sys", "os", "typing", "datetime", "time",
-               "threading"}          # one lock: one run at a time in the process
+               "threading",          # one lock: one run at a time in the process
+               "hashlib", "tempfile"}    # a brought incident's id, and where it is staged
     offending = imported_modules(server) - allowed
     assert not offending, (
         f"demo/server.py imports {sorted(offending)}. Standard library only: the "

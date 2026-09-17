@@ -213,9 +213,11 @@ evidence gets destroyed by someone trying to be helpful.
 | **Development / adversarial** | the evaluation catalogue, additively | authored under the authoring protocol; additive only, never replacing |
 | **Frozen evaluation** | the same place, from the moment a reported result is scored against it | none. Never modified, never silently regenerated, **never simplified for presentation**. |
 | **Blind** | custodian-controlled | frozen before any investigator sees them; authored by someone who will not run against them |
+| **Brought** | the run folder it was investigated in (`incident.json`, `world.sql`), never the catalogue | an operator's own question over their own files, from the page or `--incident-dir`; carries **no evaluation claim** and has no key; kept byte for byte beside its record, never edited there |
 
-Today only the first row exists here, which is the cheapest moment this rule will ever be
-to adopt. An incident becomes frozen the instant a number is reported against it, and
+Today only the first row exists here as incidents, and the last as a mechanism — no
+brought incident is in the repository, since each lives in the run folder of the machine
+it was brought to — which is the cheapest moment this rule will ever be to adopt. An incident becomes frozen the instant a number is reported against it, and
 nothing is announced when that happens — so the discipline has to be in place before the
 first scored run, not after it.
 
