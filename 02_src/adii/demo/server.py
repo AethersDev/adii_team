@@ -393,8 +393,8 @@ def main(port: int = 8000, launch: dict[str, object] | None = None) -> int:
     if LAUNCH.get("provider") == "openai":
         print(f"Runs may be started from the page, against {LAUNCH['model']} by default — any "
               f"priced model on request — at {LAUNCH['endpoint']}, a paid provider, up to "
-              f"${LAUNCH['max_cost_usd']:.2f} per run at nominal prices, checked between "
-              "requests; the credential is this process's, from its environment.")
+              f"${LAUNCH['max_cost_usd']:.2f} per run at nominal prices, a hard cap; the "
+              "credential is this process's, from its environment.")
     elif LAUNCH:
         print(f"Runs may be started from the page, against {LAUNCH['model']} at "
               f"{LAUNCH['endpoint']} — a local endpoint, nothing is spent.")

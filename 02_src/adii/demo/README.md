@@ -65,8 +65,8 @@ flags the operator started it with — model, turn budget, and on the paid path 
 are each run's default and the ceiling a request from the page may not pass. Under
 **Run settings**, closed by default, a visitor may ask for a smaller turn budget from a
 few presets and, on the paid path, any priced model and a smaller cap. The cap, not the
-model, bounds the spend: a pricier model spends the same cap sooner, and the one request
-of overshoot is priced at the chosen model's rate. Requests, not authority: the server
+model, bounds the spend: a pricier model spends the same cap sooner, and a request whose
+worst case would cross the cap is not sent. Requests, not authority: the server
 checks each against its own flags (`requested()`, four guards) and refuses more — never
 clamps — so a run that exists ran exactly what was asked, and its receipt's reason says it
 was requested from the page and within what. Everything is forwarded to the same
@@ -101,8 +101,8 @@ runtime's paid path owns that, and
 `test_a_paid_run_from_the_page_keeps_the_credential_off_every_response_and_artefact`
 holds it for the page. The two concerns that made the page read-only are met the same
 way on both paths: the receipt precedes the investigator (D-15, guarded), and what can be
-spent is capped per run — a finite cap, checked between requests, so the overshoot is one
-request — and permitted by the person who started the server, in their terminal, with the
+spent is capped per run — a finite, hard cap: no request is sent whose worst case would
+cross it — and permitted by the person who started the server, in their terminal, with the
 cap in the receipt's reason; the name on the wire is the priced name (`--served-as` is
 refused with `--provider openai`, even equal to `--model`: the page may ask for any priced
 model, so no alias can stand for "the" model). The server binds loopback only, and holds

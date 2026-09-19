@@ -38,11 +38,26 @@ this machine. The credential goes on the wire as a bearer header and nowhere els
 the receipt, the trace, the record, the report, an error, or the endpoint string. A refused
 status, an unreachable host or a timeout is raised as `ProviderFailure` carrying only the
 status and the structured error code — never the body, which a 401 fills with the masked
-key — and the runtime files it as an infrastructure failure, not the model's (D-14). The
-ledger's lower bound is checked between requests against the cap; the request that
-crosses it is already paid for, so the overshoot is one request: the prompt so far plus
-`max_tokens`. A record never says a paid run cost 0.0: it says at least what was proved,
-and counts the requests it could not price.
+key — and the runtime files it as an infrastructure failure, not the model's (D-14).
+
+The cap is hard. Before each request the provider reserves that request's worst case —
+every byte of every message counted as a token at the input rate (a byte-level BPE
+tokenizer, every OpenAI chat model's, cannot make more tokens than bytes; the chat format's
+own tokens are added as constants above their real number), and `max_tokens` at the output
+rate, no discount assumed — and sends it only if the ledger's worst case so far plus that
+reserve stays within the cap. Otherwise the run ends as a `bound_hit` naming the spend, the
+reserve, the cap and the remainder, and the request is not sent: a hard cap gives up some
+budget near the boundary rather than crossing it. The worst case spent counts proved usage
+at nominal prices and a response without usage at the reserve that admitted it; the reserve
+is recorded on `model_requested` with the estimator's name. A record still reports the
+lower bound — never 0.0 for a paid run: at least what was proved, and the count of
+requests it could not price.
+
+Two bounds of the run's own are checked here too, because this is where a run waits:
+`max_model_requests`, a request count independent of A's turns, and `max_wall_clock_s`, a
+deadline from the provider's construction — no request is sent past it, a request in
+flight waits at most the time it has left, and one cut at the deadline is a `bound_hit`,
+not a provider failure.
 
 ```bash
 OPENAI_API_KEY=... python -m adii.runtime --incident revenue-after-deploy --provider openai \

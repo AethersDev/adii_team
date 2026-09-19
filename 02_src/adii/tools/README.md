@@ -18,7 +18,13 @@ database, behind an executor that keeps the four statuses apart.
 | `schemas.py` | `ToolSpec` / `Parameter`, and `validate_arguments`, which runs before any handler |
 | `executor.py` | `ToolExecutor`: registry, dispatch, the status decision, the evidence id |
 | `database.py` | `ReadOnlyDatabase`: SQLite behind an **authorizer**; row caps, cell caps, a step budget |
-| `sql_tools.py` | the two tool handlers, and `build_sql_tools(database)` to wire them up |
+| `packages.py` | one closed evidence bundle — a strict-JSON map beside a directory of exactly the declared files, read byte for byte — the shape the five evidence kinds share |
+| `declared_schema_tools.py` | frozen operational meaning that SQLite types cannot express |
+| `change_history_tools.py` | complete newest-first transform-change records parsed from one frozen artifact |
+| `notice_tools.py` | bounded, read-only operational notices by declared logical identifier |
+| `reconciliation_tools.py` | bounded raw-line windows over frozen reconciliation sources |
+| `sql_tools.py` | the SQL handlers, and `build_sql_tools(database)` to wire the surface up |
+| `transform_tools.py` | bounded, read-only transform source by declared logical identifier |
 | `walkthrough_world.py` | the `demo-learning-001` world as SQL, so the fixture can be replayed live |
 | `user_world.py` | an operator's CSV files as the same kind of world: one typed table per file, bounded, refused with the reason — pure text, the build script `in_memory` runs |
 
@@ -32,6 +38,50 @@ result = executor.execute(ToolCall(call_id="c1", name="run_sql", arguments={
     "query": "SELECT order_date, count(*) FROM orders GROUP BY 1"}))
 result.status                    # "OK" — and result.content["evidence_id"] is stable
 ```
+
+When an incident has frozen transform source, the harness may add it without exposing a
+path. `build_sql_tools(database, transform_sources={"stg_orders": source})` advertises
+`get_transform(transform_id)` with the allowed logical IDs as its enum. The mapping is
+copied when the executor is built. Every source must fit the harness's character bound in
+full; construction fails instead of giving the investigator a partial transform.
+`load_transform_sources(folder)` supplies that mapping from an incident package containing
+`transform_map.json` and `transform_sources/`. The package is closed: missing, extra,
+duplicate, nested, or symlinked sources are refused before a run, and so is a map that
+binds one id twice (`packages.py` reads every map as strict JSON).
+
+Operational notices are a separate primitive rather than a generic file reader.
+`notice_map.json` plus `notice_sources/` is loaded by `load_notice_sources(folder)` and
+advertised as `get_notice(notice_id)`. It has the same closed-inventory, exact-byte and
+complete-observation rules, and returns `content` rather than a filename.
+
+Transform change history is also separate. An optional incident package declares exactly
+one logical history in `change_history_map.json`, backed by one exact UTF-8 artifact under
+`change_history_sources/`. `get_change_history(history_id)` returns the complete parsed
+collection in explicit `NEWEST_FIRST` order with the historical `date`, `file`, `ticket`
+and `change` fields unchanged. Malformed rows, duplicate tickets, non-newest-first rows,
+extra files and collections over the package bound fail before model execution; no result
+is truncated and no filename is exposed through the tool input.
+
+Reconciliation evidence uses `reconciliation_map.json` and
+`reconciliation_sources/`. `read_reconciliation(reconciliation_id, offset=0, limit=200)`
+returns raw lines in physical source order with total/returned counts and an explicit
+continuation offset. A line ends at CR, LF or CRLF and at nothing else — a form feed or
+U+2028 stays inside its line — and the same split serves the per-line bound at load time
+and the window the model reads. It does not parse events or accept dates, fields, searches,
+or paths.
+The source is bounded in total bytes and per-line bytes before a run; each call is bounded
+to 200 lines. A valid window beyond the end is successful empty evidence. An undeclared ID
+is rejected, an unconfigured incident has no such tool, and a broken configured package
+fails incident loading. Statements that some interval was never written remain ordinary
+source lines rather than becoming a special status.
+
+`get_schema(table)` may also expose a frozen operational declaration when an incident
+provides `declared_schema_map.json` plus `declared_schema_sources/`. The map binds a SQLite
+table name to one package-local JSON artifact carrying source identity, schema version,
+field meaning, units and operational notes. Physical columns and DDL still come from
+SQLite; no declaration is inferred. The optional package is closed, symlink-free and
+validated before execution. Original source bytes and the parsed model-visible mapping
+have separate receipt identities.
 
 To run against a real database file, `ReadOnlyDatabase.from_file(path)` — the path is
 configuration the runtime holds, never something a tool accepts. To run over an
@@ -52,9 +102,10 @@ handler runs: it may raise `Denied` or `Rejected`; anything else it raises is `E
 An `OK` observation is stamped with `evidence_id`, a hash of the tool, its arguments and
 what it returned — the same observation always gets the same id.
 
-**Not built yet.** The candidate-repair sandbox; the canonical three-configuration world
+**Not built yet.** The candidate-repair sandbox; the recovered development case packages;
+the canonical three-configuration world
 from `docs/DATA_WORLD_v0.md` (a shared decision, not this package's alone); tools over
-logs, manifests and transforms.
+manifests.
 
 ## What to get right early
 

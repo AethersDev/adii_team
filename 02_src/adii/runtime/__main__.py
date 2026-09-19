@@ -22,11 +22,18 @@ is written all the same, before the investigator runs, on every path.
 the label is claimed: the model has a nominal price in reporting/ledger.py, the cap is
 above zero, the endpoint is https and carries no secret, the credential is in the
 environment — and never in the command line, the receipt, the trace or the record. The
-receipt names the cap and who permitted the spend; the ledger prices every response the
-provider reported usage for, the run stops when that lower bound reaches the cap (one
-request of overshoot), and the record's cost is that lower bound with the unknown rows
-counted. No validator exists yet, so a live REPAIR carries a verdict that says exactly
-that: not checked, therefore not accepted, and no finding about the repair.
+receipt names the cap and who permitted the spend. The cap is hard: before each request the
+provider reserves its worst case — every byte of the messages as a token at the input rate,
+`max_tokens` at the output rate — and a request whose reserve would cross the cap is not
+sent; the record's cost is the ledger's lower bound, proved usage at nominal prices, with
+the unknown rows counted. No validator exists yet, so a live REPAIR carries a verdict that
+says exactly that: not checked, therefore not accepted, and no finding about the repair.
+
+Six bounds, each its own resource, each named in the `bound_hit` it causes: `--max-turns`
+(A's model turns), `--max-tool-calls` (the executor's), `--max-model-requests` and
+`--max-wall-clock-seconds` (the provider's: no request is sent past either, and a request
+in flight waits no longer than the deadline allows), `--max-cost-usd` and `--max-tokens`
+(paid only). All six are in the receipt and the record.
 
 Exit codes, one per way a run can end:
     0  a decision was archived          3  the loop ended the run without a decision; archived
@@ -39,6 +46,7 @@ import argparse
 import json
 import math
 import os
+import shutil
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -52,7 +60,19 @@ from ..reporting.ledger import PRICES, aggregate
 from ..reporting.receipts import NAME as RECEIPT
 from ..reporting.receipts import digest_of, write_receipt
 from ..reporting.record import ARCHIVE, reserve
-from ..tools import ReadOnlyDatabase, build_sql_tools, open_walkthrough_world
+from ..tools import (
+    EVIDENCE_BUNDLES,
+    ReadOnlyDatabase,
+    build_sql_tools,
+    canonical_json,
+    change_history_observation,
+    load_change_histories,
+    load_declared_schemas,
+    load_notice_sources,
+    load_reconciliation_sources,
+    load_transform_sources,
+    open_walkthrough_world,
+)
 from ..tools.walkthrough_world import build_script
 from .run import Recorder, run_incident
 from .scripted import replay
@@ -60,31 +80,36 @@ from .scripted import replay
 WALKTHROUGH_WORLD = build_script()
 
 
-def incident(incident_id: str):
-    """The incident's context, a fresh tool layer over its world, the world's digest, and
-    the walkthrough's recorded run if this is the walkthrough. None when no such incident
-    exists."""
+def incident(incident_id: str, max_tool_calls: int | None = None):
+    """The incident's context, a fresh tool layer over its world — `max_tool_calls` is the
+    executor's budget — the world's digest, the walkthrough's recorded run if this is the
+    walkthrough, and the receipt's digests of any evidence bundles (none here). None when no
+    such incident exists."""
     context, recorded = load()
     if incident_id == context.incident_id:
-        return (context, build_sql_tools(open_walkthrough_world()),
-                digest_of(WALKTHROUGH_WORLD), recorded)
+        return (context, build_sql_tools(open_walkthrough_world(), max_calls=max_tool_calls),
+                digest_of(WALKTHROUGH_WORLD), recorded, {})
     for specimen in SPECIMENS:
         if specimen.context.incident_id == incident_id:
-            tools = build_sql_tools(ReadOnlyDatabase.in_memory(specimen.world))
+            tools = build_sql_tools(ReadOnlyDatabase.in_memory(specimen.world),
+                                    max_calls=max_tool_calls)
             if specimen.extra_tool:
                 tools.register(*specimen.extra_tool)
-            return specimen.context, tools, digest_of(specimen.world), None
+            return specimen.context, tools, digest_of(specimen.world), None, {}
     return None
 
 
 INCIDENT_FILES = ("incident.json", "world.sql")
 
 
-def incident_from_dir(folder: Path):
+def incident_from_dir(folder: Path, max_tool_calls: int | None = None):
     """An incident the operator brought: `incident.json` (what the investigator is told —
     the fields of IncidentContext) over `world.sql` (the build script of its world, as a
-    specimen declares one). The same tool layer over the same kind of world; nothing else
-    knows the difference. ValueError names what is missing or malformed."""
+    specimen declares one), and any of the evidence bundles the tool layer knows — each a
+    map file beside a directory of exactly the files it names. The same tool layer over the
+    same kind of world; nothing else knows the difference. Returns the context, the tools,
+    the world's digest, None (no recorded run) and the receipt's digests of the evidence the
+    tools will show, by the receipt's names. ValueError names what is missing or malformed."""
     if not folder.is_dir() or not all((folder / name).is_file() for name in INCIDENT_FILES):
         raise ValueError(f"{folder} must hold {' and '.join(INCIDENT_FILES)}")
     told = json.loads((folder / "incident.json").read_text(encoding="utf-8"))
@@ -98,25 +123,132 @@ def incident_from_dir(folder: Path):
                               as_of=told["as_of"], permitted_write_paths=tuple(paths))
     world = (folder / "world.sql").read_text(encoding="utf-8")
     database = ReadOnlyDatabase.in_memory(world)      # ValueError when SQLite refuses the script
-    return context, build_sql_tools(database), digest_of(world), None
+    evidence: dict[str, str] = {}
+    declared_schemas = load_declared_schemas(folder)
+    if declared_schemas:
+        evidence["declared_schema_source"] = digest_of(canonical_json({
+            table: declaration.source for table, declaration in declared_schemas.items()}))
+        evidence["declared_schema_observation"] = digest_of(canonical_json({
+            table: declaration.observation for table, declaration in declared_schemas.items()}))
+    transform_sources = load_transform_sources(folder)
+    if transform_sources:
+        evidence["transforms"] = digest_of(canonical_json(transform_sources))
+    notice_sources = load_notice_sources(folder)
+    if notice_sources:
+        evidence["notices"] = digest_of(canonical_json(notice_sources))
+    change_histories = load_change_histories(folder)
+    if change_histories:
+        [(history_id, history)] = change_histories.items()
+        evidence["change_history_source"] = digest_of(history.source)
+        evidence["change_history_observation"] = digest_of(canonical_json(
+            change_history_observation(history_id, history)))
+    reconciliation_sources = load_reconciliation_sources(folder)
+    if reconciliation_sources:
+        evidence["reconciliation_source"] = digest_of(canonical_json(reconciliation_sources))
+    tools = build_sql_tools(
+        database,
+        max_calls=max_tool_calls,
+        declared_schemas=declared_schemas or None,
+        transform_sources=transform_sources or None,
+        notice_sources=notice_sources or None,
+        change_histories=change_histories or None,
+        reconciliation_sources=reconciliation_sources or None,
+    )
+    return context, tools, digest_of(world), None, evidence
 
 
 def keep_incident(source: Path, folder: Path) -> None:
-    """The incident and its world, beside the record: custody of what the system saw,
-    byte for byte, so the run can be read and replayed from the archive alone."""
+    """The operator's package copied into the run's folder byte for byte — the incident, the
+    world and every evidence bundle present — as regular files only. The run is then loaded
+    from this copy and never from `source` again, so what the model is shown, what the
+    receipt binds and what the archive keeps are one read of one package."""
+    def copy(path: Path, target: Path) -> None:
+        if path.is_symlink() or not path.is_file():
+            raise ValueError(f"{path.name} must be a regular file")
+        target.write_bytes(path.read_bytes())
     for name in INCIDENT_FILES:
-        (folder / name).write_bytes((source / name).read_bytes())
+        copy(source / name, folder / name)
+    for map_name, dir_name in EVIDENCE_BUNDLES:
+        if (source / map_name).exists() or (source / map_name).is_symlink():
+            copy(source / map_name, folder / map_name)
+        source_dir = source / dir_name
+        if source_dir.is_symlink() or (source_dir.exists() and not source_dir.is_dir()):
+            raise ValueError(f"{dir_name} must be a directory")
+        if source_dir.is_dir():
+            (folder / dir_name).mkdir()
+            for entry in sorted(source_dir.iterdir()):
+                copy(entry, folder / dir_name / entry.name)
 
 
-def artefacts(context, world_digest: str) -> dict[str, str]:
+def release(folder: Path) -> None:
+    """Give a claimed label back. Only before the run: no receipt was kept and no model was
+    spoken to, so the folder holds nothing the archive must keep."""
+    if (folder / "record.json").exists():
+        raise ValueError(f"{folder} holds a record; a label with a record is never released")
+    shutil.rmtree(folder)
+
+
+def artefacts(context, world_digest: str,
+              evidence: dict[str, str] | None = None) -> dict[str, str]:
     """What the run is about to expose to a model, by digest: the incident as handed over,
-    the world behind the tools, and the protocol the model is told. The evaluation
-    authority's frozen identifiers join these when a run is scored."""
+    the world behind the tools, the protocol the model is told, and each evidence bundle the
+    tools will show, by the receipt's names. The evaluation authority's frozen identifiers
+    join these when a run is scored."""
     handed = json.dumps({"incident_id": context.incident_id, "alert": context.alert,
                          "as_of": context.as_of,
                          "permitted_write_paths": list(context.permitted_write_paths)},
                         sort_keys=True)
-    return {"incident": digest_of(handed), "world": world_digest, "protocol": digest_of(PROTOCOL)}
+    return {"incident": digest_of(handed), "world": world_digest,
+            "protocol": digest_of(PROTOCOL), **(evidence or {})}
+
+
+def configure(args, tool_names) -> tuple[dict[str, object], str, dict[str, object]]:
+    """The configuration the receipt and the record carry, the reason the receipt states, and
+    what a paid provider needs — from arguments every refusal has already passed."""
+    tools = list(tool_names)
+    if args.provider == "scripted":
+        return ({"provider": "scripted", "model": None, "tools": tools,
+                 "max_tool_calls": args.max_tool_calls},
+                "scripted replay of a recorded run: no model, nothing is spent", {})
+    bounds = {"max_turns": args.max_turns, "max_tool_calls": args.max_tool_calls,
+              "max_model_requests": args.max_model_requests,
+              "max_wall_clock_seconds": args.max_wall_clock_seconds, "timeout_s": 120.0}
+    if args.provider == "local":
+        return ({"provider": "local", "model": args.model, "endpoint": args.endpoint,
+                 "served_as": args.served_as, **bounds, "tools": tools,
+                 "execution_mode": "live", "cost_basis": "local endpoint, no price"},
+                f"a local model, {args.model}, at {args.endpoint}: no nominal price, "
+                f"nothing is spent; requested from {args.requested_from}", {})
+    price = PRICES[args.model]
+    configuration = {"provider": "openai", "model": args.model, "endpoint": args.endpoint,
+                     **bounds, "max_tokens": args.max_tokens,
+                     "max_cost_usd": args.max_cost_usd, "temperature": 0,
+                     "credential": "OPENAI_API_KEY (environment)",
+                     "price_table": price.table, "tools": tools,
+                     "execution_mode": "live",
+                     "cost_basis": (f"lower bound: provider-reported usage at nominal "
+                                    f"{args.model} prices, {price.table}"),
+                     "cap_basis": ("hard: a request is sent only if the worst case spent so "
+                                   "far plus its own reserve stays within max_cost_usd")}
+    reason = (f"a paid provider, {args.model} at {args.endpoint}: up to "
+              f"${args.max_cost_usd:.2f} at nominal prices ({price.table}), a hard cap — no "
+              f"request is sent whose worst case would cross it; requested from "
+              f"{args.requested_from}; permitted by the operator running this process")
+    paid = {"credential": os.environ["OPENAI_API_KEY"], "max_tokens": args.max_tokens,
+            "price": price, "max_cost_usd": args.max_cost_usd}
+    return configuration, reason, paid
+
+
+def refused_bounds(max_turns: int, max_tool_calls: int, max_model_requests: int,
+                   max_wall_clock_seconds: float) -> str | None:
+    """Why the run's bounds are not bounds, or None: each must be above zero, the wall
+    clock finite. A bound of zero or less would look like one and bind nothing."""
+    if any(v <= 0 for v in (max_turns, max_tool_calls, max_model_requests)):
+        return ("--max-turns, --max-tool-calls and --max-model-requests must each be a whole "
+                "number above zero")
+    if not (math.isfinite(max_wall_clock_seconds) and max_wall_clock_seconds > 0):
+        return "--max-wall-clock-seconds must be a finite number of seconds above zero"
+    return None
 
 
 def refused_paid(model: str | None, max_cost_usd: float, endpoint: str,
@@ -161,15 +293,26 @@ def main(argv: list[str] | None = None) -> int:
                              "https://api.openai.com/v1 for openai)")
     parser.add_argument("--model", help="the model's identity, as the record keeps it")
     parser.add_argument("--max-cost-usd", type=float, default=0.25,
-                        help="openai only: the spend cap the ledger enforces between requests "
-                             "(default 0.25; the overshoot is one request)")
+                        help="openai only: the hard spend cap — a request whose worst case "
+                             "would cross it is not sent (default 0.25)")
     parser.add_argument("--max-tokens", type=int, default=512,
-                        help="openai only: the completion bound per request (default 512)")
+                        help="openai only: the completion bound per request (default 512); "
+                             "priced in full in every request's reserve")
     parser.add_argument("--served-as", metavar="NAME",
                         help="local only: the name the endpoint wants in requests when it differs "
                              "from --model (mlx-lm's server: default_model)")
     parser.add_argument("--max-turns", type=int, default=12,
-                        help="local only: the model-turn bound (default 12)")
+                        help="the investigator's model-turn bound (default 12)")
+    parser.add_argument("--max-tool-calls", type=int, default=30,
+                        help="the executor's budget: tool calls past it are DENIED, and the "
+                             "investigator may still decide (default 30)")
+    parser.add_argument("--max-model-requests", type=int, default=20,
+                        help="the provider's request bound, a resource of its own beside "
+                             "--max-turns (default 20)")
+    parser.add_argument("--max-wall-clock-seconds", type=float, default=600.0,
+                        help="the run's deadline from the investigator's first request: no "
+                             "request is sent past it, and one in flight waits no longer than "
+                             "it allows (default 600)")
     parser.add_argument("--label", help="archive label (default: <incident>-<UTC time>); "
                                         "a label names one run forever")
     parser.add_argument("--archive", default=str(ARCHIVE), metavar="DIR",
@@ -181,61 +324,42 @@ def main(argv: list[str] | None = None) -> int:
                         help="archive only; do not print the report")
     args = parser.parse_args(argv)
 
+    why = refused_bounds(args.max_turns, args.max_tool_calls, args.max_model_requests,
+                         args.max_wall_clock_seconds)
+    if why:
+        print(why)
+        return 2
+    tool_cap = args.max_tool_calls
     if args.incident_dir:
-        try:
-            found = incident_from_dir(Path(args.incident_dir))
+        source = Path(args.incident_dir)
+        try:                                        # refused before any label is claimed
+            found = incident_from_dir(source, tool_cap)
         except (ValueError, json.JSONDecodeError) as bad:       # not an incident folder
             print(f"not an incident: {bad}")
             return 2
     else:
-        found = incident(args.incident)
+        found = incident(args.incident, tool_cap)
         if found is None:
             known = [load()[0].incident_id, *(s.context.incident_id for s in SPECIMENS)]
             print(f"no such incident {args.incident!r}; known: {', '.join(known)}")
             return 2
-    context, tools, world_digest, recorded = found
+    context, tools, world_digest, recorded, evidence = found
     if args.endpoint is None:
         args.endpoint = ("https://api.openai.com/v1" if args.provider == "openai"
                          else "http://127.0.0.1:11434/v1")
-    paid: dict[str, object] = {}
-    if args.provider == "scripted":
-        if recorded is None:
-            print(f"the scripted provider replays the walkthrough only; "
-                  f"{context.incident_id!r} has no recorded run — use --provider local, or "
-                  "python -m adii.examples.specimens")
-            return 2
-        configuration = {"provider": "scripted", "model": None, "tools": list(tools.names)}
-        reason = "scripted replay of a recorded run: no model, nothing is spent"
-    elif args.provider == "local":
-        if not args.model:
-            print("--provider local needs --model <id the endpoint serves>")
-            return 2
-        configuration = {"provider": "local", "model": args.model, "endpoint": args.endpoint,
-                         "served_as": args.served_as, "max_turns": args.max_turns,
-                         "tools": list(tools.names),
-                         "execution_mode": "live", "cost_basis": "local endpoint, no price"}
-        reason = (f"a local model, {args.model}, at {args.endpoint}: no nominal price, "
-                  f"nothing is spent; requested from {args.requested_from}")
-    else:
+    if args.provider == "scripted" and recorded is None:
+        print(f"the scripted provider replays the walkthrough only; "
+              f"{context.incident_id!r} has no recorded run — use --provider local, or "
+              "python -m adii.examples.specimens")
+        return 2
+    if args.provider == "local" and not args.model:
+        print("--provider local needs --model <id the endpoint serves>")
+        return 2
+    if args.provider == "openai":
         why = refused_paid(args.model, args.max_cost_usd, args.endpoint, args.served_as)
         if why:
             print(why)
             return 2
-        credential = os.environ["OPENAI_API_KEY"]
-        price = PRICES[args.model]
-        configuration = {"provider": "openai", "model": args.model, "endpoint": args.endpoint,
-                         "max_turns": args.max_turns, "max_tokens": args.max_tokens,
-                         "max_cost_usd": args.max_cost_usd, "temperature": 0,
-                         "timeout_s": 120.0, "credential": "OPENAI_API_KEY (environment)",
-                         "price_table": price.table, "tools": list(tools.names),
-                         "execution_mode": "live",
-                         "cost_basis": (f"lower bound: provider-reported usage at nominal "
-                                        f"{args.model} prices, {price.table}")}
-        reason = (f"a paid provider, {args.model} at {args.endpoint}: up to "
-                  f"${args.max_cost_usd:.2f} at nominal prices ({price.table}); requested from "
-                  f"{args.requested_from}; permitted by the operator running this process")
-        paid = {"credential": credential, "max_tokens": args.max_tokens,
-                "price": price, "max_cost_usd": args.max_cost_usd}
     label = args.label or f"{context.incident_id}-{datetime.now(UTC):%Y%m%dT%H%M%SZ}"
     archive = Path(args.archive)
     try:                          # every precondition that needs no I/O has passed: claim the label
@@ -246,23 +370,35 @@ def main(argv: list[str] | None = None) -> int:
     except FileExistsError as taken:
         print(f"not archived: {taken}")
         return 1
-    if args.incident_dir:                 # the operator's incident and world, kept first
-        keep_incident(Path(args.incident_dir), folder)
-    # The receipt, before anything is spent: written and flushed, kept on every path.
-    write_receipt(folder, label=label, artefacts=artefacts(context, world_digest),
-                  configuration=configuration, reason=reason)
+    try:
+        if args.incident_dir:
+            # The operator's package is copied into the run's folder first and the run is
+            # loaded from that copy: the model's view, the receipt and the archive are one
+            # read of one package, whatever happens to the operator's folder from here on.
+            keep_incident(source, folder)
+            context, tools, world_digest, _, evidence = incident_from_dir(folder, tool_cap)
+        configuration, reason, paid = configure(args, tools.names)
+        # The receipt, before anything is spent: written and flushed, kept on every path.
+        write_receipt(folder, label=label, artefacts=artefacts(context, world_digest, evidence),
+                      configuration=configuration, reason=reason)
+        # Every event lands in trace.jsonl the moment it happens: the live view of the run,
+        # and what a killed run leaves behind. The record written at the end is the authority.
+        recorder = Recorder(sink=folder / "trace.jsonl")
+    except (ValueError, json.JSONDecodeError, OSError) as bad:
+        release(folder)      # nothing spent, no model spoken to
+        print(f"not archived: {bad}")
+        return 2
     if paid:
         paid["receipt"] = folder / RECEIPT     # the provider refuses to exist without it
-    # Every event lands in trace.jsonl the moment it happens: the live view of the run, and
-    # what a killed run leaves behind. The record written at the end is the authority.
-    recorder = Recorder(sink=folder / "trace.jsonl")
     if args.provider == "scripted":
         investigator, _, validator = replay(recorded)
     else:
         from .live import LoopInvestigator, NoValidatorYet  # the spike
         investigator = LoopInvestigator(endpoint=args.endpoint, model=args.model,
                                         max_turns=args.max_turns, recorder=recorder,
-                                        served_as=args.served_as, **paid)
+                                        served_as=args.served_as,
+                                        max_model_requests=args.max_model_requests,
+                                        max_wall_clock_s=args.max_wall_clock_seconds, **paid)
         validator = NoValidatorYet()
 
     record = run_incident(label, context, investigator, tools, validator,

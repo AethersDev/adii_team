@@ -74,6 +74,78 @@ GUARDS = (
           "            if action == sqlite3.SQLITE_FUNCTION "
           "and str(arg2).lower() in FORBIDDEN_FUNCTIONS:\n",
           "            if False:\n"),
+    Guard("B.transform_ids_are_logical", "B", "tools/transform_tools.py",
+          "        if not isinstance(transform_id, str) or not "
+          "LOGICAL_ID.fullmatch(transform_id):\n",
+          "        if False:\n"),
+    Guard("B.transform_source_is_complete", "B", "tools/transform_tools.py",
+          "        if len(source) > max_chars:\n",
+          "        if False:\n"),
+    Guard("B.notice_ids_are_logical", "B", "tools/notice_tools.py",
+          "        if not isinstance(notice_id, str) or not "
+          "LOGICAL_ID.fullmatch(notice_id):\n",
+          "        if False:\n"),
+    Guard("B.notice_is_complete", "B", "tools/notice_tools.py",
+          "        if len(content) > max_chars:\n",
+          "        if False:\n"),
+    Guard("B.change_history_is_complete", "B", "tools/change_history_tools.py",
+          "    if len(changes) > max_records:\n",
+          "    if False:\n"),
+    Guard("B.change_history_tickets_are_unique", "B", "tools/change_history_tools.py",
+          "        if ticket in seen_tickets:\n",
+          "        if False:\n"),
+    Guard("B.change_history_is_newest_first", "B", "tools/change_history_tools.py",
+          "        if previous_date is not None and parsed_date > previous_date:\n",
+          "        if False:\n"),
+    Guard("B.reconciliation_source_is_bounded", "B", "tools/reconciliation_tools.py",
+          "    if size > max_source_bytes:\n",
+          "    if False:\n"),
+    Guard("B.reconciliation_lines_are_bounded", "B", "tools/reconciliation_tools.py",
+          "        if line_size > max_line_bytes:\n",
+          "        if False:\n"),
+    Guard("B.reconciliation_offset_is_nonnegative", "B", "tools/reconciliation_tools.py",
+          "        if offset < 0:\n",
+          "        if False:\n"),
+    Guard("B.reconciliation_window_is_bounded", "B", "tools/reconciliation_tools.py",
+          "        if limit <= 0 or limit > MAX_RECONCILIATION_LIMIT:\n",
+          "        if False:\n"),
+    Guard("B.declared_schema_tables_exist", "B", "tools/sql_tools.py",
+          "        if unknown:\n",
+          "        if False:\n"),
+    # one closed bundle, the shape every evidence kind shares (tools/packages.py)
+    Guard("B.bundle_json_keys_are_unique", "B", "tools/packages.py",
+          "        if key in result:\n",
+          "        if False:\n"),
+    Guard("B.bundle_ids_are_logical", "B", "tools/packages.py",
+          "        if not key or (keys is not None and not keys.fullmatch(key)):\n",
+          "        if False:\n"),
+    Guard("B.bundle_filenames_are_local", "B", "tools/packages.py",
+          "        if not isinstance(filename, str) or not FILENAME.fullmatch(filename):\n",
+          "        if False:\n"),
+    Guard("B.bundle_holds_regular_files_only", "B", "tools/packages.py",
+          "    if any(entry.is_symlink() or not entry.is_file() for entry in entries):\n",
+          "    if False:\n"),
+    Guard("B.bundle_is_closed", "B", "tools/packages.py",
+          "    if present != declared:\n",
+          "    if False:\n"),
+    Guard("B.bundle_bytes_preserved", "B", "tools/packages.py",
+          '    files = {name: (source_dir / name).read_bytes().decode("utf-8") '
+          'for name in filenames}\n',
+          '    files = {name: (source_dir / name).read_text(encoding="utf-8") '
+          'for name in filenames}\n'),
+    Guard("B.reconciliation_ids_are_logical", "B", "tools/reconciliation_tools.py",
+          "    if not isinstance(reconciliation_id, str) or not "
+          "LOGICAL_ID.fullmatch(reconciliation_id):\n",
+          "    if False:\n"),
+    Guard("B.reconciliation_lines_are_physical", "B", "tools/reconciliation_tools.py",
+          "    lines = _LINE_END.split(source)\n",
+          "    lines = source.splitlines()\n"),
+    Guard("B.change_history_ids_are_logical", "B", "tools/change_history_tools.py",
+          "    if not isinstance(history_id, str) or not LOGICAL_ID.fullmatch(history_id):\n",
+          "    if False:\n"),
+    Guard("B.change_history_date_is_calendar", "B", "tools/change_history_tools.py",
+          "        if not _DATE.fullmatch(raw_date):\n",
+          "        if False:\n"),
     # ── contracts: shared, changed only by review ───────────────────────────────────
     Guard("contracts.repair_needs_patch", "contracts", "contracts/core.py",
           "            if not self.repair_id or not self.patch:\n",
@@ -179,6 +251,19 @@ GUARDS = (
           "    if not folder.is_dir() or not all((folder / name).is_file() "
           "for name in INCIDENT_FILES):\n",
           "    if False:\n"),
+    Guard("D.run_loads_the_archived_copy", "D", "runtime/__main__.py",
+          "            context, tools, world_digest, _, evidence = "
+          "incident_from_dir(folder, tool_cap)\n",
+          "            pass\n"),
+    Guard("D.label_released_when_the_package_fails", "D", "runtime/__main__.py",
+          "        release(folder)      # nothing spent, no model spoken to\n",
+          "        pass\n"),
+    Guard("D.kept_package_is_regular_files", "D", "runtime/__main__.py",
+          "        if path.is_symlink() or not path.is_file():\n",
+          "        if False:\n"),
+    Guard("D.evidence_bundles_are_attested", "D", "reporting/manifest.py",
+          "    if len(parts) == 3 and parts[1] in SOURCE_DIRS:\n",
+          "    if False:\n"),
     Guard("D.page_cap_is_paid_only", "D", "demo/server.py",
           "    elif \"max_cost_usd\" in body:\n",
           "    elif False:\n"),
@@ -218,10 +303,38 @@ GUARDS = (
     Guard("D.paid_provider_needs_receipt", "D", "provider/openai_compatible.py",
           "        if paid and not (receipt is not None and receipt.is_file()):\n",
           "        if False:\n"),
-    Guard("D.cost_cap_between_requests", "D", "provider/openai_compatible.py",
-          "            if spent >= self._cap:            "
-          "# checked between requests: the overshoot is one\n",
+    # ── the run bounds: each hard, each its own resource, each named in its bound_hit ──
+    Guard("D.cost_cap_admits_the_worst_case", "D", "provider/openai_compatible.py",
+          "            if ledger.worst_case_usd + reserve > self._cap:\n",
           "            if False:\n"),
+    Guard("D.cost_reserve_prices_the_whole_request", "D", "provider/openai_compatible.py",
+          "            reserve = (input_bound * self._price.input_per_token\n"
+          "                       + self._max_tokens * self._price.output_per_token)\n",
+          "            reserve = 0.0\n"),
+    Guard("D.input_bound_counts_every_byte", "D", "provider/openai_compatible.py",
+          '    return sum(len(m["content"].encode("utf-8")) + TOKENS_PER_MESSAGE '
+          'for m in messages) \\\n',
+          '    return sum(len(m["content"]) // 4 + TOKENS_PER_MESSAGE '
+          'for m in messages) \\\n'),
+    Guard("D.unknown_usage_charged_at_its_reserve", "D", "reporting/ledger.py",
+          "            worst += _reserve(request.payload)\n",
+          "            worst += 0.0\n"),
+    Guard("D.model_requests_are_bounded", "D", "provider/openai_compatible.py",
+          "        if self._max_requests is not None and self._turn >= self._max_requests:\n",
+          "        if False:\n"),
+    Guard("D.no_request_past_the_deadline", "D", "provider/openai_compatible.py",
+          "            if remaining <= 0:\n",
+          "            if False:\n"),
+    Guard("D.request_waits_no_longer_than_the_deadline", "D", "provider/openai_compatible.py",
+          "        timeout = self._timeout if remaining is None "
+          "else min(self._timeout, remaining)\n",
+          "        timeout = self._timeout\n"),
+    Guard("D.tool_calls_bounded_from_the_command_line", "D", "runtime/__main__.py",
+          "    tool_cap = args.max_tool_calls\n",
+          "    tool_cap = None\n"),
+    Guard("D.bounds_are_above_zero", "D", "runtime/__main__.py",
+          "    if any(v <= 0 for v in (max_turns, max_tool_calls, max_model_requests)):\n",
+          "    if False:\n"),
     Guard("D.paid_model_must_have_a_price", "D", "runtime/__main__.py",
           "    if model not in PRICES:\n",
           "    if False:\n"),
@@ -238,8 +351,7 @@ GUARDS = (
           "        if True:\n"
           "            tokens_in, tokens_out = tokens_in or 0, tokens_out or 0\n"),
     Guard("D.verify_lists_the_unattested", "D", "reporting/manifest.py",
-          "    present = {p.relative_to(root).as_posix() for p in root.glob(\"*/*\") "
-          "if p.is_file()}\n",
+          "    present = {p.relative_to(root).as_posix() for p in files_of(root)}\n",
           "    present = {p.relative_to(root).as_posix() for p in artefacts(root)}\n"),
     Guard("C.score_needs_the_incidents_own_key", "C", "evaluation/__main__.py",
           "    if key[\"incident_id\"] != incident:\n",
@@ -256,10 +368,46 @@ GUARDS = (
     Guard("C.commitment_made_once", "C", "evaluation/commitment.py",
           "        if out.exists():\n",
           "        if False:\n"),
+    Guard("C.exposure_identity", "C", "evaluation/exposure.py",
+          '        if not isinstance(identity, str) or not identity.strip() '
+          'or identity in candidates:\n',
+          '        if False:\n'),
+    Guard("C.exposure_membership", "C", "evaluation/exposure.py",
+          '        if item["custom_id"] not in candidates:\n',
+          '        if False:\n'),
+    Guard("C.exposure_selection_binding", "C", "evaluation/exposure.py",
+          '        if (doc["source_corpus_sha256"] != corpus_hash\n          '
+          '      or not doc["evidence_class"].startswith("UNBLINDED_AI_ASSIS'
+          'TED")):\n',
+          '        if False:\n'),
+    Guard("C.exposure_fixture_binding", "C", "evaluation/exposure.py",
+          '    if doc["source"]["corpus_sha256"] != corpus_hash:\n',
+          '    if False:\n'),
+    Guard("C.exposure_model_receipt", "C", "evaluation/exposure.py",
+          '        if doc.get("corpus_sha256") != corpus_hash or not all(\n  '
+          '              isinstance(doc.get(k), str) and doc[k].strip()\n    '
+          '               for k in ("custom_id", "model", "timestamp")):\n',
+          '        if False:\n'),
+    Guard("C.exposure_corpus_digest", "C", "evaluation/exposure.py",
+          '    if hashlib.sha256(corpus).hexdigest() != args.expected_sha256:\n',
+          '    if False:\n'),
+    Guard("C.exposure_corpus_count", "C", "evaluation/exposure.py",
+          '    if len(result["candidates"]) != args.expected_count:\n',
+          '    if False:\n'),
+    Guard("C.exposure_unknown_default", "C", "evaluation/exposure.py",
+          '"KNOWN_EXPOSED" if refs else "UNKNOWN_EXPOSURE"',
+          '"KNOWN_EXPOSED" if refs else "KNOWN_UNEXPOSED"'),
+    Guard("C.exposure_write_once", "C", "evaluation/exposure.py",
+          'args.out.open("x",',
+          'args.out.open("w",'),
     # C's own guards (the key loaders, the scorer's refusals) join here from C's tests.
 )
 
-PYTEST = [sys.executable, "-m", "pytest", "-q", "-x", "-p", "no:cacheprovider"]
+# -B: a mutation run writes no bytecode. A neutralised file of the same size, restored within
+# the same second, would otherwise leave a .pyc of the neutralised code that the next plain
+# import trusts — the real suite then runs the guard-less code while the source shows the
+# guard (found 20 Sep: open("x") → open("w") in exposure.py).
+PYTEST = [sys.executable, "-B", "-m", "pytest", "-q", "-x", "-p", "no:cacheprovider"]
 
 
 def run_suite() -> bool:

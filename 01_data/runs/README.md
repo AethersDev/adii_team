@@ -32,12 +32,16 @@ so. A person may leave `feedback.jsonl` beside a finished run, from the inspecto
 What is kept, by name: `receipt.json`, `trace.jsonl` and `record.json` are **evidence** —
 what the run left of itself — and so are `incident.json` and `world.sql` when the operator
 brought the incident (`python -m adii.runtime --incident-dir DIR`, or the page's own
-form): what the investigator was told and the world behind the tools, byte for byte;
+form): what the investigator was told and the world behind the tools, byte for byte — and
+so are the incident's evidence bundles when it carried any: each map file
+(`transform_map.json`, `notice_map.json`, `change_history_map.json`,
+`reconciliation_map.json`, `declared_schema_map.json`) and every file under its
+`*_sources/` folder, the run's own copy, the one it was loaded from;
 `feedback.jsonl` is an **annotation** — what someone said about it afterwards;
 `evaluation_report.json` is an **evaluation** — what the authority said against a key the
 run never saw (`python -m adii.evaluation --run <label> --key PATH`). The manifest attests
-and preservation copies all seven, each in its class; a file under any other name in a
-run folder is listed by verification, not archived.
+and preservation copies all of these, each in its class; a file under any other name or
+folder in a run folder is listed by verification, not archived.
 
 To produce a run:
 

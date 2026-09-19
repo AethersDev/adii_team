@@ -7,6 +7,12 @@ row: money may have moved, and nothing here pretends to know how much. The aggre
 therefore a lower bound with the count of unknown rows beside it — never a total, and
 never 0.0 for a run whose rows are all unknown (inherited defect D15).
 
+Beside the lower bound, a worst case, for the provider's admission of the next request: the
+proved rows at their price, and an unknown row at the reserve the provider recorded when it
+admitted that request — the most it could have cost. A request whose reserve was never
+recorded cannot be bounded, and the worst case says so: infinity, and nothing further is
+admitted against that cap.
+
 Prices are nominal list prices, per token, transcribed by hand and named by table id so a
 record can say which table priced it. Transcribe from the provider's price page on the
 day and bump the table id; nothing here fetches a price. Cached prompt tokens are priced
@@ -18,6 +24,7 @@ with the vocabulary when the row is decided.
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 from ..contracts import TraceEvent
@@ -44,9 +51,18 @@ PRICES: dict[str, Price] = {
 
 @dataclass(frozen=True)
 class Ledger:
-    lower_bound_usd: float
-    proved: int          # requests whose response carried integer token counts
-    unknown: int         # requests with no response, or a response without usage
+    lower_bound_usd: float   # proved rows at nominal prices — what the record reports
+    worst_case_usd: float    # and every unknown row at its reserve — what admission spends
+    proved: int              # requests whose response carried integer token counts
+    unknown: int             # requests with no response, or a response without usage
+
+
+def _reserve(request: dict[str, object]) -> float:
+    """The most a request could have cost, as the provider recorded before sending it."""
+    reserve = request.get("reserve_usd")
+    if isinstance(reserve, bool) or not isinstance(reserve, int | float) or reserve < 0:
+        return math.inf
+    return float(reserve)
 
 
 def aggregate(trace: tuple[TraceEvent, ...], price: Price) -> Ledger:
@@ -55,15 +71,18 @@ def aggregate(trace: tuple[TraceEvent, ...], price: Price) -> Ledger:
     an empty object, or counts that are not integers all count as unknown, never as zero."""
     responses = {e.payload.get("turn"): e.payload.get("usage")
                  for e in trace if e.kind == "model_responded"}
-    total, proved, unknown = 0.0, 0, 0
+    total, worst, proved, unknown = 0.0, 0.0, 0, 0
     for request in (e for e in trace if e.kind == "model_requested"):
         usage = responses.get(request.payload.get("turn"))
         tokens_in = usage.get("prompt_tokens") if isinstance(usage, dict) else None
         tokens_out = usage.get("completion_tokens") if isinstance(usage, dict) else None
         if isinstance(tokens_in, int) and isinstance(tokens_out, int) \
                 and not isinstance(tokens_in, bool) and not isinstance(tokens_out, bool):
-            total += tokens_in * price.input_per_token + tokens_out * price.output_per_token
+            cost = tokens_in * price.input_per_token + tokens_out * price.output_per_token
+            total, worst = total + cost, worst + cost
             proved += 1
         else:
             unknown += 1
-    return Ledger(round(total, 6), proved, unknown)
+            worst += _reserve(request.payload)
+    return Ledger(round(total, 6), worst if math.isinf(worst) else round(worst, 6),
+                  proved, unknown)
