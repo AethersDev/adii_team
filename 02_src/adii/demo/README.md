@@ -92,7 +92,9 @@ runtime's own question (`refused_paid`) before it binds a port — a priced mode
 above zero, an endpoint that carries no secret, the credential present — and stops the
 process with the reason when any fails; a page never renders a "credential missing" state
 because the page never exists without the credential in its environment. Whether the
-provider *accepts* it is the free pre-flight's question (`python -m adii.provider --check`),
+provider *accepts* it is the pre-flight's question — `python -m adii.provider --check`, free,
+for the credential and the model list; `--check --spend`, one token, for whether this
+project can complete at all, which no listing shows —
 asked by the operator before the audience is in the room; a revoked key past that point
 gives one archived `infrastructure_failure` per Investigate, rendered as such, with the
 runtime's cap and receipt around each. From there the credential goes

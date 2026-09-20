@@ -355,11 +355,19 @@ GUARDS = (
           "            except OSError as failed:       # no process to ask: ours, never the "
           "model's\n"
           "                raise\n"),
+    Guard("D.pre_flight_proves_a_completion_not_a_listing", "D", "provider/__main__.py",
+          "    answer = transact(request)\n",
+          "    answer = {\"ok\": True, \"status\": 200, \"body\": "
+          "'{\"usage\": {\"prompt_tokens\": 1, \"completion_tokens\": 1}}'}\n"),
     Guard("D.env_local_never_overwrites_the_environment", "D", "provider/credential.py",
           "    if os.environ.get(\"OPENAI_API_KEY\"):\n        return\n"
           "    path = (REPO if root is None else root) / ENV_LOCAL\n",
           "    if False:\n        return\n"
           "    path = (REPO if root is None else root) / ENV_LOCAL\n"),
+    Guard("D.env_local_refuses_the_name_given_twice", "D", "provider/credential.py",
+          "        if found is not None:               # two keys is no key: which one was "
+          "meant?\n",
+          "        if False:\n"),
     Guard("D.env_local_is_name_value_lines_only", "D", "provider/credential.py",
           "        if not equals or not name.isidentifier():\n",
           "        if False:\n"),

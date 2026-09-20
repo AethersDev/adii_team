@@ -52,3 +52,12 @@ def test_anything_but_bare_name_value_lines_is_refused_by_number_never_by_value(
         load_env_local(written(tmp_path, f"# first\n{line}\n"))
     assert str(refused.value) == f".env.local line 2: {problem}"
     assert "quoted-value" not in str(refused.value) and "OPENAI_API_KEY" not in os.environ
+
+
+def test_the_name_given_twice_is_refused_rather_than_the_first_taken(tmp_path, no_key):
+    """20 September: a new key appended below an old one, and every check kept sending the
+    old one. Two lines is no key — the file is refused, by line, until one line remains."""
+    with pytest.raises(ValueError) as refused:
+        load_env_local(written(tmp_path, f"OPENAI_API_KEY=old-{FAKE}\nOPENAI_API_KEY=new-{FAKE}\n"))
+    assert str(refused.value) == ".env.local line 2: OPENAI_API_KEY is given twice; keep one line"
+    assert "OPENAI_API_KEY" not in os.environ
