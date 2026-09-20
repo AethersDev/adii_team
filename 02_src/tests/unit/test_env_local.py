@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 
 import pytest
-from adii.runtime.__main__ import load_env_local
+from adii.provider import load_env_local
 
 FAKE = "not-a-real-key-for-this-test"
 
