@@ -1,9 +1,17 @@
 # The page: investigate, watch, read, answer
 
-**ADII's one page.** Its first screen is the action — pick an incident, Investigate — when
-the operator started the server with a model; below it, the investigation history:
-every run the runtime archived, with the trace, the decision, the verdict, what it cost,
-and where the record came from. Without a model the page is read-only over that history.
+**ADII's one page.** Its first screen is the product — *what looks wrong?*, in the
+visitor's words, over their own CSV files, Investigate — when the operator started the
+server with a model; one layer down, the incidents ADII was built and tested on, as
+examples; below, the previous investigations: every run the runtime archived, with the
+trace, the decision, the verdict, what it cost, and where the record came from. Without a
+model the page is read-only over that history.
+
+> Upload your data, say what looks suspicious, and ADII investigates before deciding
+> whether anything should be changed — repair, no repair, or escalate.
+
+The data to bring, when none is handy, is in `01_data/demo/csv/`: every specimen's world
+as CSV files with its alert beside them.
 
 ```bash
 python -m adii.runtime --incident demo-learning-001 --provider scripted   # produce and archive one run
@@ -15,17 +23,21 @@ No install. No dependencies. Standard library only.
 ## What it renders, and for whom
 
 Three screens, for someone who did not build ADII. The front door opens on what ADII is
-and, when the operator started the server with a model, on the action: pick an incident,
-Investigate, with one line saying what it runs with and whether something is running now.
-Below that, the investigation history: one card per incident with the alert in the
-operator's words, how many runs, and the latest outcome with exactly the authority it has
-— a run with no decision says so, and is never drawn as a failure or a success. An
-incident's page lists every run of it, newest first; nothing nominates the newest as the
-best. A run's
-page reads top to bottom in a fixed order: what was reported, how the run ended, what the
-investigator did, what it decided or why there is no decision, what the validator said,
-and, closed by default, the technical details. A section the record cannot fill is left
-out, never drawn empty. Two runs of one incident can be put side by side.
+and, when the operator started the server with a model, on the product: *What looks
+wrong?* — a description, which becomes the alert the investigator is told — and *Your
+data* — CSV files, which become the tables it can query — then Investigate; one line
+saying what it runs with; Run settings and the examples, each one disclosure down. Below
+that, the previous investigations: one card per incident with the alert in its author's
+words, how many runs, and the latest outcome with exactly the authority it has — a run
+with no decision says so, and is never drawn as a failure or a success. An incident's
+page lists every run of it, newest first; nothing nominates the newest as the best. A
+run's page is the answer first: how the run ended; what it concluded, with the action the
+disposition asks for; what it looked at — every answered request, one line each, so a
+decision reached without looking reads as exactly that; then, one disclosure down, the
+investigation — what was reported, and every turn; then what the validator said, the
+evaluation when there is one, and, closed by default, the technical details. A section
+the record cannot fill is left out, never drawn empty. Two runs of one incident can be put
+side by side.
 
 Exactly one shape: `adii.run_record/v1`, defined in
 [../reporting/record.py](../reporting/record.py). A record in any other shape gets a
@@ -42,13 +54,24 @@ free way first — a model on this machine:
 python -m adii.demo 8000 --endpoint http://127.0.0.1:8090/v1 --model <id> --served-as default_model
 ```
 
-Started this way, every screen offers **Investigate**: pick an
-incident, and the server reserves a label, writes the receipt, and runs A's loop against
-that model — a local endpoint, nothing spent — while the page shows every step as the
-runtime records it, then the record when it lands. The browser chooses the incident and
-nothing else: provider, model, endpoint, bounds and cap are the server's, fixed when it
-started, and forwarded to the same `python -m adii.runtime` entry point the command line
-uses — a run from the page and a run from the terminal meet there. One run at a time:
+Started this way, every screen offers the form — what looks wrong, over the visitor's
+files, **Investigate** — and, one disclosure down, the archive's incidents with
+**Investigate this example**; either way the server reserves a label, writes the receipt,
+and runs A's loop against that model — a local endpoint, nothing spent — while the page
+shows every step as the runtime records it, then the record when it lands. The browser
+chooses the incident;
+provider, endpoint and the credential are the server's, fixed when it started; and the
+flags the operator started it with — model, turn budget, and on the paid path the cap —
+are each run's default and the ceiling a request from the page may not pass. Under
+**Run settings**, closed by default, a visitor may ask for a smaller turn budget from a
+few presets and, on the paid path, any priced model and a smaller cap. The cap, not the
+model, bounds the spend: a pricier model spends the same cap sooner, and a request whose
+worst case would cross the cap is not sent. Requests, not authority: the server
+checks each against its own flags (`requested()`, four guards) and refuses more — never
+clamps — so a run that exists ran exactly what was asked, and its receipt's reason says it
+was requested from the page and within what. Everything is forwarded to the same
+`python -m adii.runtime` entry point the command line uses — a run from the page and a
+run from the terminal meet there. One run at a time:
 while the archive shows one running, a second is refused (409). A run that has written
 nothing for three minutes is shown as one that did not finish, and the page stops
 watching it.
@@ -71,18 +94,25 @@ asked by the operator before the audience is in the room; a revoked key past tha
 gives one archived `infrastructure_failure` per Investigate, rendered as such, with the
 runtime's cap and receipt around each. From there the credential goes
 to the wire as a bearer header and nowhere else: not into `/api/launch`, which reports the
-runtime's flags and nothing more, not into any response, receipt, trace or record — the
+runtime's flags and the models it offers (every priced one on the paid path, the
+operator's one on a local endpoint) and nothing more, not into any response, receipt,
+trace or record — the
 runtime's paid path owns that, and
 `test_a_paid_run_from_the_page_keeps_the_credential_off_every_response_and_artefact`
 holds it for the page. The two concerns that made the page read-only are met the same
 way on both paths: the receipt precedes the investigator (D-15, guarded), and what can be
-spent is capped per run — a finite cap, checked between requests, so the overshoot is one
-request — and permitted by the person who started the server, in their terminal, with the
+spent is capped per run — a finite, hard cap: no request is sent whose worst case would
+cross it — and permitted by the person who started the server, in their terminal, with the
 cap in the receipt's reason; the name on the wire is the priced name (`--served-as` is
-refused on the paid path). The server binds loopback only, and holds one run at a time in
+refused with `--provider openai`, even equal to `--model`: the page may ask for any priced
+model, so no alias can stand for "the" model). The server binds loopback only, and holds
+one run at a time in
 this process as well as by the archive. What the
-page may not do remains: choose a provider, a model, an endpoint or a cap; carry a
-credential; or start a run the operator did not configure.
+page may not do remains: choose a provider or an endpoint; a model the price table does
+not know; a cap or a turn budget above the operator's; carry a credential; or start a run
+the operator did not configure. Endpoint, credential, `served-as`, prices and temperature
+are never a control on the page: they are the operator's configuration, not an
+investigation's choice (the endpoint is shown, as data, under each run's details).
 
 Without a model the page says how to start one, and shows the commands that create runs.
 Every screen's footer says which of the two the page is.
@@ -123,7 +153,11 @@ record contains them. Strike any line below and the page stops saying it.
 | `wrote` | "The model wrote, instead of acting:" followed by its words, verbatim, as text |
 | `decided` / `validated` | "Committed to *disposition*", "The validator accepted (did not accept) the repair", "No validator checked the repair" |
 | `unanswered` | "The run ended before this call was answered" |
-| product copy | what ADII is; the launcher's context (the model it runs with, one at a time; whether something is running now, from the list the page loaded); the history count; the footers (read-only, or what runs here — on this machine and nothing sent outside, or at a paid provider, each run receipted and capped); the commands that create a run or the six specimens — UI text about the product, never about a particular run |
+| `action` per disposition | what the disposition asks of the reader, from `decision.disposition` alone: REPAIR "A change was proposed. Nobody has applied it; it is shown below, and until a validator accepts it, it stays a proposal."; NO_REPAIR "Do not change the data or the pipeline."; ESCALATE "Hand this to a person. The evidence gathered does not settle it." |
+| `looked` / `lookedAtNothing` | "*n* observation(s)" over the trace's answered requests, each listed as *name with arguments — answered with n rows* and the observation's id; "It looked at nothing before deciding: no request was answered." when there are none |
+| `soFar` | on a run in progress: "*n* request(s) so far · *m* answered." from the live trace |
+| the form | "What looks wrong?", its example placeholder, "Your data" and its hint, "Say what looks wrong and attach at least one CSV file — or try an example below.", "No data handy? Try an example" and what the examples are — UI text about the product, never about a particular run |
+| product copy | what ADII is; the launcher's context (the model it runs with, where, the cap and the turn budget as chosen — one at a time; whether something is running now, from the list the page loaded); the history count; the footers (read-only, or what runs here — on this machine and nothing sent outside, or at a paid provider, each run receipted and capped); the commands that create a run or the six specimens — UI text about the product, never about a particular run |
 | `scripted` | "Scripted investigator · development demonstration, not a model result" — shown on every run and counted on every incident card whose record has `configuration.model` null, so a screenshot can never pass for a model result |
 | `runtime` | beside the score, orthogonal to it, from the record's own `validation`: "no repair was proposed, so nothing was checked" / "the repair was archived unchecked — not blocked; the score found it afterwards" / "the validator checked the repair before this score, and accepted (did not accept) it" — the same category means a different system behaviour depending on which, and the page never lets the score imply the runtime blocked anything |
 | `success` / `correct_abstention` / `unnecessary_escalation` / `false_repair` / `repair_rejection` / `failure` / `not_evaluable` | one sentence per category the evaluation authority may score — "The decision matched the answer key.", "The decision to escalate matched the answer key.", "The decision escalated where the answer key names a call.", "A repair was proposed for a root cause the answer key does not name.", "The repair named the answer key's root cause and was not accepted by the validator.", "The decision did not match the answer key.", "No decision was submitted, so there was nothing to score." — from `evaluation/outcome_classification.py`'s definitions; the category, verdict and who settled it are shown beside it, verbatim from `evaluation_report.json` |
@@ -165,11 +199,11 @@ tested against each other.
 
 ## What it is not
 
-- **Not a place to choose what a run costs.** A page that can reach a paid provider can
-  spend money, so this one spends only what the operator permitted when starting the
-  server — that provider, that model, that cap, with the credential in the server's
-  environment and never in the page's hands — and otherwise runs start from the command
-  line. The receipt precedes every investigator, on both paths.
+- **Not a place to raise what a run may cost.** A page that can reach a paid provider can
+  spend money, so this one spends at most what the operator permitted when starting the
+  server — that provider, a priced model, a cap no higher than the operator's, with the
+  credential in the server's environment and never in the page's hands — and otherwise
+  runs start from the command line. The receipt precedes every investigator, on both paths.
 - **Not the implementation.** Nothing in `02_src/adii/` may import it, and a test enforces
   that. It shows what the runtime produced; it produces nothing.
 
@@ -204,15 +238,26 @@ GET /api/runs/{label}/trace     the live trace of a run in progress, whether it 
                            whether it is still running
 GET /api/runs/{label}/evaluation   the evaluation authority's report, verbatim, once the run
                            has been scored (python -m adii.evaluation); 404 until then
-GET /api/incidents         the incidents a run can be started on
+GET /api/incidents         the incidents a run can be started on as examples
 GET /api/launch            whether runs may be started from the page, and against what
-POST /api/runs             start a run — only when the server was started with --model (403),
-                           on an incident it knows (400), one at a time (409)
+POST /api/runs             start a run on an incident the archive knows — only when the
+                           server was started with --model (403), on an incident it knows
+                           (400), one at a time (409); {incident, model?, max_turns?,
+                           max_cost_usd?}
+POST /api/investigations   start a run on the visitor's own incident: {description, files:
+                           [{name, text}], model?, max_turns?, max_cost_usd?} — the
+                           description is the alert, each CSV a table (tools/user_world.py),
+                           refused with the reason when it is not that; the body is limited
+                           to 12 MB, checked before it is read; the incident's id is the
+                           digest of the description and the world, so the same question
+                           over the same data is the same incident run again
 POST /api/runs/{label}/feedback   record an operator's feedback beside the record
 ```
 
-Both writes take a JSON object declared as `application/json` and answer 400 to anything
-else — which is the shape a form on some other site would arrive in. Every response
+All three writes take a JSON object declared as `application/json` and answer 400 to
+anything else — which is the shape a form on some other site would arrive in; the page
+reads the visitor's files in the browser and sends their text, so the server never parses
+an upload. Every response
 carries `ADII-Code`, the newest change to the page's files; a tab whose script is older
 reloads itself once, so an open tab never runs stale code over a current archive.
 

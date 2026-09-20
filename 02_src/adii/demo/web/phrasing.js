@@ -20,10 +20,25 @@ const PHRASING = {
       "recording every step, and never grading its own work.",
     readOnly: "This page is read-only. It shows runs the runtime archived and can start " +
       "none: a page that can start a run can spend money.",
-    /* the launcher's one line of context: the model and where it runs are the server's
-     * choice, not a control; a paid provider is named as such */
-    runsWith: (model, provider) => `Runs with ${model} ${provider === "openai"
-      ? "at a paid provider" : "on this machine"}. One investigation at a time.`,
+    /* the launcher's one line of context: the model, where it runs and the bounds — the
+     * server's, or chosen under Run settings within them; a paid provider is named as such */
+    runsWith: (model, provider, cost, turns) => `Runs with ${model} ${provider === "openai"
+      ? `at a paid provider · up to $${Number(cost).toFixed(2)}` : "on this machine"}` +
+      ` · ${turns} turns. One investigation at a time.`,
+    /* the product form: what looks wrong, over the visitor's own files — or an example */
+    ask: "What looks wrong?",
+    askFor: "e.g. Revenue dropped 45% after yesterday's deploy. Product wants a rollback.",
+    yourData: "Your data",
+    dataHint: "CSV files, one table each, named after the file. ADII reads them through its " +
+      "tools and changes nothing.",
+    needBoth: "Say what looks wrong and attach at least one CSV file — or try an example below.",
+    tryExample: "No data handy? Try an example",
+    exampleWhat: "The incidents ADII was built and tested on, each over its own data.",
+    /* the run in progress, and what it has looked at */
+    soFar: (requests, answered) => `${requests} request${requests === 1 ? "" : "s"} so far · ` +
+      `${answered} answered.`,
+    looked: (n) => `${n} observation${n === 1 ? "" : "s"}`,
+    lookedAtNothing: "It looked at nothing before deciding: no request was answered.",
     idle: "Nothing is running now.",
     busy: (label) => `Investigating now: ${label}`,
     history: (incidents, runs) => `${incidents} incident${incidents === 1 ? "" : "s"} · ` +
@@ -36,11 +51,11 @@ const PHRASING = {
     /* the footer of every screen: what this page can start, and what it never reaches */
     footReadOnly: "Read-only: runs are started from the command line. Nothing is sent to an " +
       "outside service.",
-    footLive: (model, provider) => (provider === "openai"
-      ? `Investigations run with ${model} at a paid provider, one at a time; each is ` +
-        "receipted and capped before it starts."
-      : `Investigations run on this machine with ${model}, one at a time. ` +
-        "Nothing is sent to an outside service."),
+    footLive: (provider) => (provider === "openai"
+      ? "Investigations run at a paid provider, one at a time; each is receipted and " +
+        "capped before it starts."
+      : "Investigations run on this machine, one at a time. Nothing is sent to an " +
+        "outside service."),
     empty: "An incident appears here once the runtime has investigated it and archived the run.",
     /* feedback: the operator's assertion about a run, kept beside the record, attributed */
     feedbackAsk: "Was this investigation useful to you?",
@@ -61,6 +76,14 @@ const PHRASING = {
     REPAIR: "A specific fault exists and the evidence justifies a specific fix.",
     NO_REPAIR: "The pipeline is sound. The metric moved because the business moved.",
     ESCALATE: "The available evidence cannot justify either call. The run completed.",
+  },
+  /* what the disposition asks of the person reading it — the contract's meaning, as an
+   * instruction, and nothing the record does not say */
+  action: {
+    REPAIR: "A change was proposed. Nobody has applied it; it is shown below, and until a " +
+      "validator accepts it, it stays a proposal.",
+    NO_REPAIR: "Do not change the data or the pipeline.",
+    ESCALATE: "Hand this to a person. The evidence gathered does not settle it.",
   },
 
   /* ── how a run ended: one sentence per termination class ──────────────

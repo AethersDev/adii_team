@@ -34,8 +34,34 @@ NAME = "MANIFEST.json"
 # is what the authority said about it against a key the run never saw: preserved with the
 # run, and neither its evidence nor anyone's opinion. A file in a run's folder under any
 # other name is not attested, and verification lists it as unlisted.
+# A brought incident's evidence bundles, as tools/ names them — (map file, source directory).
+# A test holds this to `adii.tools.EVIDENCE_BUNDLES`, so reporting need not import the tools.
+EVIDENCE_BUNDLES = (("transform_map.json", "transform_sources"),
+                    ("notice_map.json", "notice_sources"),
+                    ("change_history_map.json", "change_history_sources"),
+                    ("reconciliation_map.json", "reconciliation_sources"),
+                    ("declared_schema_map.json", "declared_schema_sources"))
 RETENTION = {"receipt.json": "evidence", "trace.jsonl": "evidence", "record.json": "evidence",
+             "incident.json": "evidence", "world.sql": "evidence",     # an operator's own incident
+             **{map_name: "evidence" for map_name, _ in EVIDENCE_BUNDLES},   # and its evidence
              "feedback.jsonl": "annotation", "evaluation_report.json": "evaluation"}
+SOURCE_DIRS = frozenset(dir_name for _, dir_name in EVIDENCE_BUNDLES)
+
+
+def retention_of(path: Path, root: Path) -> str | None:
+    """The class a file in a run's folder is kept under — by name beside the record, and every
+    file of an evidence bundle's directory — or None for a file the archive does not keep."""
+    parts = path.relative_to(root).parts
+    if len(parts) == 2:
+        return RETENTION.get(parts[1])
+    if len(parts) == 3 and parts[1] in SOURCE_DIRS:
+        return "evidence"
+    return None
+
+
+def files_of(root: Path) -> list[Path]:
+    """Every file in a run's folder, one level down and inside a bundle's directory."""
+    return sorted(p for p in (*root.glob("*/*"), *root.glob("*/*/*")) if p.is_file())
 
 
 def digest(path: Path) -> str:
@@ -44,13 +70,13 @@ def digest(path: Path) -> str:
 
 def artefacts(root: Path) -> list[Path]:
     """Every file in `root` the archive keeps, by the names it keeps them under."""
-    return sorted(path for path in root.glob("*/*") if path.name in RETENTION)
+    return [path for path in files_of(root) if retention_of(path, root)]
 
 
 def attest(root: Path) -> dict:
     """The manifest of `root` as it is now: one entry per artefact of every run."""
     entries = [{"path": path.relative_to(root).as_posix(), "bytes": path.stat().st_size,
-                "digest": digest(path), "retention": RETENTION[path.name]}
+                "digest": digest(path), "retention": retention_of(path, root)}
                for path in artefacts(root)]
     return {"schema": SCHEMA, "written_at": datetime.now(UTC).isoformat(timespec="seconds"),
             "source_revision": source_revision(), "entries": entries}
@@ -90,7 +116,7 @@ def verify(root: Path, manifest: dict | None = None) -> Verification:
             missing.append(rel)
         elif path.stat().st_size != entry["bytes"] or digest(path) != entry["digest"]:
             altered.append(rel)
-    present = {p.relative_to(root).as_posix() for p in root.glob("*/*") if p.is_file()}
+    present = {p.relative_to(root).as_posix() for p in files_of(root)}
     return Verification(len(listed), tuple(missing), tuple(altered),
                         tuple(sorted(present - set(listed))))
 

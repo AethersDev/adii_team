@@ -38,11 +38,38 @@ this machine. The credential goes on the wire as a bearer header and nowhere els
 the receipt, the trace, the record, the report, an error, or the endpoint string. A refused
 status, an unreachable host or a timeout is raised as `ProviderFailure` carrying only the
 status and the structured error code — never the body, which a 401 fills with the masked
-key — and the runtime files it as an infrastructure failure, not the model's (D-14). The
-ledger's lower bound is checked between requests against the cap; the request that
-crosses it is already paid for, so the overshoot is one request: the prompt so far plus
-`max_tokens`. A record never says a paid run cost 0.0: it says at least what was proved,
-and counts the requests it could not price.
+key — and the runtime files it as an infrastructure failure, not the model's (D-14).
+
+The cap is hard by admission. Before each request the provider reserves that request's
+worst case — every byte of every message counted as a token at the input rate (a byte-level
+BPE tokenizer, which every priced model bills by and each price names, cannot make more
+tokens than bytes; the chat format's own tokens are added as constants above their real
+number), and `max_tokens` at the output rate, no discount assumed — and sends it only if the
+ledger's exact worst case so far plus that reserve stays within the cap. Otherwise the run
+ends as a `bound_hit` naming the spend, the reserve, the cap and the remainder, and the
+request is not sent: a hard cap gives up some budget near the boundary rather than crossing
+it. The arithmetic is `Decimal` from the price as written; nothing is rounded until the
+record reports a number. The worst case spent counts proved usage at nominal prices and a
+response without usage at the reserve that admitted it; the reserve is recorded on
+`model_requested`, as text, with the estimator's name and its premise. After each reply the
+bill is held to the reserve: a bill above it means a premise of the admission failed — the
+endpoint ignored `max_tokens`, or tokenises otherwise — and the run ends as the provider's
+failure (`ReserveBreached`), the response and its usage recorded, nothing further admitted.
+A record still reports the lower bound — never 0.0 for a paid run: at least what was
+proved, and the count of requests it could not price.
+
+Two bounds of the run's own are checked here too, because this is where a run waits:
+`max_model_requests`, a request count independent of A's turns, and `max_wall_clock_s`, a
+deadline from the provider's construction. No request is sent past it. The request itself
+is made by `worker.py`, a process of the run's own spoken to by lines, and the provider waits
+on it for at most the time the deadline leaves; when that runs out the worker is killed and
+the run ends as a `bound_hit` that says the request was cut in flight. So the local run never
+waits past its deadline — not for a host that never answers, not for a body that trickles a
+byte at a time, which `urllib`'s per-operation timeout would never call late. What killing
+the local request cannot do is stop the remote endpoint computing or billing what it
+received, so a request cut in flight keeps its full reserve. The endpoint's own patience,
+`timeout_s` (120 s per socket operation), is enforced by the worker and is the provider's
+failure when it trips, never the run's bound.
 
 ```bash
 OPENAI_API_KEY=... python -m adii.runtime --incident revenue-after-deploy --provider openai \

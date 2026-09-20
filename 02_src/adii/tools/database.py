@@ -69,6 +69,12 @@ class TableSchema:
     ddl: str
 
 
+def _no_attach(action: int, *_: object) -> int:
+    """During a build, everything but attaching a database file."""
+    return sqlite3.SQLITE_DENY if action in (sqlite3.SQLITE_ATTACH, sqlite3.SQLITE_DETACH) \
+        else sqlite3.SQLITE_OK
+
+
 class ReadOnlyDatabase:
     """Wraps a connection so that only reads can reach it. Build it, then hand it to the
     tools; the tools never see the connection."""
@@ -92,9 +98,17 @@ class ReadOnlyDatabase:
 
     @classmethod
     def in_memory(cls, build_script: str, **limits: int) -> ReadOnlyDatabase:
-        """Run `build_script` once to populate an in-memory database, then lock it."""
+        """Run `build_script` once to populate an in-memory database, then lock it. The
+        script may create and fill; it may not ATTACH — a world is in memory and touches no
+        file. A script SQLite refuses is a ValueError naming the reason, not a database."""
         connection = sqlite3.connect(":memory:")
-        connection.executescript(build_script)
+        connection.set_authorizer(_no_attach)
+        try:
+            connection.executescript(build_script)
+        except sqlite3.Error as bad:
+            connection.close()
+            raise ValueError(f"the world's build script is not one SQLite accepts: {bad}") \
+                from None
         connection.commit()
         return cls(connection, **limits)
 

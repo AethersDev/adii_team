@@ -1,6 +1,7 @@
 """Six development incidents with scripted example runs — specimens for the inspector.
 
     python -m adii.examples.specimens            # archive every run into 01_data/runs/
+    python -m adii.examples.specimens --csv DIR  # every world as CSV files: the data to bring
 
 What these are. Hand-authored synthetic incidents, one per way an investigation can have
 to reason — restore what is missing, remove what is duplicated, fix a wrong relationship,
@@ -25,6 +26,7 @@ for a live run. No mock API, no frontend-only shape.
 from __future__ import annotations
 
 import argparse
+import csv
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -350,12 +352,40 @@ def records() -> list[RunRecord]:
     return [produce(s, i, run) for s in SPECIMENS for i, run in enumerate(s.runs, start=1)]
 
 
+def write_csv(root: Path) -> list[Path]:
+    """Every specimen's world as CSV files, `root/<incident>/<table>.csv`, with the alert
+    beside them in `alert.txt`: the data to bring to the page's own form, so the product
+    path can be rehearsed on a world whose answer is known. Read back through the tool
+    layer's world builder (tools/user_world.py), each file becomes the same table again."""
+    written = []
+    for specimen in SPECIMENS:
+        folder = root / specimen.context.incident_id
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / "alert.txt").write_text(specimen.context.alert + "\n", encoding="utf-8")
+        world = ReadOnlyDatabase.in_memory(specimen.world)
+        for table in world.tables():
+            result = world.query(f'SELECT * FROM "{table}"', max_rows=100_000)
+            path = folder / f"{table}.csv"
+            with path.open("w", encoding="utf-8", newline="") as sink:
+                writer = csv.writer(sink)
+                writer.writerow(result.columns)
+                writer.writerows([["" if v is None else v for v in row] for row in result.rows])
+            written.append(path)
+    return written
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--archive", default=str(ARCHIVE), metavar="DIR",
                         help="archive root (default: 01_data/runs); a taken label is skipped")
+    parser.add_argument("--csv", metavar="DIR",
+                        help="write every specimen's world as CSV files under DIR instead")
     args = parser.parse_args(argv)
+    if args.csv:
+        for path in write_csv(Path(args.csv)):
+            print(f"wrote {path}")
+        return 0
     written = skipped = 0
     for record in records():
         try:

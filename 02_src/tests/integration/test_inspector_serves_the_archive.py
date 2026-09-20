@@ -181,9 +181,16 @@ def test_a_run_can_be_started_from_the_page_only_when_the_operator_allowed_it(tm
         server.LAUNCH.update({"provider": "local",
                               "endpoint": f"http://127.0.0.1:{model.server_port}/v1",
                               "model": "test-model-1", "served_as": None, "max_turns": 6})
-        assert call("GET", "/api/launch")[1]["enabled"] is True
+        launch = call("GET", "/api/launch")[1]
+        assert launch["enabled"] is True and launch["models"] == ["test-model-1"]
         assert call("POST", "/api/runs", {"incident": "nope"})[0] == 400
         assert call("POST", "/api/runs", {"incident": ["orders-missing-day"]})[0] == 400
+        # requests, not authority: on a local endpoint only the operator's model, a turn
+        # budget at most the operator's, and no cap — nothing is spent here
+        for more in ({"model": "other"}, {"max_turns": 7}, {"max_turns": 0}, {"max_turns": "4"},
+                     {"max_turns": True}, {"max_cost_usd": 0.01}):
+            status, answer = call("POST", "/api/runs", {"incident": "orders-missing-day", **more})
+            assert status == 400 and ("must" in answer["error"] or "only" in answer["error"]), more
         # A write this server does not read is answered, never dropped: no body at all, and
         # a JSON-shaped body that is not declared JSON — the shape a form on another site takes.
         form = ('{"incident": "orders-missing-day"}', {"Content-Type": "text/plain"})
@@ -202,7 +209,8 @@ def test_a_run_can_be_started_from_the_page_only_when_the_operator_allowed_it(tm
         for path in (busy, busy / "trace.jsonl"):
             os.utime(path, (silent, silent))
         assert call("GET", f"/api/runs/{busy.name}/trace")[1]["running"] is False
-        status, answer = call("POST", "/api/runs", {"incident": "orders-missing-day"})
+        status, answer = call("POST", "/api/runs", {"incident": "orders-missing-day",
+                                                    "max_turns": 3})
         assert status == 200 and answer["label"].startswith("orders-missing-day-")
         label = answer["label"]
         deadline = time.time() + 30
@@ -217,7 +225,10 @@ def test_a_run_can_be_started_from_the_page_only_when_the_operator_allowed_it(tm
         status, record = call("GET", f"/api/runs/{label}")
         assert status == 200 and record["decision"]["disposition"] == "ESCALATE"
         assert record["configuration"]["model"] == "test-model-1"
-        assert (archive / label / "receipt.json").is_file()
+        assert record["configuration"]["max_turns"] == 3          # asked for, within 6
+        receipt = json.loads((archive / label / "receipt.json").read_text(encoding="utf-8"))
+        assert "requested from the page, within the ceilings" in receipt["reason"]
+        assert "(6 turns)" in receipt["reason"]
     finally:
         httpd.shutdown()
         httpd.server_close()
@@ -307,6 +318,8 @@ def test_the_server_refuses_to_start_when_a_run_from_the_page_could_spend_unchec
     assert "OPENAI_API_KEY is not set" in without and "credential wrapper" in without
     assert "nominal price" in start("--provider", "openai", "--model", "no-such-model")
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test-present")
+    assert "local endpoints" in start("--provider", "openai", "--model", "gpt-4.1-mini",
+                                      "--served-as", "gpt-4.1-mini")   # even equal: no alias
     assert "cap" in start("--provider", "openai", "--model", "gpt-4.1-mini",
                           "--max-cost-usd", "0")
     assert "on the wire" in start("--provider", "openai", "--model", "gpt-4.1-nano",
@@ -316,9 +329,9 @@ def test_the_server_refuses_to_start_when_a_run_from_the_page_could_spend_unchec
 def test_a_paid_run_from_the_page_keeps_the_credential_off_every_response_and_artefact(
         tmp_path, monkeypatch):
     """The page can start the paid path only through the same runtime command the terminal
-    uses, with the server's flags; the credential goes from this process's environment to
-    the wire as a bearer header and appears in no response, no file, and not in what
-    /api/launch reports — the browser chose nothing but the incident."""
+    uses, with the server's flags and the page's requests within them; the credential goes
+    from this process's environment to the wire as a bearer header and appears in no
+    response, no file, and not in what /api/launch reports."""
     from .fake_model import FakeModel
     key = "sk-test-DISTINCTIVE-page-7b2e"
     monkeypatch.setenv("OPENAI_API_KEY", key)
@@ -333,7 +346,8 @@ def test_a_paid_run_from_the_page_keeps_the_credential_off_every_response_and_ar
     monkeypatch.setattr(server, "ARCHIVE", archive)
     monkeypatch.setattr(server, "LAUNCH", {
         "provider": "openai", "endpoint": f"http://127.0.0.1:{model.server_port}/v1",
-        "model": "gpt-4.1-mini", "served_as": None, "max_turns": 4, "max_cost_usd": 0.05,
+        "model": "gpt-4.1-mini", "served_as": None, "max_turns": 4, "max_tool_calls": 9,
+        "max_model_requests": 4, "max_wall_clock_seconds": 90.0, "max_cost_usd": 0.05,
         "max_tokens": 64})
     httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
@@ -346,8 +360,26 @@ def test_a_paid_run_from_the_page_keeps_the_credential_off_every_response_and_ar
             return response.status, response.read().decode("utf-8")
 
         responses = [call("GET", "/api/launch")[1]]
-        assert json.loads(responses[0])["provider"] == "openai"
-        status, answer = call("POST", "/api/runs", {"incident": "orders-missing-day"})
+        launch = json.loads(responses[0])
+        assert launch["provider"] == "openai" and "gpt-4.1-nano" in launch["models"]
+        # every ceiling the runtime has is reported, so the page never runs under bounds it
+        # cannot show
+        assert (launch["max_tool_calls"], launch["max_model_requests"],
+                launch["max_wall_clock_seconds"]) == (9, 4, 90.0)
+        # requests, not authority: any priced model, a cap and a budget at most the operator's;
+        # refused, never clamped — and Infinity, which json accepts, is above any ceiling
+        for more in ({"model": "gpt-5-imagined"}, {"max_cost_usd": 0.06}, {"max_cost_usd": 0},
+                     {"max_turns": 5}, {"model": "gpt-4.1", "max_cost_usd": True}):
+            status, answer = call("POST", "/api/runs", {"incident": "orders-missing-day", **more})
+            assert status == 400 and "must" in json.loads(answer)["error"], more
+        conn = http.client.HTTPConnection("127.0.0.1", httpd.server_port, timeout=10)
+        conn.request("POST", "/api/runs", body='{"incident": "orders-missing-day", '
+                                               '"max_cost_usd": Infinity}',
+                     headers={"Content-Type": "application/json"})
+        assert conn.getresponse().status == 400
+        status, answer = call("POST", "/api/runs", {"incident": "orders-missing-day",
+                                                    "model": "gpt-4.1-nano",
+                                                    "max_cost_usd": 0.02, "max_turns": 2})
         assert status == 200
         label = json.loads(answer)["label"]
         deadline = time.time() + 30
@@ -368,8 +400,19 @@ def test_a_paid_run_from_the_page_keeps_the_credential_off_every_response_and_ar
         record = json.loads(call("GET", f"/api/runs/{label}")[1])
         assert record["configuration"]["provider"] == "openai"
         assert record["configuration"]["credential"] == "OPENAI_API_KEY (environment)"
-        assert record["configuration"]["max_cost_usd"] == 0.05
-        assert record["counters"]["api_cost_usd"] == pytest.approx(100 * 0.40e-6 + 20 * 1.60e-6)
+        # what was asked for is what ran, priced as such; the receipt says where the request
+        # came from and within what
+        assert (record["configuration"]["model"], record["configuration"]["max_cost_usd"],
+                record["configuration"]["max_turns"]) == ("gpt-4.1-nano", 0.02, 2)
+        assert (record["configuration"]["max_tool_calls"],
+                record["configuration"]["max_model_requests"],
+                record["configuration"]["max_wall_clock_seconds"]) == (9, 4, 90.0)  # forwarded
+        assert FakeModel.seen[-1]["model"] == "gpt-4.1-nano"
+        assert record["counters"]["api_cost_usd"] == pytest.approx(100 * 0.10e-6 + 20 * 0.40e-6)
+        receipt = json.loads((archive / label / "receipt.json").read_text(encoding="utf-8"))
+        assert "requested from the page, within the ceilings the operator set when starting " \
+               "the server (4 turns, 9 tool calls, 4 requests, 90 s, up to $0.05); permitted by" \
+               in receipt["reason"]
     finally:
         httpd.shutdown()
         httpd.server_close()
@@ -444,3 +487,93 @@ def test_feedback_is_kept_beside_the_record_attributed_bounded_and_verbatim(tmp_
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+
+def test_a_visitor_brings_an_incident_over_their_own_files_and_the_archive_keeps_both(
+        tmp_path, monkeypatch):
+    """POST /api/investigations: what looks wrong, in the visitor's words, over their CSV
+    files — the same runtime, tools and archive as every other run. The description is the
+    alert the investigator is told; the files are the tables it can query; incident.json and
+    world.sql land beside the record; what this page will not take is refused with the
+    reason and nothing is written."""
+    from adii.reporting.manifest import verify, write_manifest
+
+    from .fake_model import FakeModel
+    FakeModel.script[:] = [
+        '<TOOL_CALL>{"name": "get_schema", "arguments": {}}',
+        '<TOOL_CALL>{"name": "run_sql", "arguments": '
+        '{"query": "SELECT sum(revenue) FROM revenue"}}',
+        '<DECISION>{"disposition": "NO_REPAIR", "root_cause_id": null, "root_cause_summary": '
+        '"The decline is in the data as recorded; nothing is malformed.", '
+        '"repair_id": null, "patch": {}}']
+    model = ThreadingHTTPServer(("127.0.0.1", 0), FakeModel)
+    threading.Thread(target=model.serve_forever, daemon=True).start()
+    archive = tmp_path / "archive"
+    archive.mkdir()
+    monkeypatch.setattr(server, "ARCHIVE", archive)
+    monkeypatch.setattr(server, "LAUNCH", {
+        "provider": "local", "endpoint": f"http://127.0.0.1:{model.server_port}/v1",
+        "model": "test-model-1", "served_as": None, "max_turns": 6})
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    csv = "day,revenue\n2026-03-07,1200\n2026-03-08,660\n"
+    ask = {"description": "Revenue fell 45% after yesterday's deploy.",
+           "files": [{"name": "revenue.csv", "text": csv}]}
+    try:
+        def call(method, path, body=None, raw=None):
+            conn = http.client.HTTPConnection("127.0.0.1", httpd.server_port, timeout=30)
+            conn.request(method, path, body=raw if raw is not None else json.dumps(body),
+                         headers={"Content-Type": "application/json"})
+            response = conn.getresponse()
+            return response.status, json.loads(response.read() or b"{}")
+
+        # refused with the reason, and nothing written: no description; no files; a file
+        # that is not a table; a body above the limit (before it is read)
+        for bad, said in (({**ask, "description": " "}, "what looks wrong"),
+                          ({**ask, "files": []}, "1 to 8"),
+                          ({**ask, "files": [{"name": "x.csv", "text": "a,b\n1\n"}]}, "line 2"),
+                          ({**ask, "files": [{"name": "x.csv", "text": "a,b\r1,2\r"}]},
+                           "not a CSV"),
+                          ({**ask, "files": [{"name": "sqlite_master.csv", "text": "a\n1\n"}]},
+                           "SQLite's own"),
+                          ({**ask, "max_turns": 7}, "must")):
+            status, answer = call("POST", "/api/investigations", bad)
+            assert status == 400 and said in answer["error"], bad
+        conn = http.client.HTTPConnection("127.0.0.1", httpd.server_port, timeout=30)
+        conn.request("POST", "/api/investigations", body=b"{}",
+                     headers={"Content-Type": "application/json",
+                              "Content-Length": str(server.BROUGHT["body"] + 1)})
+        assert conn.getresponse().status == 400
+        assert [p.name for p in archive.iterdir()] == []
+        status, answer = call("POST", "/api/investigations", {**ask, "max_turns": 3})
+        assert status == 200 and answer["label"].startswith("upload-")
+        label = answer["label"]
+        deadline = time.time() + 30
+        while time.time() < deadline:
+            status, live = call("GET", f"/api/runs/{label}/trace", raw=b"")
+            if status == 200 and live["finished"]:
+                break
+            time.sleep(0.2)
+        assert live["finished"]
+        status, record = call("GET", f"/api/runs/{label}", raw=b"")
+        assert record["context"]["alert"] == ask["description"]
+        assert record["context"]["incident_id"] == label.rsplit("-", 2)[0]
+        assert record["context"]["permitted_write_paths"] == []
+        assert record["decision"]["disposition"] == "NO_REPAIR"
+        assert record["configuration"]["max_turns"] == 3
+        [schema] = [e for e in record["trace"] if e["kind"] == "tool_result"][:1]
+        assert [t["name"] for t in schema["payload"]["content"]["tables"]] == ["revenue"]
+        assert (archive / label / "world.sql").read_text(encoding="utf-8").startswith(
+            'CREATE TABLE "revenue" ("day" TEXT, "revenue" INTEGER);')
+        kept = json.loads((archive / label / "incident.json").read_text(encoding="utf-8"))
+        assert kept["alert"] == ask["description"]
+        write_manifest(archive)
+        assert verify(archive).ok                       # both kept, both attested
+        # the same question over the same data is the same incident: the id is their digest
+        status, again = call("POST", "/api/investigations", ask)
+        assert status == 200 and again["label"].rsplit("-", 2)[0] == label.rsplit("-", 2)[0]
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+        model.shutdown()
+        model.server_close()

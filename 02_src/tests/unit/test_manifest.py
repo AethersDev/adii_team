@@ -31,13 +31,16 @@ def test_attestation_lists_every_record_with_path_size_digest_and_retention(arch
 
 
 def test_every_artefact_of_a_run_is_attested_in_its_retention_class(archive, tmp_path):
-    """A run leaves its receipt, its trace and its record; a person may leave feedback beside
-    them; the authority may leave its report. All five are attested and preserved — the
-    evidence, what was said about it, and what it scored, each in its own class — and a file
-    under any other name is a finding verification names, never silently archived."""
+    """A run leaves its receipt, its trace and its record — and, when the operator brought
+    the incident, that incident and its world; a person may leave feedback beside them; the
+    authority may leave its report. All of these are attested and preserved — the evidence,
+    what was said about it, and what it scored, each in its own class — and a file under
+    any other name is a finding verification names, never silently archived."""
     run = archive / "demo-learning-001"
     (run / "receipt.json").write_text('{"schema": "adii.receipt/v1"}', encoding="utf-8")
     (run / "trace.jsonl").write_text('{"kind": "incident_received"}\n', encoding="utf-8")
+    (run / "incident.json").write_text('{"incident_id": "demo-learning-001"}', encoding="utf-8")
+    (run / "world.sql").write_text('CREATE TABLE t (x);\n', encoding="utf-8")
     (run / "feedback.jsonl").write_text('{"useful": "yes"}\n', encoding="utf-8")
     (run / "evaluation_report.json").write_text('{"category": "success"}\n', encoding="utf-8")
     manifest = json.loads(write_manifest(archive).read_text(encoding="utf-8"))
@@ -45,6 +48,8 @@ def test_every_artefact_of_a_run_is_attested_in_its_retention_class(archive, tmp
         "demo-learning-001/receipt.json": "evidence",
         "demo-learning-001/trace.jsonl": "evidence",
         "demo-learning-001/record.json": "evidence",
+        "demo-learning-001/incident.json": "evidence",
+        "demo-learning-001/world.sql": "evidence",
         "demo-learning-001/feedback.jsonl": "annotation",
         "demo-learning-001/evaluation_report.json": "evaluation"}
     assert set(RETENTION.values()) == {"evidence", "annotation", "evaluation"}
@@ -57,8 +62,40 @@ def test_every_artefact_of_a_run_is_attested_in_its_retention_class(archive, tmp
     (run / "feedback.jsonl").write_text('{"useful": "yes"}\n', encoding="utf-8")
     copy = tmp_path / "copy"
     assert preserve(archive, copy).ok
-    for name in RETENTION:
-        assert (copy / "demo-learning-001" / name).read_bytes() == (run / name).read_bytes()
+    for entry in manifest["entries"]:
+        assert (copy / entry["path"]).read_bytes() == (archive / entry["path"]).read_bytes()
+
+
+def test_a_brought_incident_s_evidence_bundles_are_attested_and_preserved(archive, tmp_path):
+    """The run's copy of the operator's package — each map file beside the record and every
+    file under a bundle's directory — is evidence: attested with the record, preserved with
+    it, and a file inside a folder the archive does not know is unlisted, not invisible."""
+    from adii.tools import EVIDENCE_BUNDLES as TOOL_BUNDLES
+    run = archive / "demo-learning-001"
+    (run / "transform_map.json").write_text('{"stg_orders": "orders.sql"}', encoding="utf-8")
+    (run / "transform_sources").mkdir()
+    (run / "transform_sources" / "orders.sql").write_bytes(b"select id\r\nfrom orders\r\n")
+    (run / "declared_schema_map.json").write_text('{"orders": "orders.json"}', encoding="utf-8")
+    (run / "declared_schema_sources").mkdir()
+    (run / "declared_schema_sources" / "orders.json").write_text("{}", encoding="utf-8")
+    manifest = json.loads(write_manifest(archive).read_text(encoding="utf-8"))
+    assert {e["path"]: e["retention"] for e in manifest["entries"]} == {
+        "demo-learning-001/record.json": "evidence",
+        "demo-learning-001/transform_map.json": "evidence",
+        "demo-learning-001/transform_sources/orders.sql": "evidence",
+        "demo-learning-001/declared_schema_map.json": "evidence",
+        "demo-learning-001/declared_schema_sources/orders.json": "evidence"}
+    assert verify(archive).ok
+    copy = tmp_path / "copy"
+    assert preserve(archive, copy).ok
+    assert (copy / "demo-learning-001" / "transform_sources" / "orders.sql").read_bytes() == \
+        b"select id\r\nfrom orders\r\n"
+    (run / "notes").mkdir()
+    (run / "notes" / "scratch.txt").write_text("not archived", encoding="utf-8")
+    assert verify(archive).unlisted == ("demo-learning-001/notes/scratch.txt",)
+    assert set(RETENTION.values()) == {"evidence", "annotation", "evaluation"}
+    from adii.reporting.manifest import EVIDENCE_BUNDLES
+    assert EVIDENCE_BUNDLES == TOOL_BUNDLES      # the same names, without reporting importing tools
 
 
 def test_a_payload_change_without_a_manifest_change_fails(archive):

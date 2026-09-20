@@ -1,10 +1,13 @@
 /* ADII's one page: investigate, watch, read, answer.
  *
  * Three screens, one route each, all from the URL hash: the front door (#), which opens on
- * the action — Investigate — when the operator allowed it, then the investigation history;
- * an incident's runs (#i/<incident>); and one run as a story (#r/<label>),
- * or two runs of one incident side by side (#r/<label>,<label>). The hierarchy on every
- * run page is fixed — incident, run, investigation, decision, validation, technical
+ * the product — what looks wrong, over the visitor's own CSV files, Investigate — when the
+ * operator allowed it, with the archive's incidents one disclosure down as examples, then
+ * the previous investigations; an incident's runs (#i/<incident>); and one run as a story
+ * (#r/<label>), or two runs of one incident side by side (#r/<label>,<label>). The
+ * hierarchy on every run page is fixed — the answer first: how it ended, the question,
+ * what it concluded and the action that asks, what it looked at; then, one disclosure
+ * down, the incident and every turn; then validation, evaluation, feedback, technical
  * details — and a section the record cannot fill is left out, never drawn empty.
  *
  * ONE renderer for every record. It renders `adii.run_record/v1` and nothing else — a record
@@ -12,9 +15,10 @@
  * field: everything on the page is in the record, or is one of the sentences in
  * phrasing.js, each a deterministic projection of record fields, each tested.
  *
- * The page starts a run only when the operator started the server with a local model — a
- * page that can start a run can spend money, so otherwise it says how a run is started,
- * on every screen. Its footer says which it is.
+ * The page starts a run only when the operator started the server with a model — a page
+ * that can start a run can spend money, so what it may ask for is at most what the
+ * operator's flags allow, and otherwise it says how a run is started, on every screen.
+ * Its footer says which it is.
  *
  * No innerHTML anywhere. Every string here is model-written the day a live provider runs,
  * and a report that executes what the model wrote is inherited defect D12. Text nodes
@@ -80,7 +84,11 @@ async function load(url, init) {
   if (code && state.code && code !== state.code) location.reload();   /* this tab's script is older */
   state.code = state.code ?? code;
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.error || `${url} answered ${res.status}`);
+  if (!res.ok) {
+    const err = new Error(body.error || `${url} answered ${res.status}`);
+    err.refused = res.status < 500;            /* the server said no, with a reason */
+    throw err;
+  }
   return body;
 }
 
@@ -88,6 +96,12 @@ async function load(url, init) {
  * backend is a retrieval failure here and establishes nothing about the archive. */
 function guard(target, task) {
   return task().catch((err) => {
+    if (err.refused) {                          /* refused with a reason: say it, no retry */
+      target.replaceChildren(el("div", "adii-transport",
+        el("p", "adii-transport__title", "Not started"),
+        el("p", null, `${err.message}.`)));
+      return;
+    }
     const again = el("button", "adii-btn adii-no-print", "Try again");
     again.type = "button";
     again.onclick = () => guard(target, task);
@@ -162,10 +176,10 @@ function crumbs(...items) {
     href ? link("adii-nav__link", text, href) : el("span", "adii-nav__link", text)]));
 }
 
-/* every screen's footer says whether this page can start a run, and against what */
+/* every screen's footer says whether this page can start a run, and where; the model is
+ * the launcher's line and each run's own page, since a visitor may choose it */
 const footer = (prefix = "") => foot(prefix + (state.launch.enabled
-  ? PHRASING.product.footLive(shortModel(state.launch.model), state.launch.provider)
-  : PHRASING.product.footReadOnly));
+  ? PHRASING.product.footLive(state.launch.provider) : PHRASING.product.footReadOnly));
 
 function foot(text) {
   $("foot").replaceChildren(text);
@@ -192,37 +206,120 @@ function howto(incident) {
     el("pre", null, PHRASING.product.liveCommand));
 }
 
-/* Start a run against the model the server was started with. The server answers with
- * the label at once and runs the investigation; the page goes to the run and watches. */
+/* Run settings a visitor may ask for, one layer down: presets at most the operator's
+ * ceiling, the ceiling itself the default. Requests, not authority — the server checks
+ * each against the flags it was started with and refuses more, never clamps. */
+const COST_PRESETS = [0.05, 0.10, 0.25, 0.50];
+const TURN_PRESETS = [12, 20, 30];
+const within = (presets, ceiling) =>
+  [...new Set([...presets.filter((v) => v <= ceiling), ceiling])].sort((a, b) => a - b);
+const choice = (id, label, options, chosen) => {
+  const select = el("select", "adii-select", ...options.map(([v, text]) => option(v, text)));
+  select.id = id;
+  select.value = chosen;
+  return [select, el("div", "adii-field", el("label", "adii-field__label", label), select)];
+};
+
+/* The product form. What looks wrong, in the visitor's words, over their own CSV files —
+ * or, one layer down, one of the archive's incidents. Either way the server answers with
+ * the label at once and runs the investigation; the page goes to the run and watches. The
+ * model, cap and turn budget come from Run settings within the operator's ceilings. */
 function launcher(preset) {
   const running = state.runs.find((r) => r.running);
+  const paid = state.launch.provider === "openai";
+  const ask = el("textarea", "adii-input");
+  ask.id = "launch-description";
+  ask.rows = 3;
+  ask.maxLength = 2000;                       /* the server's limit, said here first */
+  ask.placeholder = PHRASING.product.askFor;
+  const files = el("input", "adii-input");
+  files.type = "file";
+  files.id = "launch-files";
+  files.accept = ".csv,text/csv";
+  files.multiple = true;
   const select = el("select", "adii-select");
   select.id = "launch-incident";
+  const examples = el("details", "settings example");
   const fill = async () => {
     const incidents = await load("/api/incidents");
     select.replaceChildren(...incidents.map((i) => option(i.incident_id, i.incident_id)));
-    if (preset) select.value = preset;
+    /* on an incident's own page the example is that incident — when it is one the
+     * archive offers; a brought incident is not, and the picker stays closed */
+    if (preset && incidents.some((i) => i.incident_id === preset)) {
+      select.value = preset;
+      examples.open = true;
+    }
   };
-  const button = el("button", "adii-btn adii-btn--primary", "Investigate");
-  button.type = "button";
+  const models = state.launch.models || [state.launch.model];
+  const [model, modelField] = models.length > 1
+    ? choice("launch-model", "Model", models.map((m) => [m, shortModel(m)]), state.launch.model)
+    : [null, null];
+  const [cost, costField] = paid
+    ? choice("launch-cost", "Maximum spend",
+      within(COST_PRESETS, state.launch.max_cost_usd).map((c) => [String(c), `$${c.toFixed(2)}`]),
+      String(state.launch.max_cost_usd))
+    : [null, null];
+  const [turns, turnsField] = choice("launch-turns", "Turn budget",
+    within(TURN_PRESETS, state.launch.max_turns).map((n) => [String(n), `${n} turns`]),
+    String(state.launch.max_turns));
+  const chosen = () => ({ model: model ? model.value : state.launch.model,
+    max_turns: Number(turns.value), ...(cost ? { max_cost_usd: Number(cost.value) } : {}) });
+  const summary = el("p", "adii-type-sm");
+  const describe = () => {
+    const c = chosen();
+    summary.replaceChildren(PHRASING.product.runsWith(shortModel(c.model), state.launch.provider,
+      c.max_cost_usd, c.max_turns));
+  };
+  [model, cost, turns].filter(Boolean).forEach((s) => { s.onchange = describe; });
+  describe();
   const status = el("p", "adii-field__hint");
-  button.onclick = () => guard(status, async () => {
+  /* one run starts: the body is assembled, the server answers the label, the page goes
+   * there and watches; the button is back whatever happened */
+  const start = (button, path, assemble) => guard(status, async () => {
     button.disabled = true;
-    status.replaceChildren("Starting…");
-    const answer = await load("/api/runs", { method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ incident: select.value }) });
-    state.starting = answer.label;
-    location.hash = `#r/${encodeURIComponent(answer.label)}`;
+    try {
+      status.replaceChildren("Starting…");
+      const answer = await load(path, { method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...(await assemble()), ...chosen() }) });
+      state.starting = answer.label;
+      location.hash = `#r/${encodeURIComponent(answer.label)}`;
+    } finally {
+      button.disabled = false;
+    }
   });
+  const investigate = el("button", "adii-btn adii-btn--primary", "Investigate");
+  investigate.type = "button";
+  investigate.id = "launch-investigate";
+  investigate.onclick = () => {
+    if (!ask.value.trim() || !files.files.length) {
+      status.replaceChildren(PHRASING.product.needBoth);
+      return;
+    }
+    /* the files are read here, in the browser, and sent as text: the server takes JSON
+     * and nothing else, and what it takes is bounded there */
+    start(investigate, "/api/investigations", async () => ({ description: ask.value,
+      files: await Promise.all([...files.files].map(async (f) => ({ name: f.name, text: await f.text() }))) }));
+  };
+  const example = el("button", "adii-btn", "Investigate this example");
+  example.type = "button";
+  example.id = "launch-example";
+  example.onclick = () => start(example, "/api/runs", async () => ({ incident: select.value }));
   guard(status, fill);
-  return el("section", "adii-panel howto",
-    el("h2", "adii-panel__title", "Investigate"),
+  examples.append(el("summary", null, PHRASING.product.tryExample),
+    el("p", "adii-type-sm adii-mt-sm", PHRASING.product.exampleWhat),
     el("div", "adii-toolbar",
-      el("div", "adii-field", el("label", "adii-field__label", "Incident"), select),
-      button),
-    el("p", "adii-type-sm", PHRASING.product.runsWith(shortModel(state.launch.model),
-                                                       state.launch.provider)),
+      el("div", "adii-field", el("label", "adii-field__label", "Incident"), select), example));
+  return el("section", "adii-panel howto",
+    el("h2", "adii-panel__title", PHRASING.product.ask),
+    el("div", "adii-field", ask),
+    el("div", "adii-field", el("label", "adii-field__label", PHRASING.product.yourData), files,
+      el("p", "adii-field__hint", PHRASING.product.dataHint)),
+    el("div", "adii-toolbar", investigate),
+    summary,
+    el("details", "settings", el("summary", null, "Run settings"),
+      el("div", "adii-toolbar", ...[modelField, costField, turnsField].filter(Boolean))),
+    examples,
     el("p", "adii-field__hint", ...(running
       ? [link("adii-nav__link", PHRASING.product.busy(running.label), `#r/${encodeURIComponent(running.label)}`)]
       : [PHRASING.product.idle])),
@@ -272,7 +369,7 @@ async function frontDoor() {
       el("p", "door__lede adii-mt-sm", PHRASING.product.what)),
     state.launch.enabled ? launcher() : "",        /* the action first, when allowed */
     el("section", null,
-      el("div", "adii-section__head", el("h2", null, "Investigation history"),
+      el("div", "adii-section__head", el("h2", null, "Previous investigations"),
         el("span", "adii-eyebrow", cards.length
           ? PHRASING.product.history(cards.length, state.runs.length - unreadable) +
             (unreadable ? ` · ${unreadable} unreadable` : "")
@@ -369,13 +466,15 @@ function story(r, compact = false, label = r.label, evaluation = null) {
       : `${c.incident_id} · ${ran}${requests} tool request${requests === 1 ? "" : "s"} · ${seconds(n.latency_ms)}`),
     el("h1", "outcome__headline", d ? chip(d.disposition) : plain(PHRASING.outcome[r.termination]?.(r) ?? r.termination, "g-unresolved"),
       " ", PHRASING.headline[r.termination]?.(r) ?? r.termination),
+    el("p", "outcome__asked", c.alert),          /* the question, above its answer */
     scriptedNote(cfg.model)));
 
   if (d) {
     out.append(record("system", "What it concluded", `Asserted by ${INVESTIGATOR}`,
       el("p", "adii-assertion", d.root_cause_summary),
       el("p", "adii-field__hint adii-mt-sm", PHRASING.disposition[d.disposition]),
-      d.root_cause_id ? meta(["Cited evidence", d.root_cause_id]) : ""));
+      el("p", "adii-mt-sm", el("b", null, "Action "), PHRASING.action[d.disposition]),
+      d.root_cause_id ? meta(["Root cause id", d.root_cause_id]) : ""));
   } else {
     out.append(record("system", "Why there is no decision",
       `Reported by ${r.termination === "infrastructure_failure" ? "the runtime" : INVESTIGATOR}`,
@@ -383,15 +482,31 @@ function story(r, compact = false, label = r.label, evaluation = null) {
       el("p", "adii-field__hint adii-mt-2xs", "In the record's words: ", mono(r.detail))));
   }
 
-  out.append(record("operator", "The incident", "Reported by the operator",
-    el("p", "adii-measure", c.alert),
-    meta(["As of", c.as_of],
-         ["May write", c.permitted_write_paths.length ? c.permitted_write_paths.join(", ") : "nothing"])));
+  /* what it looked at: every answered request, one line each — a projection of the trace,
+   * so a decision reached without looking reads as exactly that */
+  const looked = r.trace.filter((e) => e.kind === "tool_result" && e.payload.status === "OK");
+  const asked = Object.fromEntries(r.trace.filter((e) => e.kind === "tool_call")
+    .map((e) => [e.payload.call_id, e.payload]));
+  out.append(record("system", "What it looked at",
+    `Recorded by the runtime · ${PHRASING.product.looked(looked.length)}`,
+    looked.length
+      ? el("ul", "looked", ...looked.map((e) => el("li", "looked__item",
+          el("span", null, `${e.payload.name}${describeArgs(asked[e.payload.call_id]?.arguments)}`),
+          " — ", PHRASING.turn.answered(e.payload),
+          ...(e.payload.content && e.payload.content.evidence_id
+            ? [" ", mono(e.payload.content.evidence_id)] : []))))
+      : el("p", "adii-field__hint", PHRASING.product.lookedAtNothing)));
 
   const rounds = turns(r.trace);
-  out.append(record("system", "The investigation, turn by turn",
-    `Recorded by the runtime as it happened · ${rounds.length} turn${rounds.length === 1 ? "" : "s"}`,
-    el("ol", "turns", ...rounds.map((turn, i) => turnCard(turn, i, r.validation)))));
+  out.append(el("details", "adii-panel tech investigation",
+    el("summary", null, "View the investigation"),
+    record("operator", "The incident", "Reported by the operator",
+      el("p", "adii-measure", c.alert),
+      meta(["As of", c.as_of],
+           ["May write", c.permitted_write_paths.length ? c.permitted_write_paths.join(", ") : "nothing"])),
+    record("system", "The investigation, turn by turn",
+      `Recorded by the runtime as it happened · ${rounds.length} turn${rounds.length === 1 ? "" : "s"}`,
+      el("ol", "turns", ...rounds.map((turn, i) => turnCard(turn, i, r.validation))))));
 
   if (d && d.repair_id) {
     out.append(record("system", "The change it proposed", `Proposed by ${INVESTIGATOR}. Not applied by anyone.`,
@@ -559,7 +674,10 @@ async function watch(label) {
       const received = events.find((e) => e.kind === "incident_received");
       if (received) headline.replaceChildren(plain("running", "g-unresolved"),
         ` Investigating ${received.payload.incident_id}`);
-      list.replaceChildren(...turns(events).map(turnCard));
+      const requests = events.filter((e) => e.kind === "tool_call").length;
+      const answered = events.filter((e) => e.kind === "tool_result" && e.payload.status === "OK").length;
+      status.replaceChildren(`${PHRASING.product.running} ${PHRASING.product.soFar(requests, answered)}`);
+      list.replaceChildren(...turns(events).map((turn, i) => turnCard(turn, i)));
     }
     if (live.finished || !live.running) {     /* the record landed — or the run went silent */
       state.runs = await load("/api/runs");

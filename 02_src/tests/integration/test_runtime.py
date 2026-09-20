@@ -2,6 +2,7 @@
 harness's, not the investigator's, for every way a run can end."""
 from __future__ import annotations
 
+import json
 import math
 from dataclasses import replace
 
@@ -36,9 +37,125 @@ def test_one_command_takes_an_incident_to_an_archived_run_and_a_report(tmp_path,
     record = read_record(tmp_path / "first" / "record.json")
     assert record.termination == "submitted" and record.provenance["origin"] == "runtime"
     assert record.configuration == {"provider": "scripted", "model": None,
-                                    "tools": ["get_schema", "run_sql"]}
+                                    "tools": ["get_schema", "run_sql"], "max_tool_calls": 30}
     out = capsys.readouterr().out
     assert "ADII INVESTIGATION REPORT" in out and "decided by the validator" in out
+
+
+def brought(tmp_path, files: dict[str, bytes], world: str = "CREATE TABLE orders (id INTEGER);"):
+    """An operator's incident folder: incident.json, world.sql, and `files` by relative path."""
+    folder = tmp_path / "brought"
+    folder.mkdir()
+    (folder / "incident.json").write_text(json.dumps({
+        "incident_id": "brought-1", "alert": "orders differ", "as_of": "2026-09-19",
+        "permitted_write_paths": []}), encoding="utf-8")
+    (folder / "world.sql").write_text(world, encoding="utf-8")
+    for relative, content in files.items():
+        (folder / relative).parent.mkdir(exist_ok=True)
+        (folder / relative).write_bytes(content)
+    return folder
+
+
+def observation(tools, name, arguments):
+    result = tools.execute(ToolCall("c", name, arguments))
+    assert result.status == "OK", result.content
+    return {key: value for key, value in result.content.items() if key != "evidence_id"}
+
+
+DECLARATION = (b'{\r\n  "source": "vendor.orders_feed",\r\n  "schema_version": 3,\r\n'
+               b'  "fields": {"amount": {"type": "number", "unit": "usd", '
+               b'"note": "Major units; v3 changed this from cents."}}\r\n}\r\n')
+HISTORY = (b"# Transform change history\r\n\r\n"
+           b"| date | file | ticket | change |\r\n"
+           b"| --- | --- | --- | --- |\r\n"
+           b"| 2026-07-08 | `staging/stg_orders.sql` | DATA-412 | Restrict revenue. |\r\n")
+BUNDLES = {                       # every evidence kind an incident folder may carry
+    "transform_map.json": b'{"stg_orders": "orders.sql"}',
+    "transform_sources/orders.sql": b"select id\r\nfrom orders\r\n",
+    "notice_map.json": b'{"vendor-change": "vendor.txt"}',
+    "notice_sources/vendor.txt": b"Amounts change from cents to dollars on 2026-03-08.\r\n",
+    "change_history_map.json": b'{"transform-changes": "CHANGE_HISTORY.md"}',
+    "change_history_sources/CHANGE_HISTORY.md": HISTORY,
+    "reconciliation_map.json": b'{"upstream-feed": "upstream.log"}',
+    "reconciliation_sources/upstream.log": b"first delivery\r\nsecond delivery\r\n",
+    "declared_schema_map.json": b'{"orders": "orders.json"}',
+    "declared_schema_sources/orders.json": DECLARATION,
+}
+
+
+def test_an_incident_directory_without_evidence_offers_the_sql_surface_only(tmp_path):
+    context, tools, world_digest, recorded, evidence = cli.incident_from_dir(brought(tmp_path, {}))
+    assert context.incident_id == "brought-1" and recorded is None and evidence == {}
+    assert tools.names == ("get_schema", "run_sql")
+    assert set(cli.artefacts(context, world_digest, evidence)) == {"incident", "world", "protocol"}
+
+
+def test_every_evidence_bundle_is_loaded_shown_whole_and_bound_into_the_receipt(tmp_path):
+    """Each bundle becomes one tool (or, for a declared schema, a field of `get_schema`), what
+    the tool shows is the file's exact text, and the receipt binds each by its digest — the
+    source's for what is shown verbatim, and separately the parsed observation's where the
+    model sees a parse (the change history, the declared schema)."""
+    folder = brought(tmp_path, BUNDLES)
+    context, tools, world_digest, _, evidence = cli.incident_from_dir(folder)
+    assert tools.names == ("get_schema", "run_sql", "get_transform", "get_notice",
+                           "get_change_history", "read_reconciliation")
+    transform = observation(tools, "get_transform", {"transform_id": "stg_orders"})
+    assert transform["source"] == "select id\r\nfrom orders\r\n" and transform["truncated"] is False
+    notice = observation(tools, "get_notice", {"notice_id": "vendor-change"})
+    assert notice["content"] == BUNDLES["notice_sources/vendor.txt"].decode("utf-8")
+    history = observation(tools, "get_change_history", {"history_id": "transform-changes"})
+    assert history["changes"] == [{"date": "2026-07-08", "file": "`staging/stg_orders.sql`",
+                                   "ticket": "DATA-412", "change": "Restrict revenue."}]
+    window = observation(tools, "read_reconciliation", {"reconciliation_id": "upstream-feed"})
+    assert window["lines"] == ["first delivery", "second delivery"]
+    schema = observation(tools, "get_schema", {"table": "orders"})
+    assert schema["columns"] == ["id"] and schema["declared_schema"] == {
+        "source": "vendor.orders_feed", "schema_version": 3,
+        "fields": {"amount": {"type": "number", "unit": "usd",
+                              "note": "Major units; v3 changed this from cents."}}}
+    assert evidence == {
+        "transforms": cli.digest_of(cli.canonical_json({"stg_orders": transform["source"]})),
+        "notices": cli.digest_of(cli.canonical_json({"vendor-change": notice["content"]})),
+        "change_history_source": cli.digest_of(HISTORY.decode("utf-8")),
+        "change_history_observation": cli.digest_of(cli.canonical_json(history)),
+        "reconciliation_source": cli.digest_of(cli.canonical_json({
+            "upstream-feed": BUNDLES["reconciliation_sources/upstream.log"].decode("utf-8")})),
+        "declared_schema_source": cli.digest_of(cli.canonical_json({
+            "orders": DECLARATION.decode("utf-8")})),
+        "declared_schema_observation": cli.digest_of(cli.canonical_json({
+            "orders": schema["declared_schema"]})),
+    }
+    receipt = cli.artefacts(context, world_digest, evidence)
+    assert {key: receipt[key] for key in evidence} == evidence
+    assert set(receipt) == {"incident", "world", "protocol", *evidence}
+
+
+def test_one_bundle_alone_adds_only_its_own_tool_and_receipt_names(tmp_path):
+    folder = brought(tmp_path, {name: content for name, content in BUNDLES.items()
+                                if name.startswith("notice")})
+    _, tools, _, _, evidence = cli.incident_from_dir(folder)
+    assert tools.names == ("get_schema", "run_sql", "get_notice") and set(evidence) == {"notices"}
+
+
+def test_keeping_an_incident_copies_every_bundle_byte_for_byte_and_only_regular_files(tmp_path):
+    """The run's folder receives the package as it is — the map files, every file under the
+    bundle directories — and a symbolic link, which the loaders refuse where it stands, is
+    refused here too, before a copy could turn it into a regular file."""
+    folder = brought(tmp_path, BUNDLES)
+    kept = tmp_path / "kept"
+    kept.mkdir()
+    cli.keep_incident(folder, kept)
+    for relative in ("incident.json", "world.sql", *BUNDLES):
+        assert (kept / relative).read_bytes() == (folder / relative).read_bytes(), relative
+    assert cli.incident_from_dir(kept)[4] == cli.incident_from_dir(folder)[4]
+    outside = tmp_path / "outside.sql"
+    outside.write_text("select secret from answer_key", encoding="utf-8")
+    (folder / "transform_sources" / "orders.sql").unlink()
+    (folder / "transform_sources" / "orders.sql").symlink_to(outside)
+    again = tmp_path / "again"
+    again.mkdir()
+    with pytest.raises(ValueError, match="must be a regular file"):
+        cli.keep_incident(folder, again)
 
 
 def test_the_fake_provider_drives_the_real_tool_layer(tmp_path):

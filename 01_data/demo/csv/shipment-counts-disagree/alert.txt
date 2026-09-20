@@ -1,0 +1,1 @@
+The warehouse system says 25 parcels shipped on 2026-03-10. The carrier's manifest lists 18. Finance needs to know which number to bill.

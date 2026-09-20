@@ -20,6 +20,19 @@
 .howto { display: grid; gap: var(--adii-space-sm); }
 .howto pre { padding: var(--adii-space-sm) var(--adii-space-md); background: var(--adii-surface-2); border: 1px solid var(--adii-border-subtle); border-radius: var(--adii-radius-1); font-size: var(--adii-text-sm); white-space: pre-wrap; overflow-wrap: anywhere; }
 
+/* what it looked at: one answered request per line */
+.looked { margin: 0; padding-left: var(--adii-space-md); display: grid; gap: var(--adii-space-2xs); font-size: var(--adii-text-sm); }
+.looked__item { max-width: var(--adii-measure); overflow-wrap: anywhere; }
+/* the investigation, one layer down on the run page */
+.investigation > .adii-record { margin-top: var(--adii-space-md); }
+
+/* run settings: one disclosure under the launcher, closed by default */
+.settings summary { cursor: pointer; font-size: var(--adii-text-sm); color: var(--adii-ink-2); list-style: none; }
+.settings summary::-webkit-details-marker { display: none; }
+.settings summary::before { content: "▸ "; color: var(--adii-ink-3); }
+.settings[open] summary::before { content: "▾ "; }
+.settings .adii-toolbar { margin-top: var(--adii-space-sm); }
+
 /* ── the incident's runs ───────────────────────────────────────────── */
 .runs { display: grid; gap: var(--adii-space-2xs); }
 .run { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--adii-space-sm); align-items: center; padding: var(--adii-row-pad-y) var(--adii-space-sm); border-bottom: 1px solid var(--adii-border-subtle); }

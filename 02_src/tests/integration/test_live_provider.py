@@ -6,6 +6,7 @@ runtime — lands in one `adii.run_record/v1` the inspector renders. No model, n
 beyond the loopback, no money."""
 from __future__ import annotations
 
+import hashlib
 import json
 import threading
 from http.server import ThreadingHTTPServer
@@ -258,28 +259,222 @@ def test_a_paid_run_puts_the_credential_on_the_wire_and_nowhere_else(tmp_path, e
     assert KEY not in (tmp_path / "refused" / "trace.jsonl").read_text(encoding="utf-8")
 
 
-def test_the_receipt_gates_the_paid_provider_and_the_cap_ends_the_run(tmp_path, endpoint,
-                                                                       monkeypatch):
-    """The provider refuses to exist without the receipt on disk; with it, the ledger's
-    lower bound is checked between requests and the run ends as a bound hit — the request
-    that crosses the cap is already paid for, so the overshoot is exactly one."""
-    from adii.reporting.ledger import PRICES
+def test_the_receipt_gates_the_paid_provider_and_the_cap_is_hard(tmp_path, endpoint,
+                                                                monkeypatch):
+    """The provider refuses to exist without the receipt on disk. With it, every request is
+    admitted against the cap by its worst case — the bytes of the messages the endpoint
+    actually receives at the input rate, max_tokens at the output rate — on top of what the
+    run has spent, exactly; the request that would cross the cap is not sent, and the run
+    ends as a bound hit naming the numbers. No overshoot: what was spent stays within the
+    cap, and the receipt and the record say what the cap is and what it assumes."""
+    from decimal import Decimal
+
+    from adii.provider import input_tokens_upper_bound
+    from adii.reporting.ledger import PRICES, reserve_for
     with pytest.raises(ValueError, match="receipt on disk"):
         ChatProvider(endpoint=endpoint, model="gpt-4.1-mini", context=ORDERS_MISSING.context,
                      tools=[], recorder=Recorder(), credential=KEY,
                      receipt=tmp_path / "missing.json", price=PRICES["gpt-4.1-mini"],
-                     max_cost_usd=0.05)
+                     max_cost_usd=0.05, max_tokens=512)
     monkeypatch.setenv("OPENAI_API_KEY", KEY)
-    FakeModel.script[:] = ["nothing useful"] * 6
+    price = PRICES["gpt-4.1-mini"]
+    one_request = 100 * price.input_per_token + 20 * price.output_per_token  # the fake's usage
+    # first, under a cap that binds nothing: what each request reserved, pinned to the bytes
+    # the endpoint received — a reserve computed from anything but the messages sent would
+    # differ once an observation joins them
+    FakeModel.script[:] = ['<TOOL_CALL>{"name": "get_schema", "arguments": {}}',
+                           '<TOOL_CALL>{"name": "get_schema", "arguments": {"table": "orders"}}',
+                           "nothing useful"]
     FakeModel.seen[:] = []
-    one_request = 100 * 0.40e-6 + 20 * 1.60e-6                   # what the fake reports
     assert cli.main([*PAID, "--endpoint", endpoint, "--archive", str(tmp_path),
-                     "--label", "capped", "--max-cost-usd", f"{2.5 * one_request:.8f}"]) == 3
+                     "--label", "free", "--max-cost-usd", "1.0", "--max-turns", "3"]) == 3
+    free = read_record(tmp_path / "free" / "record.json")
+    requested = [e.payload for e in free.trace if e.kind == "model_requested"]
+    assert len(requested) == len(FakeModel.seen) == 3
+    for asked, sent in zip(requested, FakeModel.seen, strict=True):
+        assert asked["input_tokens_upper_bound"] == input_tokens_upper_bound(sent["messages"])
+        assert Decimal(asked["reserve_usd"]) == \
+            reserve_for(asked["input_tokens_upper_bound"], price, 512)
+        assert asked["max_output_tokens"] == 512 and sent["max_tokens"] == 512
+        assert asked["estimator"].startswith("utf-8 bytes") and "o200k_base" in asked["estimator"]
+    reserves = [Decimal(r["reserve_usd"]) for r in requested]
+    assert reserves[0] < reserves[1] < reserves[2]           # the prompt grows with each turn
+    # then a cap that admits the second request exactly and not the third
+    cap = 2 * one_request + reserves[2] - Decimal("0.0000001")
+    FakeModel.script[:] = ['<TOOL_CALL>{"name": "get_schema", "arguments": {}}',
+                           '<TOOL_CALL>{"name": "get_schema", "arguments": {"table": "orders"}}',
+                           "nothing useful"] * 2
+    FakeModel.seen[:] = []
+    assert cli.main([*PAID, "--endpoint", endpoint, "--archive", str(tmp_path),
+                     "--label", "capped", "--max-cost-usd", f"{cap:f}"]) == 3
     capped = read_record(tmp_path / "capped" / "record.json")
-    assert capped.termination == "bound_hit" and capped.detail.startswith("cost_usd:")
-    assert len(FakeModel.seen) == 3                                # 2 under the cap, 1 over
-    assert capped.api_cost_usd == pytest.approx(3 * one_request)
-    assert all(m["max_tokens"] == 512 for m in FakeModel.seen)
+    assert capped.termination == "bound_hit"
+    assert capped.detail == (
+        f"max_cost_usd: spent ${2 * one_request:f} (0 request(s) without usage charged at "
+        f"their reserve) + next request's worst case ${reserves[2]:f} > cap "
+        f"${Decimal(repr(float(cap))):f}; remaining "
+        f"${Decimal(repr(float(cap))) - 2 * one_request:f}; the request was not sent")
+    assert len(FakeModel.seen) == 2                                # the third was never sent
+    assert capped.api_cost_usd == pytest.approx(float(2 * one_request))
+    assert Decimal(repr(capped.api_cost_usd)) <= Decimal(repr(float(cap)))
+    assert capped.configuration["cap_basis"].startswith("hard by admission:")
+    assert "premise: the endpoint honours max_tokens and bills by o200k_base" in \
+        capped.configuration["cap_basis"]
+    receipt = read_receipt(tmp_path / "capped" / RECEIPT)
+    assert "a hard cap — no request is sent whose worst case would cross it" in receipt["reason"]
+
+
+def test_a_cap_the_first_request_alone_would_cross_is_refused_before_the_label(
+        tmp_path, endpoint, monkeypatch, capsys):
+    monkeypatch.setenv("OPENAI_API_KEY", KEY)
+    assert cli.main([*PAID, "--endpoint", endpoint, "--archive", str(tmp_path / "runs"),
+                     "--max-cost-usd", "0.0001"]) == 2
+    out = capsys.readouterr().out
+    assert "the first request alone reserves $" in out and "would not be sent" in out
+    assert not (tmp_path / "runs").exists() and FakeModel.seen == []
+
+
+def test_the_request_count_and_the_wall_clock_are_bounds_of_their_own(tmp_path, endpoint,
+                                                                       monkeypatch):
+    """`--max-model-requests`, given, ends the run when the provider has made that many
+    requests, whatever the turn budget says; omitted, it is as many as the turns, so the
+    turn budget an operator set is the one that binds. `--max-wall-clock-seconds` cuts a
+    request in flight at the deadline — the wait itself is bounded, not only the next
+    request — and the run ends as a bound hit that says so, well inside the endpoint's own
+    120 s and the stand-in's 2 s answer."""
+    FakeModel.script[:] = ['<TOOL_CALL>{"name": "get_schema", "arguments": {}}'] * 6
+    FakeModel.seen[:] = []
+    assert cli.main(["--incident", INCIDENT, "--provider", "local", "--endpoint", endpoint,
+                     "--model", "m", "--archive", str(tmp_path), "--label", "requests",
+                     "--max-turns", "12", "--max-model-requests", "2"]) == 3
+    r = read_record(tmp_path / "requests" / "record.json")
+    assert r.termination == "bound_hit"
+    assert r.detail == "max_model_requests: 2 of 2 used; the request was not sent"
+    assert len(FakeModel.seen) == 2 and r.model_turns == 2
+    assert r.configuration["max_model_requests"] == 2 and r.configuration["max_turns"] == 12
+
+    FakeModel.script[:] = ['<TOOL_CALL>{"name": "get_schema", "arguments": {}}'] * 6
+    FakeModel.seen[:] = []
+    assert cli.main(["--incident", INCIDENT, "--provider", "local", "--endpoint", endpoint,
+                     "--model", "m", "--archive", str(tmp_path), "--label", "turns",
+                     "--max-turns", "3"]) == 3
+    r = read_record(tmp_path / "turns" / "record.json")
+    assert r.detail == "model_turns: 3 of 3 used" and len(FakeModel.seen) == 3
+    assert r.configuration["max_model_requests"] == 3       # derived: one request per turn
+
+    # the stand-in answers after six seconds; the deadline is one. The run is over well
+    # before the answer would have come — the bound is wide on purpose, so a slow runner
+    # cannot fail a correct cut — and the worker that made the request is gone.
+    monkeypatch.setattr(FakeModel, "delay", 6.0)
+    FakeModel.script[:] = ['<TOOL_CALL>{"name": "get_schema", "arguments": {}}'] * 6
+    assert cli.main(["--incident", INCIDENT, "--provider", "local", "--endpoint", endpoint,
+                     "--model", "m", "--archive", str(tmp_path), "--label", "clock",
+                     "--max-wall-clock-seconds", "1"]) == 3
+    r = read_record(tmp_path / "clock" / "record.json")
+    assert r.termination == "bound_hit"
+    assert r.detail.startswith("max_wall_clock_seconds: 1.") and r.detail.endswith(
+        "s elapsed of 1.000 s; the request in flight was cut at the deadline")
+    assert 1000 <= r.latency_ms < 4500 and r.model_turns == 0   # cut, not waited out
+    assert r.configuration["max_wall_clock_seconds"] == 1.0
+    assert r.configuration["timeout_s"] == 120.0
+
+
+def test_every_character_survives_the_round_trip_through_the_worker(tmp_path, endpoint):
+    """The worker is spoken to over binary pipes in ASCII JSON, so no platform's text encoding
+    touches an incident or a reply: Arabic in the alert reaches the endpoint exactly, and
+    Arabic in the model's decision reaches the record exactly."""
+    brought = tmp_path / "brought"
+    brought.mkdir()
+    alert = "الإيرادات انخفضت ٤٥٪ بعد النشر — لماذا؟"
+    (brought / "incident.json").write_text(json.dumps({
+        "incident_id": "brought-1", "alert": alert, "as_of": "2026-09-19",
+        "permitted_write_paths": []}, ensure_ascii=False), encoding="utf-8")
+    (brought / "world.sql").write_text("CREATE TABLE orders (id INTEGER);", encoding="utf-8")
+    summary = "لا خطأ في البيانات: عقدان انتهيا في ٧ آذار. 日本語も。"
+    FakeModel.script[:] = [
+        '<TOOL_CALL>{"name": "get_schema", "arguments": {}}',
+        json.dumps({"disposition": "NO_REPAIR", "root_cause_id": None, "repair_id": None,
+                    "patch": {}, "root_cause_summary": summary}, ensure_ascii=False).join(
+            ("<DECISION>", ""))]
+    FakeModel.seen[:] = []
+    assert cli.main(["--incident-dir", str(brought), "--provider", "local", "--endpoint",
+                     endpoint, "--model", "m", "--archive", str(tmp_path / "runs")]) == 0
+    # the provider hands the incident to the model as a JSON document (ASCII-escaped, as
+    # json.dumps writes it); the endpoint received that document character for character
+    received = FakeModel.seen[0]["messages"][1]["content"]
+    handed = json.loads(received)
+    assert handed["alert"] == alert and json.dumps(handed, indent=1) == received
+    [folder] = [p for p in (tmp_path / "runs").iterdir() if p.is_dir()]
+    r = read_record(folder / "record.json")
+    assert r.context.alert == alert and r.decision.root_cause_summary == summary
+
+
+def test_the_tool_call_budget_is_the_executor_s_and_independent_of_turns(tmp_path, endpoint):
+    """`--max-tool-calls` is the executor's budget: the call past it is DENIED, in the
+    trace, and the investigator may still decide on what it saw. It is set from the command
+    line for an archive's incident and for a brought one alike, recorded, and no longer
+    merely implied by the turn budget."""
+    script = [
+        '<TOOL_CALL>{"name": "get_schema", "arguments": {}}',
+        '<TOOL_CALL>{"name": "get_schema", "arguments": {"table": "orders"}}',
+        '<DECISION>{"disposition": "ESCALATE", "root_cause_id": null, "root_cause_summary": '
+        '"One look was allowed; the rest needs a person.", "repair_id": null, "patch": {}}']
+    brought = tmp_path / "brought"
+    brought.mkdir()
+    (brought / "incident.json").write_text(json.dumps({
+        "incident_id": "brought-1", "alert": "orders differ", "as_of": "2026-09-19",
+        "permitted_write_paths": []}), encoding="utf-8")
+    (brought / "world.sql").write_text("CREATE TABLE orders (id INTEGER);", encoding="utf-8")
+    for label, where in (("calls", ["--incident", INCIDENT]),
+                         ("brought-calls", ["--incident-dir", str(brought)])):
+        FakeModel.script[:] = list(script)
+        assert cli.main([*where, "--provider", "local", "--endpoint", endpoint, "--model", "m",
+                         "--archive", str(tmp_path / "runs"), "--label", label,
+                         "--max-tool-calls", "1"]) == 0
+        r = read_record(tmp_path / "runs" / label / "record.json")
+        results = [e.payload for e in r.trace if e.kind == "tool_result"]
+        assert [x["status"] for x in results] == ["OK", "DENIED"], label
+        assert results[1]["content"]["error"] == "tool-call budget of 1 is spent"
+        assert r.tool_calls == 1 and r.configuration["max_tool_calls"] == 1
+        assert r.decision.disposition.value == "ESCALATE"
+
+
+@pytest.mark.parametrize(("flag", "value", "said"), [
+    ("--max-tool-calls", "0", "above zero"), ("--max-turns", "-1", "above zero"),
+    ("--max-model-requests", "0", "above zero"), ("--max-wall-clock-seconds", "inf", "finite"),
+    ("--max-wall-clock-seconds", "0", "finite"),
+])
+def test_a_bound_that_binds_nothing_is_refused_before_any_label(tmp_path, endpoint, capsys,
+                                                               flag, value, said):
+    assert cli.main(["--incident", INCIDENT, "--provider", "local", "--endpoint", endpoint,
+                     "--model", "m", "--archive", str(tmp_path), flag, value]) == 2
+    assert said in capsys.readouterr().out
+    assert not tmp_path.exists() or not list(tmp_path.iterdir())
+
+
+def test_a_completion_bound_that_binds_nothing_is_refused_before_any_label(
+        tmp_path, endpoint, monkeypatch, capsys):
+    monkeypatch.setenv("OPENAI_API_KEY", KEY)
+    FakeModel.seen[:] = []
+    for value in ("0", "-5"):
+        assert cli.main([*PAID, "--endpoint", endpoint, "--archive", str(tmp_path / "runs"),
+                         "--max-tokens", value]) == 2
+        assert "--max-tokens must be a whole number above zero" in capsys.readouterr().out
+    assert not (tmp_path / "runs").exists() and FakeModel.seen == []
+
+
+def test_a_model_billed_by_an_unknown_tokenizer_may_not_run_capped(endpoint, monkeypatch,
+                                                                     tmp_path, capsys):
+    from adii.reporting.ledger import PRICES, Price
+    monkeypatch.setenv("OPENAI_API_KEY", KEY)
+    priced = PRICES["gpt-4.1-mini"]
+    monkeypatch.setitem(PRICES, "other-model", Price(priced.input_per_token,
+                                                     priced.output_per_token, priced.table,
+                                                     "sentencepiece"))
+    assert cli.main(["--incident", INCIDENT, "--provider", "openai", "--model", "other-model",
+                     "--endpoint", endpoint, "--archive", str(tmp_path / "runs")]) == 2
+    assert "not known to be byte-level" in capsys.readouterr().out
+    assert not (tmp_path / "runs").exists()
 
 
 def test_a_response_without_usage_is_an_unknown_row_never_zero(tmp_path, endpoint,
@@ -298,8 +493,10 @@ def test_a_response_without_usage_is_an_unknown_row_never_zero(tmp_path, endpoin
     # labelled as a bound — not a cost
     struck = tuple(e if e.kind != "model_responded" else type(e)(
         sequence=e.sequence, kind=e.kind, payload={**e.payload, "usage": None}) for e in r.trace)
+    from decimal import Decimal
+    [reserve] = [e.payload["reserve_usd"] for e in r.trace if e.kind == "model_requested"]
     assert aggregate(struck, PRICES["gpt-4.1-mini"]) == \
-        type(ledger)(lower_bound_usd=0.0, proved=0, unknown=1)
+        type(ledger)(lower_bound_usd=0.0, worst_case_usd=Decimal(reserve), proved=0, unknown=1)
 
 
 def test_the_scripted_provider_still_replays_the_walkthrough_only(tmp_path, capsys):
@@ -308,3 +505,184 @@ def test_the_scripted_provider_still_replays_the_walkthrough_only(tmp_path, caps
     assert "replays the walkthrough only" in capsys.readouterr().out
     assert cli.main(["--incident", "nope", *scripted]) == 2
     assert "known: demo-learning-001, orders-missing-day" in capsys.readouterr().out
+
+
+def test_an_operators_own_incident_runs_over_its_own_world_and_both_are_kept(tmp_path, endpoint,
+                                                                             capsys):
+    """`--incident-dir`: incident.json is what the investigator is told, world.sql is the
+    world behind the tools — the same loader a specimen uses — and both land beside the
+    record, so the archive holds what the system saw. A folder that is not that is refused
+    before any label is claimed."""
+    from adii.tools.user_world import world_from_files
+    brought = tmp_path / "brought"
+    brought.mkdir()
+    (brought / "incident.json").write_text(json.dumps({
+        "incident_id": "upload-1", "alert": "Revenue fell 45% after the deploy.",
+        "as_of": "2026-09-17T12:00:00+00:00", "permitted_write_paths": []}), encoding="utf-8")
+    world = world_from_files([("revenue.csv", "day,revenue\n2026-03-07,1200\n2026-03-08,660\n")])
+    (brought / "world.sql").write_text(world, encoding="utf-8")
+    FakeModel.script[:] = [
+        '<TOOL_CALL>{"name": "run_sql", "arguments": {"query": "SELECT * FROM revenue"}}',
+        '<DECISION>{"disposition": "NO_REPAIR", "root_cause_id": null, "root_cause_summary": '
+        '"Two days of revenue, one lower; nothing in the data is malformed.", '
+        '"repair_id": null, "patch": {}}']
+    assert cli.main(["--incident-dir", str(brought), "--provider", "local", "--endpoint",
+                     endpoint, "--model", "m", "--archive", str(tmp_path / "runs")]) == 0
+    [folder] = [p for p in (tmp_path / "runs").iterdir() if p.is_dir()]
+    assert folder.name.startswith("upload-1-")
+    r = read_record(folder / "record.json")
+    assert (r.context.incident_id, r.context.alert) == \
+        ("upload-1", "Revenue fell 45% after the deploy.")
+    assert r.decision.disposition.value == "NO_REPAIR"
+    seen = [e for e in r.trace if e.kind == "tool_result"][0].payload["content"]
+    assert seen["rows"] == [["2026-03-07", 1200], ["2026-03-08", 660]]
+    assert (folder / "world.sql").read_text(encoding="utf-8") == world
+    kept = json.loads((folder / "incident.json").read_text(encoding="utf-8"))
+    assert kept["alert"] == r.context.alert
+    receipt = read_receipt(folder / RECEIPT)
+    assert receipt["artefacts"]["world"] == "sha256:" + hashlib.sha256(world.encode()).hexdigest()
+    # refused before a label: a folder without its world, and a malformed incident
+    (brought / "world.sql").unlink()
+    assert cli.main(["--incident-dir", str(brought), "--provider", "local", "--endpoint",
+                     endpoint, "--model", "m", "--archive", str(tmp_path / "runs2")]) == 2
+    assert "must hold incident.json and world.sql" in capsys.readouterr().out
+    (brought / "world.sql").write_text(world, encoding="utf-8")
+    for malformed, said in (('{"incident_id": 5}', "as text"), ("[1, 2]", "as text"),
+                            ('"hello"', "as text")):
+        (brought / "incident.json").write_text(malformed, encoding="utf-8")
+        assert cli.main(["--incident-dir", str(brought), "--provider", "local", "--endpoint",
+                         endpoint, "--model", "m", "--archive", str(tmp_path / "runs2")]) == 2
+        assert said in capsys.readouterr().out
+    (brought / "incident.json").write_text(json.dumps({
+        "incident_id": "upload-1", "alert": "x", "as_of": "now", "permitted_write_paths": []}),
+        encoding="utf-8")
+    (brought / "world.sql").write_text("CREATE TABL t (a);", encoding="utf-8")
+    assert cli.main(["--incident-dir", str(brought), "--provider", "local", "--endpoint",
+                     endpoint, "--model", "m", "--archive", str(tmp_path / "runs2")]) == 2
+    assert "not one SQLite accepts" in capsys.readouterr().out
+    assert not (tmp_path / "runs2").exists() or not list((tmp_path / "runs2").iterdir())
+
+
+def evidence_package(root):
+    """An operator's incident with every evidence bundle: what the page's form would write,
+    plus what a curated development case will carry."""
+    brought = root / "brought"
+    brought.mkdir()
+    (brought / "incident.json").write_text(json.dumps({
+        "incident_id": "brought-1", "alert": "Order amounts look a hundred times too large.",
+        "as_of": "2026-09-19", "permitted_write_paths": ["transforms/stg_orders.sql"]}),
+        encoding="utf-8")
+    (brought / "world.sql").write_text(
+        "CREATE TABLE orders (id INTEGER, amount INTEGER); INSERT INTO orders VALUES (1, 120050);",
+        encoding="utf-8")
+    files = {
+        "transform_map.json": b'{"stg_orders": "orders.sql"}',
+        "transform_sources/orders.sql": b"select id, amount from orders -- v1\n",
+        "notice_map.json": b'{"vendor-change": "vendor.txt"}',
+        "notice_sources/vendor.txt": b"Amounts are in cents from 2026-03-08.\r\n",
+        "change_history_map.json": b'{"transform-changes": "CHANGE_HISTORY.md"}',
+        "change_history_sources/CHANGE_HISTORY.md":
+            b"| date | file | ticket | change |\n| --- | --- | --- | --- |\n"
+            b"| 2026-03-08 | orders.sql | DATA-1 | Stopped dividing by 100. |\n",
+        "reconciliation_map.json": b'{"upstream-feed": "upstream.log"}',
+        "reconciliation_sources/upstream.log": b"delivered=1\n",
+        "declared_schema_map.json": b'{"orders": "orders.json"}',
+        "declared_schema_sources/orders.json":
+            b'{"source": "vendor.orders", "schema_version": 3, '
+            b'"fields": {"amount": {"unit": "usd", "note": "Major units since v3."}}}',
+    }
+    for relative, content in files.items():
+        (brought / relative).parent.mkdir(exist_ok=True)
+        (brought / relative).write_bytes(content)
+    return brought
+
+
+def test_the_run_s_copy_of_the_package_is_its_only_authority(tmp_path, endpoint, monkeypatch):
+    """`--incident-dir` with every evidence bundle. The package is copied into the claimed
+    run folder first and the run is loaded from that copy, so the observations in the trace,
+    the digests in the receipt and the bytes in the archive are one read of one package —
+    here proved by changing the operator's folder the moment the label is claimed: the run
+    shows, binds and keeps the changed source, all three agreeing. The archive then attests
+    and preserves the package with the record."""
+    from adii.reporting.manifest import preserve, verify, write_manifest
+    brought = evidence_package(tmp_path)
+    claim = cli.reserve
+
+    def reserve_then_change(archive, label):
+        folder = claim(archive, label)
+        (brought / "transform_sources" / "orders.sql").write_bytes(
+            b"select id, amount / 100 from orders -- v2\n")
+        return folder
+    monkeypatch.setattr(cli, "reserve", reserve_then_change)
+    FakeModel.script[:] = [
+        '<TOOL_CALL>{"name": "get_transform", "arguments": {"transform_id": "stg_orders"}}',
+        '<TOOL_CALL>{"name": "get_notice", "arguments": {"notice_id": "vendor-change"}}',
+        '<TOOL_CALL>{"name": "get_change_history", '
+        '"arguments": {"history_id": "transform-changes"}}',
+        '<TOOL_CALL>{"name": "read_reconciliation", '
+        '"arguments": {"reconciliation_id": "upstream-feed"}}',
+        '<TOOL_CALL>{"name": "get_schema", "arguments": {"table": "orders"}}',
+        '<DECISION>{"disposition": "NO_REPAIR", "root_cause_id": null, "root_cause_summary": '
+        '"The declared unit is dollars since v3 and the transform divides; the amount is as '
+        'delivered.", "repair_id": null, "patch": {}}']
+    archive = tmp_path / "runs"
+    assert cli.main(["--incident-dir", str(brought), "--provider", "local", "--endpoint",
+                     endpoint, "--model", "m", "--archive", str(archive)]) == 0
+    [folder] = [p for p in archive.iterdir() if p.is_dir()]
+    changed = b"select id, amount / 100 from orders -- v2\n"
+    # the archive holds the package as it was when the label was claimed, byte for byte
+    assert (folder / "transform_sources" / "orders.sql").read_bytes() == changed
+    for relative in ("transform_map.json", "notice_sources/vendor.txt",
+                     "change_history_sources/CHANGE_HISTORY.md",
+                     "reconciliation_sources/upstream.log", "declared_schema_sources/orders.json"):
+        assert (folder / relative).read_bytes() == (brought / relative).read_bytes()
+    # the model saw that copy — every observation in the trace is the archived file's content
+    record = read_record(folder / "record.json")
+    seen = {e.payload["name"]: e.payload["content"] for e in record.trace
+            if e.kind == "tool_result"}
+    assert seen["get_transform"]["source"] == changed.decode("utf-8")
+    assert seen["get_notice"]["content"] == "Amounts are in cents from 2026-03-08.\r\n"
+    assert seen["get_change_history"]["changes"][0]["ticket"] == "DATA-1"
+    assert seen["read_reconciliation"]["lines"] == ["delivered=1"]
+    assert seen["get_schema"]["declared_schema"]["fields"]["amount"]["unit"] == "usd"
+    assert record.configuration["tools"] == ["get_schema", "run_sql", "get_transform",
+                                             "get_notice", "get_change_history",
+                                             "read_reconciliation"]
+    # the receipt binds that same copy: its digests are recomputed from the archive alone
+    receipt = read_receipt(folder / RECEIPT)
+    _, _, _, _, evidence = cli.incident_from_dir(folder)
+    assert set(evidence) == {"transforms", "notices", "change_history_source",
+                             "change_history_observation", "reconciliation_source",
+                             "declared_schema_source", "declared_schema_observation"}
+    assert {key: receipt["artefacts"][key] for key in evidence} == evidence
+    assert receipt["artefacts"]["transforms"] == \
+        cli.digest_of(cli.canonical_json({"stg_orders": changed.decode("utf-8")}))
+    # and the archive attests and preserves the package with the record
+    write_manifest(archive)
+    assert verify(archive).ok
+    assert preserve(archive, tmp_path / "copy").ok
+    assert (tmp_path / "copy" / folder.name / "transform_sources" / "orders.sql").read_bytes() \
+        == changed
+
+
+def test_a_package_that_cannot_be_kept_releases_the_label(tmp_path, endpoint, capsys,
+                                                          monkeypatch):
+    """A folder that stops being an incident between the check and the copy — a bundle
+    directory gone, a file replaced by a link — is refused after the label was claimed: the
+    label is released, nothing is archived, no model is spoken to, and the exit code is the
+    usage code, not a traceback's."""
+    import shutil
+    brought = evidence_package(tmp_path)
+    claim = cli.reserve
+
+    def reserve_then_break(archive, label):
+        folder = claim(archive, label)
+        shutil.rmtree(brought / "transform_sources")
+        return folder
+    monkeypatch.setattr(cli, "reserve", reserve_then_break)
+    archive = tmp_path / "runs"
+    assert cli.main(["--incident-dir", str(brought), "--provider", "local", "--endpoint",
+                     endpoint, "--model", "m", "--archive", str(archive)]) == 2
+    assert "not archived: transform_map.json must be a regular file" in capsys.readouterr().out
+    assert list(archive.iterdir()) == []       # the label is free again
+    assert FakeModel.seen == []                # nothing was spoken to

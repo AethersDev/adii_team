@@ -3,7 +3,9 @@ script and remembering every request. Shared by the live-provider, launch and br
 
 `probe`, when a test sets it, is called as each request arrives and its result kept in
 `probed`: what was true on disk at the instant the model was spoken to. `delay` holds each
-answer back, so a run lasts long enough for a page to be seen watching it. `refuse`, when
+answer back, so a run lasts long enough for a page to be seen watching it — the answer is
+taken from the script before the wait, so a handler cut by a deadline and still sleeping
+cannot take the next test's turn when it wakes. `refuse`, when
 set, answers the next request with that status and JSON body, once — a 401 whose body echoes
 a masked key, a 429, a 500 — the way a paid endpoint does. `seen` keeps each request's
 Authorization header beside its body, so a test can see what a credential became on the wire."""
@@ -47,10 +49,11 @@ class FakeModel(BaseHTTPRequestHandler):
         FakeModel.authorization.append(self.headers.get("Authorization"))
         if FakeModel.probe is not None:
             FakeModel.probed.append(FakeModel.probe())
+        refuse, FakeModel.refuse = FakeModel.refuse, None
+        content = FakeModel.script.pop(0) if FakeModel.script and refuse is None else None
         time.sleep(FakeModel.delay)
-        if FakeModel.refuse is not None:
-            status, error = FakeModel.refuse
-            FakeModel.refuse = None
+        if refuse is not None:
+            status, error = refuse
             payload = json.dumps(error).encode("utf-8")
             self.send_response(status)
             self.send_header("Content-Type", "application/json")
@@ -58,11 +61,10 @@ class FakeModel(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(payload)
             return
-        if not FakeModel.script:
+        if content is None:
             self.send_response(500)
             self.end_headers()
             return
-        content = FakeModel.script.pop(0)
         reply = {"choices": [{"message": {"role": "assistant", "content": content}}],
                  "usage": {"prompt_tokens": 100, "completion_tokens": 20},
                  "system_fingerprint": "fp_fake"}
