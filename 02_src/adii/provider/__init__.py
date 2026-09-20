@@ -3,7 +3,7 @@
     SPIKE placeholders for trace-contract rows 1, 5 and 6 — on main since 16 September;
     D-6b replaces them in place. Paid endpoints since 17 September, behind the receipt,
     a nominal price and a spend cap; the cap hard since 20 September, with a request
-    count and a wall clock beside it.
+    count and a wall clock beside it, and the request itself made by a killable worker.
 
 A `ChatProvider` sits behind A's `respond()` seam and speaks A's protocol to an
 OpenAI-compatible chat endpoint. Every request and every response is recorded at this
@@ -13,15 +13,19 @@ resolved; it exists to make a live run possible and to give that review working 
 and it is labelled a spike for that reason.
 """
 from .openai_compatible import (
-    ESTIMATOR,
     PROTOCOL,
+    TIMEOUT_S,
     BoundExceeded,
     ChatProvider,
     ProviderFailure,
+    ReserveBreached,
     endpoint_is_local,
     endpoint_may_carry_a_credential,
+    estimator,
+    initial_messages,
     input_tokens_upper_bound,
 )
 
-__all__ = ["ESTIMATOR", "PROTOCOL", "BoundExceeded", "ChatProvider", "ProviderFailure",
-           "endpoint_is_local", "endpoint_may_carry_a_credential", "input_tokens_upper_bound"]
+__all__ = ["PROTOCOL", "TIMEOUT_S", "BoundExceeded", "ChatProvider", "ProviderFailure",
+           "ReserveBreached", "endpoint_is_local", "endpoint_may_carry_a_credential",
+           "estimator", "initial_messages", "input_tokens_upper_bound"]

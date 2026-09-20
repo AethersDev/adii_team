@@ -30,10 +30,11 @@ the unknown rows counted. No validator exists yet, so a live REPAIR carries a ve
 says exactly that: not checked, therefore not accepted, and no finding about the repair.
 
 Six bounds, each its own resource, each named in the `bound_hit` it causes: `--max-turns`
-(A's model turns), `--max-tool-calls` (the executor's), `--max-model-requests` and
-`--max-wall-clock-seconds` (the provider's: no request is sent past either, and a request
-in flight waits no longer than the deadline allows), `--max-cost-usd` and `--max-tokens`
-(paid only). All six are in the receipt and the record.
+(A's model turns), `--max-tool-calls` (the executor's), `--max-model-requests` (the
+provider's; when omitted, as many as the turns) and `--max-wall-clock-seconds` (the
+provider's: no request is sent past it, and a request in flight is cut at the deadline —
+the local run never waits past it), `--max-cost-usd` and `--max-tokens` (paid only). All
+six are in the receipt and the record.
 
 Exit codes, one per way a run can end:
     0  a decision was archived          3  the loop ended the run without a decision; archived
@@ -49,14 +50,21 @@ import os
 import shutil
 from dataclasses import replace
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 
 from ..contracts import IncidentContext
 from ..examples.specimens import SPECIMENS
 from ..examples.walkthrough import load
-from ..provider import PROTOCOL, endpoint_may_carry_a_credential
+from ..provider import (
+    PROTOCOL,
+    TIMEOUT_S,
+    endpoint_may_carry_a_credential,
+    initial_messages,
+    input_tokens_upper_bound,
+)
 from ..reporting import render_run, write_record
-from ..reporting.ledger import PRICES, aggregate
+from ..reporting.ledger import BYTE_LEVEL_TOKENIZERS, PRICES, aggregate, reserve_for
 from ..reporting.receipts import NAME as RECEIPT
 from ..reporting.receipts import digest_of, write_receipt
 from ..reporting.record import ARCHIVE, reserve
@@ -212,7 +220,7 @@ def configure(args, tool_names) -> tuple[dict[str, object], str, dict[str, objec
                 "scripted replay of a recorded run: no model, nothing is spent", {})
     bounds = {"max_turns": args.max_turns, "max_tool_calls": args.max_tool_calls,
               "max_model_requests": args.max_model_requests,
-              "max_wall_clock_seconds": args.max_wall_clock_seconds, "timeout_s": 120.0}
+              "max_wall_clock_seconds": args.max_wall_clock_seconds, "timeout_s": TIMEOUT_S}
     if args.provider == "local":
         return ({"provider": "local", "model": args.model, "endpoint": args.endpoint,
                  "served_as": args.served_as, **bounds, "tools": tools,
@@ -228,8 +236,13 @@ def configure(args, tool_names) -> tuple[dict[str, object], str, dict[str, objec
                      "execution_mode": "live",
                      "cost_basis": (f"lower bound: provider-reported usage at nominal "
                                     f"{args.model} prices, {price.table}"),
-                     "cap_basis": ("hard: a request is sent only if the worst case spent so "
-                                   "far plus its own reserve stays within max_cost_usd")}
+                     "cap_basis": ("hard by admission: a request is sent only if the exact "
+                                   "worst case spent so far plus its own reserve — every byte "
+                                   "of the messages as a token at the input rate, max_tokens at "
+                                   "the output rate — stays within max_cost_usd; premise: the "
+                                   f"endpoint honours max_tokens and bills by "
+                                   f"{price.tokenizer}, a byte-level BPE; a bill above its "
+                                   "reserve ends the run as the provider's failure")}
     reason = (f"a paid provider, {args.model} at {args.endpoint}: up to "
               f"${args.max_cost_usd:.2f} at nominal prices ({price.table}), a hard cap — no "
               f"request is sent whose worst case would cross it; requested from "
@@ -252,15 +265,21 @@ def refused_bounds(max_turns: int, max_tool_calls: int, max_model_requests: int,
 
 
 def refused_paid(model: str | None, max_cost_usd: float, endpoint: str,
-                 served_as: str | None = None) -> str | None:
+                 served_as: str | None, max_tokens: int) -> str | None:
     """Why a paid run may not start, or None. Every precondition of spending, checked
     before anything irreversible — a label claimed, a port bound (inherited D6, D7): a priced
-    model that is the model on the wire, a finite cap, an endpoint that carries no secret,
-    and the credential in the environment. The demo server asks the same question when it
-    starts, so the page never learns it."""
+    model, billed by a tokenizer the input bound is conservative for, that is the model on
+    the wire; a finite cap; a completion bound above zero, since every reserve prices it in
+    full; an endpoint that carries no secret; and the credential in the environment. The
+    demo server asks the same question when it starts, so the page never learns it."""
     if model not in PRICES:
         return (f"--provider openai needs --model with a nominal price in reporting/ledger.py; "
                 f"priced: {', '.join(sorted(PRICES))}")
+    if PRICES[model].tokenizer not in BYTE_LEVEL_TOKENIZERS:
+        return (f"--model {model} bills by {PRICES[model].tokenizer}, which is not known to be "
+                "byte-level: the cap's input bound counts bytes and would not be a bound")
+    if isinstance(max_tokens, bool) or not isinstance(max_tokens, int) or max_tokens <= 0:
+        return "--max-tokens must be a whole number above zero: every reserve prices it in full"
     if served_as not in (None, model):
         return (f"--served-as {served_as!r}: a paid run is billed by the name on the wire and "
                 f"priced by --model; they must be the same — --served-as is for local endpoints")
@@ -306,13 +325,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-tool-calls", type=int, default=30,
                         help="the executor's budget: tool calls past it are DENIED, and the "
                              "investigator may still decide (default 30)")
-    parser.add_argument("--max-model-requests", type=int, default=20,
+    parser.add_argument("--max-model-requests", type=int, default=None,
                         help="the provider's request bound, a resource of its own beside "
-                             "--max-turns (default 20)")
+                             "--max-turns (default: as many as --max-turns; a lower value is "
+                             "a stricter bound, respected)")
     parser.add_argument("--max-wall-clock-seconds", type=float, default=600.0,
                         help="the run's deadline from the investigator's first request: no "
-                             "request is sent past it, and one in flight waits no longer than "
-                             "it allows (default 600)")
+                             "request is sent past it, and one in flight is cut at it "
+                             "(default 600)")
     parser.add_argument("--label", help="archive label (default: <incident>-<UTC time>); "
                                         "a label names one run forever")
     parser.add_argument("--archive", default=str(ARCHIVE), metavar="DIR",
@@ -324,6 +344,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="archive only; do not print the report")
     args = parser.parse_args(argv)
 
+    if args.max_model_requests is None:   # omitted: one request per turn; given: as given
+        args.max_model_requests = args.max_turns
     why = refused_bounds(args.max_turns, args.max_tool_calls, args.max_model_requests,
                          args.max_wall_clock_seconds)
     if why:
@@ -356,9 +378,19 @@ def main(argv: list[str] | None = None) -> int:
         print("--provider local needs --model <id the endpoint serves>")
         return 2
     if args.provider == "openai":
-        why = refused_paid(args.model, args.max_cost_usd, args.endpoint, args.served_as)
+        why = refused_paid(args.model, args.max_cost_usd, args.endpoint, args.served_as,
+                           args.max_tokens)
         if why:
             print(why)
+            return 2
+        # The first request's reserve is known now — the protocol, the incident, the tools —
+        # and a cap it alone would cross is refused here, not as a run of zero requests.
+        first_input = input_tokens_upper_bound(initial_messages(context, tools.advertised()))
+        first = reserve_for(first_input, PRICES[args.model], args.max_tokens)
+        if first > Decimal(repr(args.max_cost_usd)):
+            print(f"--max-cost-usd {args.max_cost_usd}: the first request alone reserves "
+                  f"${first:f} (at most {first_input} input tokens, {args.max_tokens} output) "
+                  "and would not be sent; raise the cap or lower --max-tokens")
             return 2
     label = args.label or f"{context.incident_id}-{datetime.now(UTC):%Y%m%dT%H%M%SZ}"
     archive = Path(args.archive)

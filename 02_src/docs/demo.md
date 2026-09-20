@@ -234,7 +234,8 @@ python -m adii.demo 8000 --endpoint http://127.0.0.1:8090/v1 --model Qwen3-4B-In
 Either way: open http://127.0.0.1:8000, choose `revenue-after-deploy`, press Investigate.
 Rehearsed local runs took 6 s; the bound-hit run took 39 s; 41-2 took 17 s for its eleven
 turns; since 20 Sep `--max-wall-clock-seconds` (default 600) cuts a stalled model at the
-deadline (D-9). Then, for Layer 3:
+deadline, the request itself made by a worker process the provider kills (D-9). Then, for
+Layer 3:
 
 ```bash
 python -m adii.evaluation --run <label> --key 02_src/adii/evaluation/fixtures/revenue-after-deploy.answer.json

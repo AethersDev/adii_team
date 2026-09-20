@@ -109,12 +109,18 @@ each named in the `bound_hit` it causes:
 |---|---|---|
 | `--max-turns` (12) | the investigator's model turns | A's loop |
 | `--max-tool-calls` (30) | tool calls the executor runs; the call past it is DENIED and the investigator may still decide | the tool layer |
-| `--max-model-requests` (20) | requests the provider makes — a count of its own, not the turn budget by another name | the provider |
-| `--max-wall-clock-seconds` (600) | a deadline from the provider's first request: no request is sent past it, and one in flight waits no longer than it allows | the provider |
-| `--max-cost-usd` (0.25, paid) | hard: a request is sent only if the worst case spent so far plus its own reserve — every byte of the messages at the input rate, `--max-tokens` at the output rate — stays within the cap; the record's cost is the ledger's lower bound | the provider |
+| `--max-model-requests` (as many as `--max-turns`) | requests the provider makes — a count of its own; omitted, it is the turn budget, so the flag an operator set is the one that binds; given lower, it is the stricter bound and is respected | the provider |
+| `--max-wall-clock-seconds` (600) | a deadline from the provider's construction: no request is sent past it, and a request in flight is cut at it — the request is made by a worker process (`provider/worker.py`) the provider waits on for the time the deadline leaves and kills when it runs out, so a body that trickles or a host that never answers cannot hold the local run past its deadline | the provider |
+| `--max-cost-usd` (0.25, paid) | hard by admission: a request is sent only if the exact worst case spent so far plus its own reserve — every byte of the messages as a token at the input rate, `--max-tokens` at the output rate, no discount — stays within the cap, so the refused request is never sent; a bill above its reserve ends the run as the provider's failure; the record's cost is the ledger's lower bound | the provider |
 | `--max-tokens` (512, paid) | the completion per request, priced in full in every reserve | the provider |
 
-A bound at or below zero is refused before any label is claimed.
+A bound at or below zero, or a first request whose reserve alone would cross the cap, is
+refused before any label is claimed. The cap's premise is stated in the receipt: the
+endpoint honours `max_tokens` and bills by a byte-level tokenizer (each price names it; a
+model billed otherwise may not run capped). What the deadline cannot do is stop the remote
+endpoint computing or billing a request it already received: a request cut in flight keeps
+its full reserve in the ledger's worst case, and the record reports the lower bound with the
+request counted as unknown.
 
 ## What it does not do yet
 

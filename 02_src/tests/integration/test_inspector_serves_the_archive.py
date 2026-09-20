@@ -346,7 +346,8 @@ def test_a_paid_run_from_the_page_keeps_the_credential_off_every_response_and_ar
     monkeypatch.setattr(server, "ARCHIVE", archive)
     monkeypatch.setattr(server, "LAUNCH", {
         "provider": "openai", "endpoint": f"http://127.0.0.1:{model.server_port}/v1",
-        "model": "gpt-4.1-mini", "served_as": None, "max_turns": 4, "max_cost_usd": 0.05,
+        "model": "gpt-4.1-mini", "served_as": None, "max_turns": 4, "max_tool_calls": 9,
+        "max_model_requests": 4, "max_wall_clock_seconds": 90.0, "max_cost_usd": 0.05,
         "max_tokens": 64})
     httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
@@ -361,6 +362,10 @@ def test_a_paid_run_from_the_page_keeps_the_credential_off_every_response_and_ar
         responses = [call("GET", "/api/launch")[1]]
         launch = json.loads(responses[0])
         assert launch["provider"] == "openai" and "gpt-4.1-nano" in launch["models"]
+        # every ceiling the runtime has is reported, so the page never runs under bounds it
+        # cannot show
+        assert (launch["max_tool_calls"], launch["max_model_requests"],
+                launch["max_wall_clock_seconds"]) == (9, 4, 90.0)
         # requests, not authority: any priced model, a cap and a budget at most the operator's;
         # refused, never clamped — and Infinity, which json accepts, is above any ceiling
         for more in ({"model": "gpt-5-imagined"}, {"max_cost_usd": 0.06}, {"max_cost_usd": 0},
@@ -399,11 +404,15 @@ def test_a_paid_run_from_the_page_keeps_the_credential_off_every_response_and_ar
         # came from and within what
         assert (record["configuration"]["model"], record["configuration"]["max_cost_usd"],
                 record["configuration"]["max_turns"]) == ("gpt-4.1-nano", 0.02, 2)
+        assert (record["configuration"]["max_tool_calls"],
+                record["configuration"]["max_model_requests"],
+                record["configuration"]["max_wall_clock_seconds"]) == (9, 4, 90.0)  # forwarded
         assert FakeModel.seen[-1]["model"] == "gpt-4.1-nano"
         assert record["counters"]["api_cost_usd"] == pytest.approx(100 * 0.10e-6 + 20 * 0.40e-6)
         receipt = json.loads((archive / label / "receipt.json").read_text(encoding="utf-8"))
         assert "requested from the page, within the ceilings the operator set when starting " \
-               "the server (4 turns, up to $0.05); permitted by" in receipt["reason"]
+               "the server (4 turns, 9 tool calls, 4 requests, 90 s, up to $0.05); permitted by" \
+               in receipt["reason"]
     finally:
         httpd.shutdown()
         httpd.server_close()

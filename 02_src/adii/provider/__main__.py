@@ -16,7 +16,8 @@ import os
 import urllib.error
 import urllib.request
 
-from .openai_compatible import _error_code, endpoint_may_carry_a_credential
+from .openai_compatible import endpoint_may_carry_a_credential
+from .worker import error_code as _error_code
 
 
 def check(endpoint: str, model: str, credential: str, timeout_s: float = 30.0) -> tuple[int, str]:

@@ -7,6 +7,8 @@ archive's — against the provider the operator configured.
         --model Qwen3-4B-Instruct-2507-4bit --served-as default_model    # and live runs
     python -m adii.demo 8000 --provider openai --model gpt-4.1 \\
         --max-cost-usd 0.25 --max-turns 20         # paid runs; OPENAI_API_KEY in this process
+                                                  # (+ --max-tool-calls, --max-model-requests,
+                                                  #  --max-wall-clock-seconds: every runtime bound)
 
 Read-only by default: it lists `01_data/runs/<label>/record.json`, serves each record
 verbatim, and serves the static page. A page that can start a run can spend money and
@@ -358,8 +360,13 @@ class Handler(SimpleHTTPRequestHandler):
             label = f"{incident_id}-{now:%Y%m%dT%H%M%S}-{now.microsecond // 1000:03d}Z"
             self.send_json({"label": label})          # the page navigates and starts watching
             self.wfile.flush()
-            ceilings = f"{LAUNCH['max_turns']} turns" + (
-                f", up to ${float(LAUNCH['max_cost_usd']):.2f}" if "max_cost_usd" in LAUNCH else "")
+            ceilings = ", ".join([
+                f"{LAUNCH['max_turns']} turns",
+                *(f"{LAUNCH[key]:g} {unit}" for key, unit in (
+                    ("max_tool_calls", "tool calls"), ("max_model_requests", "requests"),
+                    ("max_wall_clock_seconds", "s")) if key in LAUNCH),
+                *([f"up to ${float(LAUNCH['max_cost_usd']):.2f}"] if "max_cost_usd" in LAUNCH
+                  else [])])
             run_main([*(["--incident-dir", str(folder)] if folder else ["--incident", incident_id]),
                       "--label", label, "--no-report", "--archive", str(ARCHIVE),
                       "--requested-from", f"the page, within the ceilings the operator set when "

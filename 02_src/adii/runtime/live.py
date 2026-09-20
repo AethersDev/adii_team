@@ -57,18 +57,21 @@ class LoopInvestigator:
         try:
             decision, _ = run(context, provider, tools, max_turns=self._max_turns)
         except TurnBudgetExceededError as bound:
+            provider.close()
             raise Terminated("bound_hit",
                              f"model_turns: {bound.limit} of {bound.limit} used") from None
         except ProviderFailureError as failed:
             # A wraps whatever the provider raised and chains it; the class is read from the
             # type of the cause, never from the message. The endpoint failing is not the
             # model failing (inherited D14); a spend cap is a bound like any other.
+            provider.close()
             cause = failed.__cause__
             if isinstance(cause, BoundExceeded):
                 raise Terminated("bound_hit", str(cause)) from None
             if isinstance(cause, ProviderFailure):
                 raise Terminated("infrastructure_failure", str(cause)) from None
             raise Terminated("model_failure", failed.reason) from None
+        provider.close()
         if decision is None:
             raise Terminated("model_failure", "the model stopped without a decision "
                              "(no termination class for this yet: trace contract row 5)")

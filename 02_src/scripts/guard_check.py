@@ -194,7 +194,7 @@ GUARDS = (
           "    if False:\n"),
     Guard("D.server_starts_paid_only_past_the_preconditions", "D", "demo/__main__.py",
           "        why = (refused_paid(args.model, args.max_cost_usd, args.endpoint, "
-          "args.served_as)\n",
+          "args.served_as,\n                            args.max_tokens)\n",
           "        why = (None\n"),
     Guard("D.paid_server_carries_no_alias", "D", "demo/__main__.py",
           "               or (args.served_as and ",
@@ -305,30 +305,57 @@ GUARDS = (
           "        if False:\n"),
     # ── the run bounds: each hard, each its own resource, each named in its bound_hit ──
     Guard("D.cost_cap_admits_the_worst_case", "D", "provider/openai_compatible.py",
-          "            if ledger.worst_case_usd + reserve > self._cap:\n",
+          "        if ledger.worst_case_usd + reserve > self._cap:\n",
+          "        if False:\n"),
+    Guard("D.cost_cap_admits_against_the_worst_case_not_the_lower_bound", "D",
+          "provider/openai_compatible.py",
+          "ledger.worst_case_usd + reserve > self._cap",
+          "Decimal(repr(ledger.lower_bound_usd)) + reserve > self._cap"),
+    Guard("D.cost_reserve_prices_the_whole_request", "D", "reporting/ledger.py",
+          "    return input_tokens * price.input_per_token + max_tokens * price.output_per_token\n",
+          "    return Decimal(0)\n"),
+    Guard("D.unknown_usage_charged_at_its_reserve", "D", "reporting/ledger.py",
+          "            worst += _reserve(request.payload)\n",
+          "            worst += 0\n"),
+    Guard("D.cost_arithmetic_is_exact", "D", "reporting/ledger.py",
+          "    return Ledger(float(round(total, 6)), worst, proved, unknown)\n",
+          "    return Ledger(float(round(total, 6)), round(worst, 6) if worst.is_finite() "
+          "else worst, proved, unknown)\n"),
+    Guard("D.reserve_breach_ends_the_run", "D", "provider/openai_compatible.py",
+          "            if billed is not None and billed > reserve:\n",
           "            if False:\n"),
-    Guard("D.cost_reserve_prices_the_whole_request", "D", "provider/openai_compatible.py",
-          "            reserve = (input_bound * self._price.input_per_token\n"
-          "                       + self._max_tokens * self._price.output_per_token)\n",
-          "            reserve = 0.0\n"),
+    Guard("D.request_in_flight_is_cut_at_the_deadline", "D", "provider/openai_compatible.py",
+          "        if answer is None:                 # the deadline passed with the request "
+          "in flight\n",
+          "        if answer is None:                 # the deadline passed with the request "
+          "in flight\n            answer = self._worker.ask({}, wait=None)\n"),
+    Guard("D.max_tokens_refused_before_the_label", "D", "runtime/__main__.py",
+          "    if isinstance(max_tokens, bool) or not isinstance(max_tokens, int) "
+          "or max_tokens <= 0:\n",
+          "    if False:\n"),
+    Guard("D.paid_model_is_billed_byte_level", "D", "runtime/__main__.py",
+          "    if PRICES[model].tokenizer not in BYTE_LEVEL_TOKENIZERS:\n",
+          "    if False:\n"),
+    Guard("D.first_request_must_be_affordable", "D", "runtime/__main__.py",
+          "        if first > Decimal(repr(args.max_cost_usd)):\n",
+          "        if False:\n"),
+    Guard("D.wall_clock_is_finite_and_above_zero", "D", "runtime/__main__.py",
+          "    if not (math.isfinite(max_wall_clock_seconds) and max_wall_clock_seconds > 0):\n",
+          "    if False:\n"),
+    Guard("D.tool_calls_bounded_for_a_brought_incident", "D", "runtime/__main__.py",
+          "= incident_from_dir(folder, tool_cap)\n",
+          "= incident_from_dir(folder)\n"),
     Guard("D.input_bound_counts_every_byte", "D", "provider/openai_compatible.py",
           '    return sum(len(m["content"].encode("utf-8")) + TOKENS_PER_MESSAGE '
           'for m in messages) \\\n',
           '    return sum(len(m["content"]) // 4 + TOKENS_PER_MESSAGE '
           'for m in messages) \\\n'),
-    Guard("D.unknown_usage_charged_at_its_reserve", "D", "reporting/ledger.py",
-          "            worst += _reserve(request.payload)\n",
-          "            worst += 0.0\n"),
     Guard("D.model_requests_are_bounded", "D", "provider/openai_compatible.py",
           "        if self._max_requests is not None and self._turn >= self._max_requests:\n",
           "        if False:\n"),
     Guard("D.no_request_past_the_deadline", "D", "provider/openai_compatible.py",
           "            if remaining <= 0:\n",
           "            if False:\n"),
-    Guard("D.request_waits_no_longer_than_the_deadline", "D", "provider/openai_compatible.py",
-          "        timeout = self._timeout if remaining is None "
-          "else min(self._timeout, remaining)\n",
-          "        timeout = self._timeout\n"),
     Guard("D.tool_calls_bounded_from_the_command_line", "D", "runtime/__main__.py",
           "    tool_cap = args.max_tool_calls\n",
           "    tool_cap = None\n"),
@@ -345,11 +372,11 @@ GUARDS = (
           "    if not os.environ.get(\"OPENAI_API_KEY\"):\n",
           "    if False:\n"),
     Guard("D.ledger_row_without_usage_is_unknown", "D", "reporting/ledger.py",
-          "        if isinstance(tokens_in, int) and isinstance(tokens_out, int) \\\n"
-          "                and not isinstance(tokens_in, bool) "
+          "    if isinstance(tokens_in, int) and isinstance(tokens_out, int) \\\n"
+          "            and not isinstance(tokens_in, bool) "
           "and not isinstance(tokens_out, bool):\n",
-          "        if True:\n"
-          "            tokens_in, tokens_out = tokens_in or 0, tokens_out or 0\n"),
+          "    if True:\n"
+          "        tokens_in, tokens_out = tokens_in or 0, tokens_out or 0\n"),
     Guard("D.verify_lists_the_unattested", "D", "reporting/manifest.py",
           "    present = {p.relative_to(root).as_posix() for p in files_of(root)}\n",
           "    present = {p.relative_to(root).as_posix() for p in artefacts(root)}\n"),

@@ -262,57 +262,86 @@ def test_a_paid_run_puts_the_credential_on_the_wire_and_nowhere_else(tmp_path, e
 def test_the_receipt_gates_the_paid_provider_and_the_cap_is_hard(tmp_path, endpoint,
                                                                 monkeypatch):
     """The provider refuses to exist without the receipt on disk. With it, every request is
-    admitted against the cap by its worst case — the bytes of the messages at the input
-    rate, max_tokens at the output rate — on top of what the run has spent; the request that
-    would cross the cap is not sent, and the run ends as a bound hit naming the numbers. No
-    overshoot: what was spent stays within the cap."""
-    from adii.reporting.ledger import PRICES
+    admitted against the cap by its worst case — the bytes of the messages the endpoint
+    actually receives at the input rate, max_tokens at the output rate — on top of what the
+    run has spent, exactly; the request that would cross the cap is not sent, and the run
+    ends as a bound hit naming the numbers. No overshoot: what was spent stays within the
+    cap, and the receipt and the record say what the cap is and what it assumes."""
+    from decimal import Decimal
+
+    from adii.provider import input_tokens_upper_bound
+    from adii.reporting.ledger import PRICES, reserve_for
     with pytest.raises(ValueError, match="receipt on disk"):
         ChatProvider(endpoint=endpoint, model="gpt-4.1-mini", context=ORDERS_MISSING.context,
                      tools=[], recorder=Recorder(), credential=KEY,
                      receipt=tmp_path / "missing.json", price=PRICES["gpt-4.1-mini"],
                      max_cost_usd=0.05, max_tokens=512)
     monkeypatch.setenv("OPENAI_API_KEY", KEY)
-    one_request = 100 * 0.40e-6 + 20 * 1.60e-6                   # what the fake reports
-    # first, under a cap that binds nothing: what each request reserved, from the trace
-    FakeModel.script[:] = ["nothing useful"] * 3
+    price = PRICES["gpt-4.1-mini"]
+    one_request = 100 * price.input_per_token + 20 * price.output_per_token  # the fake's usage
+    # first, under a cap that binds nothing: what each request reserved, pinned to the bytes
+    # the endpoint received — a reserve computed from anything but the messages sent would
+    # differ once an observation joins them
+    FakeModel.script[:] = ['<TOOL_CALL>{"name": "get_schema", "arguments": {}}',
+                           '<TOOL_CALL>{"name": "get_schema", "arguments": {"table": "orders"}}',
+                           "nothing useful"]
+    FakeModel.seen[:] = []
     assert cli.main([*PAID, "--endpoint", endpoint, "--archive", str(tmp_path),
                      "--label", "free", "--max-cost-usd", "1.0", "--max-turns", "3"]) == 3
     free = read_record(tmp_path / "free" / "record.json")
-    reserves = [e.payload["reserve_usd"] for e in free.trace if e.kind == "model_requested"]
-    assert len(reserves) == 3 and reserves[0] < reserves[1] < reserves[2]   # the prompt grows
-    assert all(r > 512 * 1.60e-6 for r in reserves)              # max_tokens priced in full
-    requested = [e.payload for e in free.trace if e.kind == "model_requested"][0]
-    assert requested["max_output_tokens"] == 512 and requested["estimator"].startswith("utf-8")
-    assert requested["input_tokens_upper_bound"] * 0.40e-6 + 512 * 1.60e-6 == \
-        pytest.approx(requested["reserve_usd"], abs=1e-6)
+    requested = [e.payload for e in free.trace if e.kind == "model_requested"]
+    assert len(requested) == len(FakeModel.seen) == 3
+    for asked, sent in zip(requested, FakeModel.seen, strict=True):
+        assert asked["input_tokens_upper_bound"] == input_tokens_upper_bound(sent["messages"])
+        assert Decimal(asked["reserve_usd"]) == \
+            reserve_for(asked["input_tokens_upper_bound"], price, 512)
+        assert asked["max_output_tokens"] == 512 and sent["max_tokens"] == 512
+        assert asked["estimator"].startswith("utf-8 bytes") and "o200k_base" in asked["estimator"]
+    reserves = [Decimal(r["reserve_usd"]) for r in requested]
+    assert reserves[0] < reserves[1] < reserves[2]           # the prompt grows with each turn
     # then a cap that admits the second request exactly and not the third
-    cap = one_request + reserves[1] + 1e-9
-    FakeModel.script[:] = ["nothing useful"] * 6
+    cap = 2 * one_request + reserves[2] - Decimal("0.0000001")
+    FakeModel.script[:] = ['<TOOL_CALL>{"name": "get_schema", "arguments": {}}',
+                           '<TOOL_CALL>{"name": "get_schema", "arguments": {"table": "orders"}}',
+                           "nothing useful"] * 2
     FakeModel.seen[:] = []
     assert cli.main([*PAID, "--endpoint", endpoint, "--archive", str(tmp_path),
-                     "--label", "capped", "--max-cost-usd", f"{cap:.9f}"]) == 3
+                     "--label", "capped", "--max-cost-usd", f"{cap:f}"]) == 3
     capped = read_record(tmp_path / "capped" / "record.json")
     assert capped.termination == "bound_hit"
-    assert capped.detail.startswith(f"max_cost_usd: spent ${2 * one_request:.4f} (0 request(s) "
-                                    "without usage charged at their reserve) + next request's "
-                                    "worst case $")
-    assert f"> cap ${cap:.4f}; remaining ${cap - 2 * one_request:.4f}; the request was not sent" \
-        in capped.detail
+    assert capped.detail == (
+        f"max_cost_usd: spent ${2 * one_request:f} (0 request(s) without usage charged at "
+        f"their reserve) + next request's worst case ${reserves[2]:f} > cap "
+        f"${Decimal(repr(float(cap))):f}; remaining "
+        f"${Decimal(repr(float(cap))) - 2 * one_request:f}; the request was not sent")
     assert len(FakeModel.seen) == 2                                # the third was never sent
-    assert capped.api_cost_usd == pytest.approx(2 * one_request) and capped.api_cost_usd <= cap
-    assert all(m["max_tokens"] == 512 for m in FakeModel.seen)
-    assert capped.configuration["cap_basis"].startswith("hard:")
+    assert capped.api_cost_usd == pytest.approx(float(2 * one_request))
+    assert Decimal(repr(capped.api_cost_usd)) <= Decimal(repr(float(cap)))
+    assert capped.configuration["cap_basis"].startswith("hard by admission:")
+    assert "premise: the endpoint honours max_tokens and bills by o200k_base" in \
+        capped.configuration["cap_basis"]
     receipt = read_receipt(tmp_path / "capped" / RECEIPT)
     assert "a hard cap — no request is sent whose worst case would cross it" in receipt["reason"]
 
 
+def test_a_cap_the_first_request_alone_would_cross_is_refused_before_the_label(
+        tmp_path, endpoint, monkeypatch, capsys):
+    monkeypatch.setenv("OPENAI_API_KEY", KEY)
+    assert cli.main([*PAID, "--endpoint", endpoint, "--archive", str(tmp_path / "runs"),
+                     "--max-cost-usd", "0.0001"]) == 2
+    out = capsys.readouterr().out
+    assert "the first request alone reserves $" in out and "would not be sent" in out
+    assert not (tmp_path / "runs").exists() and FakeModel.seen == []
+
+
 def test_the_request_count_and_the_wall_clock_are_bounds_of_their_own(tmp_path, endpoint,
                                                                        monkeypatch):
-    """`--max-model-requests` ends the run when the provider has made that many requests,
-    whatever the turn budget says. `--max-wall-clock-seconds` cuts a request in flight at
-    the deadline — the wait is bounded, not only the next request — and the run ends as a
-    bound hit that says so, well inside the endpoint's own 120 s."""
+    """`--max-model-requests`, given, ends the run when the provider has made that many
+    requests, whatever the turn budget says; omitted, it is as many as the turns, so the
+    turn budget an operator set is the one that binds. `--max-wall-clock-seconds` cuts a
+    request in flight at the deadline — the wait itself is bounded, not only the next
+    request — and the run ends as a bound hit that says so, well inside the endpoint's own
+    120 s and the stand-in's 2 s answer."""
     FakeModel.script[:] = ['<TOOL_CALL>{"name": "get_schema", "arguments": {}}'] * 6
     FakeModel.seen[:] = []
     assert cli.main(["--incident", INCIDENT, "--provider", "local", "--endpoint", endpoint,
@@ -324,37 +353,57 @@ def test_the_request_count_and_the_wall_clock_are_bounds_of_their_own(tmp_path, 
     assert len(FakeModel.seen) == 2 and r.model_turns == 2
     assert r.configuration["max_model_requests"] == 2 and r.configuration["max_turns"] == 12
 
-    monkeypatch.setattr(FakeModel, "delay", 1.5)
+    FakeModel.script[:] = ['<TOOL_CALL>{"name": "get_schema", "arguments": {}}'] * 6
+    FakeModel.seen[:] = []
+    assert cli.main(["--incident", INCIDENT, "--provider", "local", "--endpoint", endpoint,
+                     "--model", "m", "--archive", str(tmp_path), "--label", "turns",
+                     "--max-turns", "3"]) == 3
+    r = read_record(tmp_path / "turns" / "record.json")
+    assert r.detail == "model_turns: 3 of 3 used" and len(FakeModel.seen) == 3
+    assert r.configuration["max_model_requests"] == 3       # derived: one request per turn
+
+    monkeypatch.setattr(FakeModel, "delay", 2.0)
     FakeModel.script[:] = ['<TOOL_CALL>{"name": "get_schema", "arguments": {}}'] * 6
     assert cli.main(["--incident", INCIDENT, "--provider", "local", "--endpoint", endpoint,
                      "--model", "m", "--archive", str(tmp_path), "--label", "clock",
-                     "--max-wall-clock-seconds", "0.4"]) == 3
+                     "--max-wall-clock-seconds", "0.5"]) == 3
     r = read_record(tmp_path / "clock" / "record.json")
     assert r.termination == "bound_hit"
-    assert r.detail == ("max_wall_clock_seconds: 0.4 s elapsed of 0.4 s; the request in flight "
-                        "was cut at the deadline")
-    assert r.latency_ms < 1200 and r.model_turns == 0          # cut, not waited out
-    assert r.configuration["max_wall_clock_seconds"] == 0.4
+    assert r.detail.startswith("max_wall_clock_seconds: 0.5") and r.detail.endswith(
+        "s elapsed of 0.500 s; the request in flight was cut at the deadline")
+    assert 500 <= r.latency_ms < 1200 and r.model_turns == 0   # cut at the deadline, not waited out
+    assert r.configuration["max_wall_clock_seconds"] == 0.5
+    assert r.configuration["timeout_s"] == 120.0
 
 
 def test_the_tool_call_budget_is_the_executor_s_and_independent_of_turns(tmp_path, endpoint):
     """`--max-tool-calls` is the executor's budget: the call past it is DENIED, in the
     trace, and the investigator may still decide on what it saw. It is set from the command
-    line, recorded, and no longer merely implied by the turn budget."""
-    FakeModel.script[:] = [
+    line for an archive's incident and for a brought one alike, recorded, and no longer
+    merely implied by the turn budget."""
+    script = [
         '<TOOL_CALL>{"name": "get_schema", "arguments": {}}',
         '<TOOL_CALL>{"name": "get_schema", "arguments": {"table": "orders"}}',
         '<DECISION>{"disposition": "ESCALATE", "root_cause_id": null, "root_cause_summary": '
         '"One look was allowed; the rest needs a person.", "repair_id": null, "patch": {}}']
-    assert cli.main(["--incident", INCIDENT, "--provider", "local", "--endpoint", endpoint,
-                     "--model", "m", "--archive", str(tmp_path), "--label", "calls",
-                     "--max-tool-calls", "1"]) == 0
-    r = read_record(tmp_path / "calls" / "record.json")
-    results = [e.payload for e in r.trace if e.kind == "tool_result"]
-    assert [x["status"] for x in results] == ["OK", "DENIED"]
-    assert results[1]["content"]["error"] == "tool-call budget of 1 is spent"
-    assert r.tool_calls == 1 and r.configuration["max_tool_calls"] == 1
-    assert r.decision.disposition.value == "ESCALATE"
+    brought = tmp_path / "brought"
+    brought.mkdir()
+    (brought / "incident.json").write_text(json.dumps({
+        "incident_id": "brought-1", "alert": "orders differ", "as_of": "2026-09-19",
+        "permitted_write_paths": []}), encoding="utf-8")
+    (brought / "world.sql").write_text("CREATE TABLE orders (id INTEGER);", encoding="utf-8")
+    for label, where in (("calls", ["--incident", INCIDENT]),
+                         ("brought-calls", ["--incident-dir", str(brought)])):
+        FakeModel.script[:] = list(script)
+        assert cli.main([*where, "--provider", "local", "--endpoint", endpoint, "--model", "m",
+                         "--archive", str(tmp_path / "runs"), "--label", label,
+                         "--max-tool-calls", "1"]) == 0
+        r = read_record(tmp_path / "runs" / label / "record.json")
+        results = [e.payload for e in r.trace if e.kind == "tool_result"]
+        assert [x["status"] for x in results] == ["OK", "DENIED"], label
+        assert results[1]["content"]["error"] == "tool-call budget of 1 is spent"
+        assert r.tool_calls == 1 and r.configuration["max_tool_calls"] == 1
+        assert r.decision.disposition.value == "ESCALATE"
 
 
 @pytest.mark.parametrize(("flag", "value", "said"), [
@@ -368,6 +417,31 @@ def test_a_bound_that_binds_nothing_is_refused_before_any_label(tmp_path, endpoi
                      "--model", "m", "--archive", str(tmp_path), flag, value]) == 2
     assert said in capsys.readouterr().out
     assert not tmp_path.exists() or not list(tmp_path.iterdir())
+
+
+def test_a_completion_bound_that_binds_nothing_is_refused_before_any_label(
+        tmp_path, endpoint, monkeypatch, capsys):
+    monkeypatch.setenv("OPENAI_API_KEY", KEY)
+    FakeModel.seen[:] = []
+    for value in ("0", "-5"):
+        assert cli.main([*PAID, "--endpoint", endpoint, "--archive", str(tmp_path / "runs"),
+                         "--max-tokens", value]) == 2
+        assert "--max-tokens must be a whole number above zero" in capsys.readouterr().out
+    assert not (tmp_path / "runs").exists() and FakeModel.seen == []
+
+
+def test_a_model_billed_by_an_unknown_tokenizer_may_not_run_capped(endpoint, monkeypatch,
+                                                                     tmp_path, capsys):
+    from adii.reporting.ledger import PRICES, Price
+    monkeypatch.setenv("OPENAI_API_KEY", KEY)
+    priced = PRICES["gpt-4.1-mini"]
+    monkeypatch.setitem(PRICES, "other-model", Price(priced.input_per_token,
+                                                     priced.output_per_token, priced.table,
+                                                     "sentencepiece"))
+    assert cli.main(["--incident", INCIDENT, "--provider", "openai", "--model", "other-model",
+                     "--endpoint", endpoint, "--archive", str(tmp_path / "runs")]) == 2
+    assert "not known to be byte-level" in capsys.readouterr().out
+    assert not (tmp_path / "runs").exists()
 
 
 def test_a_response_without_usage_is_an_unknown_row_never_zero(tmp_path, endpoint,
@@ -386,9 +460,10 @@ def test_a_response_without_usage_is_an_unknown_row_never_zero(tmp_path, endpoin
     # labelled as a bound — not a cost
     struck = tuple(e if e.kind != "model_responded" else type(e)(
         sequence=e.sequence, kind=e.kind, payload={**e.payload, "usage": None}) for e in r.trace)
+    from decimal import Decimal
     [reserve] = [e.payload["reserve_usd"] for e in r.trace if e.kind == "model_requested"]
     assert aggregate(struck, PRICES["gpt-4.1-mini"]) == \
-        type(ledger)(lower_bound_usd=0.0, worst_case_usd=reserve, proved=0, unknown=1)
+        type(ledger)(lower_bound_usd=0.0, worst_case_usd=Decimal(reserve), proved=0, unknown=1)
 
 
 def test_the_scripted_provider_still_replays_the_walkthrough_only(tmp_path, capsys):

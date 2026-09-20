@@ -9,57 +9,83 @@ to A untouched. A never sees the endpoint and the endpoint never sees the runtim
 
 Local endpoints run with no credential and cost nothing. A paid endpoint runs only with a
 credential, only once the receipt is on disk (plan D-15), only over https unless on this
-machine, with a nominal price and a spend cap. The cap is hard: before each request the
-provider reserves that request's worst case — every byte of the messages priced as a token
-at the input rate, `max_tokens` at the output rate, no discount assumed — and if what the
-run has spent plus that reserve would cross the cap, the request is not sent and the run
-ends as a bound hit. What has been spent is the ledger's worst case: proved usage at
-nominal prices, and a response without usage charged at the reserve that admitted it.
+machine, with a nominal price and a spend cap. The cap is hard by admission: before each
+request the provider reserves that request's worst case — every byte of the messages
+counted as a token at the input rate (a byte-level BPE, every priced model's, cannot make
+more tokens than bytes), `max_tokens` at the output rate, no discount assumed — and sends
+it only if the ledger's exact worst case so far plus that reserve stays within the cap.
+Otherwise the run ends as a bound hit and nothing is sent. After each reply, what the
+endpoint billed is held to the reserve that admitted it; a bill above it means a premise of
+the admission failed — the endpoint ignored `max_tokens`, or tokenises otherwise — and the
+run ends as the provider's failure, nothing further admitted.
 
 The run's other bounds are checked here too, because this is where a run waits: a request
-count of its own (`max_model_requests`, independent of A's turns), and a wall clock — no
-request is sent past the deadline, and a request in flight waits no longer than the
-deadline allows. Each names itself in the `BoundExceeded` it raises, with the numbers.
+count of its own (`max_model_requests`, independent of A's turns), and a wall clock. No
+request is sent past the deadline, and the request itself is made by a worker process
+(`worker.py`) the provider waits on for at most the time the deadline leaves; when that
+runs out the worker is killed and the run ends as a bound hit — the local run never waits
+past its deadline, whatever the endpoint does. The endpoint may still have computed and
+billed what it received, so a request cut in flight keeps its full reserve in the ledger.
 
-A failure of the endpoint — a refused status, an unreachable host, a timeout short of the
-deadline — is the provider's, never the model's, and is raised as `ProviderFailure`
-carrying structured fields only: a status, a code, a kind. Never the response body, which
-a 401 fills with the masked key it was sent.
+A failure of the endpoint — a refused status, an unreachable host, a socket that stalled
+past the endpoint's own timeout — is the provider's, never the model's, and is raised as
+`ProviderFailure` carrying structured fields only: a status, a code, a kind. Never the
+response body, which a 401 fills with the masked key it was sent; the body of a refusal is
+read in the worker and does not cross to this process.
 
-The credential is held by this object and put on the wire; it is never recorded, never
-echoed in an error, and never part of the endpoint string.
+The credential is held by this object and put on the wire by the worker; it is never
+recorded, never echoed in an error, and never part of the endpoint string.
 """
 from __future__ import annotations
 
 import json
-import math
+import os
+import queue
+import subprocess
+import sys
+import threading
 import time
-import urllib.error
-import urllib.request
+from decimal import Decimal
 from pathlib import Path
 from urllib.parse import urlparse
 
 from ..contracts import IncidentContext, ToolResult
-from ..reporting.ledger import Price, aggregate
+from ..reporting.ledger import BYTE_LEVEL_TOKENIZERS, Price, aggregate, priced, reserve_for
 from ..runtime.run import Recorder
 
 LOCAL_HOSTS = ("127.0.0.1", "localhost", "::1")
+TIMEOUT_S = 120.0     # the endpoint's own patience: one connect, one read
 
 # The chat format's own tokens — role markers, separators, the reply's priming — counted as
 # constants well above their real number (about 3 per message and 3 per request), so that the
 # bound below is a bound.
 TOKENS_PER_MESSAGE, TOKENS_PER_REQUEST = 8, 8
-ESTIMATOR = "utf-8 bytes of every message + 8 per message + 8 per request"
 
 
 class ProviderFailure(RuntimeError):
-    """The endpoint failed to answer: `kind` is http, unreachable or timeout; `status` and
-    `code` are what it said in structure, if anything. No body text, ever."""
+    """The endpoint failed to answer: `kind` is http, unreachable, timeout, malformed or
+    worker; `status` and `code` are what it said in structure, if anything. No body text."""
 
     def __init__(self, kind: str, *, status: int | None = None, code: str | None = None):
         self.kind, self.status, self.code = kind, status, code
         said = " ".join(s for s in (f"HTTP {status}" if status else "", code or "") if s)
         super().__init__(f"provider {kind}" + (f": {said}" if said else ""))
+
+
+class ReserveBreached(ProviderFailure):
+    """The endpoint billed a request above the reserve that admitted it. The reserve was the
+    proof that sending could not exceed the exposure allotted; a bill above it means a
+    premise of that proof failed — `max_tokens` ignored, a tokeniser that is not byte-level,
+    a request altered on the way — and the run ends as the provider's failure, with nothing
+    further admitted against a cap whose arithmetic the endpoint has contradicted."""
+
+    def __init__(self, turn: int, billed: Decimal, reserve: Decimal):
+        self.turn, self.billed, self.reserve = turn, billed, reserve
+        RuntimeError.__init__(
+            self, f"provider reserve_breached: request {turn} billed ${billed:f} against a "
+                  f"reserve of ${reserve:f}; a premise of the cap's admission failed, and no "
+                  "further request is admitted")
+        self.kind, self.status, self.code = "reserve_breached", None, None
 
 
 class BoundExceeded(RuntimeError):
@@ -107,24 +133,90 @@ def endpoint_may_carry_a_credential(endpoint: str) -> bool:
     return parts.scheme == "https" or endpoint_is_local(endpoint)
 
 
+def initial_messages(context: IncidentContext,
+                     tools: list[dict[str, object]]) -> list[dict[str, str]]:
+    """The conversation before the first turn: the protocol, then the incident and the tools
+    as one document. What the first request's reserve is computed from — here and, before
+    any label is claimed, in the runtime."""
+    return [{"role": "system", "content": PROTOCOL},
+            {"role": "user", "content": json.dumps({
+                "incident_id": context.incident_id, "alert": context.alert, "as_of": context.as_of,
+                "permitted_write_paths": list(context.permitted_write_paths),
+                "tools": tools}, indent=1)}]
+
+
 def input_tokens_upper_bound(messages: list[dict[str, str]]) -> int:
-    """More tokens than any byte-level BPE tokenizer — every OpenAI chat model's — can make
-    of these messages: a token covers at least one byte, so the bytes bound the tokens, and
-    the chat format's own tokens are added as constants above their real count. No
-    tokenizer is needed, and no model's vocabulary is assumed beyond that."""
+    """More tokens than a byte-level BPE tokenizer can make of these messages: a token covers
+    at least one byte, so the bytes bound the tokens, and the chat format's own tokens are
+    added as constants above their real count. No tokenizer is needed; the premise is the
+    price's `tokenizer`, refused at the runtime's door when it is not byte-level."""
     return sum(len(m["content"].encode("utf-8")) + TOKENS_PER_MESSAGE for m in messages) \
         + TOKENS_PER_REQUEST
 
 
-def _positive(name: str, value: object, kind: type) -> None:
-    if isinstance(value, bool) or not isinstance(value, kind) \
-            or not value > 0 or not math.isfinite(value):
-        raise ValueError(f"{name} must be a finite {kind.__name__} above zero, got {value!r}")
+def estimator(price: Price) -> str:
+    return (f"utf-8 bytes of every message + {TOKENS_PER_MESSAGE} per message + "
+            f"{TOKENS_PER_REQUEST} per request; conservative for {price.tokenizer}, a byte-level "
+            "BPE in which a token covers at least one byte")
+
+
+def _positive(name: str, value: object, whole: bool) -> None:
+    kinds = int if whole else int | float
+    if isinstance(value, bool) or not isinstance(value, kinds) or not value > 0 \
+            or value == float("inf"):
+        what = "a whole number" if whole else "a finite number"
+        raise ValueError(f"{name} must be {what} above zero, got {value!r}")
+
+
+class RequestWorker:
+    """`worker.py` as a process of this run's own, spoken to by lines; killable, so the
+    run's deadline can end a request the endpoint will not."""
+
+    def __init__(self) -> None:
+        # The credential travels the pipe, once per request, and not the environment.
+        environment = {k: v for k, v in os.environ.items() if k != "OPENAI_API_KEY"}
+        self._process = subprocess.Popen(
+            [sys.executable, "-B", "-m", "adii.provider.worker"],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, env=environment,
+            cwd=str(Path(__file__).resolve().parents[2]))
+        self._replies: queue.Queue[bytes | None] = queue.Queue()
+        threading.Thread(target=self._read, daemon=True).start()
+
+    def _read(self) -> None:
+        for line in self._process.stdout:
+            self._replies.put(line)
+        self._replies.put(None)                        # the worker is gone
+
+    def ask(self, request: dict[str, object], *, wait: float | None) -> dict | None:
+        """The worker's answer to `request`, or None when `wait` seconds passed without one —
+        the request is then in flight, and the caller decides what that means."""
+        try:
+            self._process.stdin.write(json.dumps(request).encode("utf-8") + b"\n")
+            self._process.stdin.flush()
+        except OSError:                                # the worker died before it was asked
+            return {"ok": False, "kind": "worker"}
+        try:
+            line = self._replies.get(timeout=wait)
+        except queue.Empty:
+            return None
+        return json.loads(line) if line is not None else {"ok": False, "kind": "worker"}
+
+    def kill(self) -> None:
+        self._process.kill()
+        self._process.wait()
+
+    def close(self) -> None:
+        """Let the worker finish and leave; kill it if it will not."""
+        try:
+            self._process.stdin.close()
+            self._process.wait(timeout=5)
+        except (OSError, subprocess.TimeoutExpired):
+            self.kill()
 
 
 class ChatProvider:
     def __init__(self, *, endpoint: str, model: str, context: IncidentContext,
-                 tools: list[dict[str, object]], recorder: Recorder, timeout_s: float = 120.0,
+                 tools: list[dict[str, object]], recorder: Recorder, timeout_s: float = TIMEOUT_S,
                  served_as: str | None = None, credential: str | None = None,
                  receipt: Path | None = None, max_tokens: int | None = None,
                  price: Price | None = None, max_cost_usd: float | None = None,
@@ -135,7 +227,8 @@ class ChatProvider:
         request carries unless it is `default_model`. A `credential` makes this a paid
         provider: then `receipt` must already be on disk, and `price`, `max_cost_usd` and
         `max_tokens` bound what it may spend. `max_model_requests` and `max_wall_clock_s`
-        bound any provider; the wall clock starts now."""
+        bound any provider; the wall clock starts now. `timeout_s` is the endpoint's own
+        patience per socket operation — the deadline is enforced apart from it."""
         paid = credential is not None
         if not paid and not endpoint_is_local(endpoint):
             raise ValueError(f"{endpoint} is not a local endpoint; a paid provider needs a "
@@ -149,32 +242,38 @@ class ChatProvider:
                      or max_tokens <= 0):
             raise ValueError("a paid provider needs max_tokens above zero: a request's reserve "
                              "prices the whole completion it permits")
+        if paid and price.tokenizer not in BYTE_LEVEL_TOKENIZERS:
+            raise ValueError(f"{model} bills by {price.tokenizer}, which is not known to be "
+                             "byte-level; the input bound would not be a bound")
         if not endpoint_is_local(endpoint) and urlparse(endpoint).scheme != "https":
             raise ValueError(f"{endpoint}: a credential travels only over https")
         if max_model_requests is not None:
-            _positive("max_model_requests", max_model_requests, int)
+            _positive("max_model_requests", max_model_requests, whole=True)
         if max_wall_clock_s is not None:
-            _positive("max_wall_clock_s", max_wall_clock_s, float)
+            _positive("max_wall_clock_s", max_wall_clock_s, whole=False)
         self._url = endpoint.rstrip("/") + "/chat/completions"
         self._model, self._recorder, self._timeout = model, recorder, timeout_s
         self._served_as = served_as or model
         self._credential, self._max_tokens = credential, max_tokens
-        self._price, self._cap = price, max_cost_usd
+        self._price = price
+        self._cap = None if max_cost_usd is None else Decimal(repr(max_cost_usd))
         self._max_requests, self._wall_clock = max_model_requests, max_wall_clock_s
-        self._deadline = None if max_wall_clock_s is None else time.monotonic() + max_wall_clock_s
+        self._started = time.monotonic()
+        self._deadline = None if max_wall_clock_s is None else self._started + max_wall_clock_s
         self._turn = 0
-        self._messages: list[dict[str, str]] = [
-            {"role": "system", "content": PROTOCOL},
-            {"role": "user", "content": json.dumps({
-                "incident_id": context.incident_id, "alert": context.alert, "as_of": context.as_of,
-                "permitted_write_paths": list(context.permitted_write_paths),
-                "tools": tools}, indent=1)}]
+        self._worker: RequestWorker | None = None
+        self._messages = initial_messages(context, tools)
 
-    def _admit(self) -> tuple[float | None, dict[str, object]]:
+    def _elapsed(self) -> str:
+        return (f"{time.monotonic() - self._started:.3f} s elapsed of "
+                f"{self._wall_clock:.3f} s")
+
+    def _admit(self) -> tuple[float | None, Decimal | None, dict[str, object]]:
         """Every bound, before a request is built: the request count, the wall clock, and
-        for a paid provider the cost — spent so far plus this request's worst case against
-        the cap. Returns the time this request may wait and what the trace records of the
-        reservation; raises BoundExceeded with the numbers, and nothing has been sent."""
+        for a paid provider the cost — the exact worst case spent so far plus this request's
+        reserve against the cap. Returns how long this request may be waited for, its
+        reserve, and what the trace records of the reservation; raises BoundExceeded with
+        the numbers, and nothing has been sent."""
         if self._max_requests is not None and self._turn >= self._max_requests:
             raise BoundExceeded("max_model_requests",
                                 f"{self._turn} of {self._max_requests} used")
@@ -182,24 +281,20 @@ class ChatProvider:
         if self._deadline is not None:
             remaining = self._deadline - time.monotonic()
             if remaining <= 0:
-                raise BoundExceeded("max_wall_clock_seconds",
-                                    f"{self._wall_clock:.1f} s elapsed of {self._wall_clock:.1f} s")
-        timeout = self._timeout if remaining is None else min(self._timeout, remaining)
-        reserved: dict[str, object] = {}
-        if self._price is not None and self._cap is not None:
-            ledger = aggregate(self._recorder.trace, self._price)
-            input_bound = input_tokens_upper_bound(self._messages)
-            reserve = (input_bound * self._price.input_per_token
-                       + self._max_tokens * self._price.output_per_token)
-            if ledger.worst_case_usd + reserve > self._cap:
-                raise BoundExceeded("max_cost_usd", (
-                    f"spent ${ledger.worst_case_usd:.4f} ({ledger.unknown} request(s) without "
-                    f"usage charged at their reserve) + next request's worst case "
-                    f"${reserve:.4f} > cap ${self._cap:.4f}; remaining "
-                    f"${self._cap - ledger.worst_case_usd:.4f}"))
-            reserved = {"reserve_usd": round(reserve, 6), "input_tokens_upper_bound": input_bound,
-                        "max_output_tokens": self._max_tokens, "estimator": ESTIMATOR}
-        return timeout, reserved
+                raise BoundExceeded("max_wall_clock_seconds", self._elapsed())
+        if self._price is None or self._cap is None:
+            return remaining, None, {}
+        ledger = aggregate(self._recorder.trace, self._price)
+        input_bound = input_tokens_upper_bound(self._messages)
+        reserve = reserve_for(input_bound, self._price, self._max_tokens)
+        if ledger.worst_case_usd + reserve > self._cap:
+            raise BoundExceeded("max_cost_usd", (
+                f"spent ${ledger.worst_case_usd:f} ({ledger.unknown} request(s) without usage "
+                f"charged at their reserve) + next request's worst case ${reserve:f} > cap "
+                f"${self._cap:f}; remaining ${self._cap - ledger.worst_case_usd:f}"))
+        return remaining, reserve, {
+            "reserve_usd": format(reserve, "f"), "input_tokens_upper_bound": input_bound,
+            "max_output_tokens": self._max_tokens, "estimator": estimator(self._price)}
 
     def respond(self, *, observation: ToolResult | None = None,
                 observations: tuple[ToolResult, ...] = ()) -> str:
@@ -209,55 +304,46 @@ class ChatProvider:
             self._messages.append({"role": "user", "content": json.dumps({
                 "tool": observation.name, "status": observation.status,
                 "content": observation.content})})
-        timeout, reserved = self._admit()
+        remaining, reserve, reserved = self._admit()
         self._turn += 1
         self._recorder.event("model_requested", {
             "turn": self._turn, "model": self._model, "messages": len(self._messages), **reserved})
-        request_body: dict[str, object] = {"model": self._served_as, "messages": self._messages,
-                                           "temperature": 0}
+        body: dict[str, object] = {"model": self._served_as, "messages": self._messages,
+                                   "temperature": 0}
         if self._max_tokens is not None:
-            request_body["max_tokens"] = self._max_tokens
+            body["max_tokens"] = self._max_tokens
         headers = {"Content-Type": "application/json"}
         if self._credential is not None:
             headers["Authorization"] = f"Bearer {self._credential}"
-        request = urllib.request.Request(self._url, data=json.dumps(request_body).encode("utf-8"),
-                                         method="POST", headers=headers)
-        try:
-            with urllib.request.urlopen(request, timeout=timeout) as response:
-                reply = json.loads(response.read().decode("utf-8"))
-        except urllib.error.HTTPError as refused:
-            raise ProviderFailure("http", status=refused.code,
-                                  code=_error_code(refused)) from None
-        except urllib.error.URLError as unreachable:
-            if isinstance(unreachable.reason, TimeoutError):
-                raise self._timed_out() from None
-            raise ProviderFailure("unreachable") from None
-        except TimeoutError:                       # a read that stalled past its timeout
-            raise self._timed_out() from None
-        text = reply["choices"][0]["message"]["content"].strip()
+        if self._worker is None:
+            self._worker = RequestWorker()
+        answer = self._worker.ask({"url": self._url, "body": json.dumps(body), "headers": headers,
+                                   "timeout_s": self._timeout}, wait=remaining)
+        if answer is None:                 # the deadline passed with the request in flight
+            self._worker.kill()
+            raise BoundExceeded("max_wall_clock_seconds", self._elapsed(), sent=True)
+        if not answer["ok"]:
+            raise ProviderFailure(answer["kind"], status=answer.get("status"),
+                                  code=answer.get("code"))
+        reply = json.loads(answer["body"])
+        content = reply["choices"][0]["message"]["content"]
+        # The response is evidence before it is text: its usage and fingerprint are recorded
+        # whatever the content turns out to be, so a bill is never lost to a null.
         self._recorder.event("model_responded", {
-            "turn": self._turn, "content": text, "usage": reply.get("usage"),
-            "fingerprint": reply.get("system_fingerprint")})
+            "turn": self._turn, "content": content if isinstance(content, str) else None,
+            "usage": reply.get("usage"), "fingerprint": reply.get("system_fingerprint")})
+        if reserve is not None:
+            billed = priced(reply.get("usage"), self._price)
+            if billed is not None and billed > reserve:
+                raise ReserveBreached(self._turn, billed, reserve)
+        if not isinstance(content, str):
+            raise ValueError("the endpoint answered without text content")
+        text = content.strip()
         self._messages.append({"role": "assistant", "content": text})
         return text
 
-    def _timed_out(self) -> RuntimeError:
-        """A request that waited too long: the run's deadline if that is what cut it — a
-        bound, in flight — otherwise the endpoint's failure."""
-        if self._deadline is not None and time.monotonic() >= self._deadline:
-            return BoundExceeded("max_wall_clock_seconds",
-                                 f"{self._wall_clock:.1f} s elapsed of {self._wall_clock:.1f} s",
-                                 sent=True)
-        return ProviderFailure("timeout")
-
-
-def _error_code(refused: urllib.error.HTTPError) -> str | None:
-    """The structured `error.code` an OpenAI-shaped refusal carries — and only that. The
-    message beside it is discarded unread: a 401's message echoes the key it was sent."""
-    try:
-        document = json.loads(refused.read().decode("utf-8"))
-    except (ValueError, UnicodeDecodeError, OSError):
-        return None
-    error = document.get("error") if isinstance(document, dict) else None
-    code = error.get("code") if isinstance(error, dict) else None
-    return code if isinstance(code, str) else None
+    def close(self) -> None:
+        """The run is over: let the worker go."""
+        if self._worker is not None:
+            self._worker.close()
+            self._worker = None
