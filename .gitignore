@@ -13,8 +13,9 @@ Thumbs.db
 !01_data/runs/README.md
 !01_data/runs/MANIFEST.json
 
-# Environment / secrets
+# Environment / secrets — .env.local holds the operator's real key and never enters history
 .env
+.env.local
 .env.*
 !.env.example
 

@@ -1,6 +1,8 @@
-# The model boundary — SPIKE
+# The model boundary
 
-**Local endpoints only. Not merged to main until the trace event contract's rows resolve.**
+**On main since 16 September, labelled a spike while trace-contract rows 1, 5 and 6 stay
+open: the placeholders it writes for them are replaced in place when the rows resolve.
+Local endpoints, and since 17 September paid ones behind a receipt, a price and a cap.**
 
 The one package that talks to a model. `ChatProvider` sits behind A's `respond()` seam and
 speaks A's protocol — `<TOOL_CALL>`, `<DECISION>`, `<STOP>` — to an OpenAI-compatible chat
@@ -35,10 +37,15 @@ Without a credential, a non-local endpoint. With one — the paid path, since 17
 the provider refuses to exist unless the receipt is already on disk (plan D-15), a nominal
 price and a spend cap above zero are given (D-12), and the endpoint is https unless on
 this machine. The credential goes on the wire as a bearer header and nowhere else: not
-the receipt, the trace, the record, the report, an error, or the endpoint string. A refused
-status, an unreachable host or a timeout is raised as `ProviderFailure` carrying only the
-status and the structured error code — never the body, which a 401 fills with the masked
-key — and the runtime files it as an infrastructure failure, not the model's (D-14).
+the receipt, the trace, the record, the report, an error, or the endpoint string — and to
+the endpoint configured only: the worker follows no redirect, since `urllib` would re-issue
+a 301, 302 or 303 as a GET at whatever host the Location named, bearer header still on it.
+A refused status, a redirect, an unreachable host, a timeout, or a 200 whose body is not a
+JSON object with `choices[0].message.content` is raised as `ProviderFailure` carrying only
+the status and the structured error code — never the body, which a 401 fills with the
+masked key — and the runtime files it as an infrastructure failure, not the model's (D-14).
+The model is blamed only for what a well-formed response says; a malformed one keeps
+whatever usage it carried, and a body that does not parse keeps the request's reserve.
 
 The cap is hard by admission. Before each request the provider reserves that request's
 worst case — every byte of every message counted as a token at the input rate (a byte-level
@@ -82,8 +89,9 @@ OPENAI_API_KEY=... python -m adii.runtime --incident revenue-after-deploy --prov
 provider and the tools the runtime is already watching. A's two ending exceptions map to
 two termination classes by type, never by message. A stop with no decision has no class
 yet (contract row 5) and is mapped to `model_failure` with the detail saying so — the one
-policy choice this spike makes that main must not. No validator exists (build plan M6), so
-a live REPAIR carries the only truthful verdict: not checked, not accepted, no finding.
+policy choice this spike makes that main must not. The validator (build plan M6) is not
+yet wired into `live.py`, so a live REPAIR carries the only truthful verdict: not checked,
+not accepted, no finding.
 
 ## What the first live runs showed on 15 September
 

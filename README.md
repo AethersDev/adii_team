@@ -35,11 +35,14 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-**3. Configure the API key**
+**3. Configure the API key — only for paid runs**
 
-Not needed yet. The investigator loop exists and runs against a scripted provider; no
-model and no network yet. When the provider adapter lands (plan D-11, behind a receipt),
-this step becomes exporting the provider's key, and `check_env.py` starts checking for it.
+Nothing below needs one: the scripted path and a local model cost nothing and use no key.
+For a paid run (`--provider openai`), copy `.env.example` to `.env.local` and fill in
+`OPENAI_API_KEY`. `.env.local` is ignored by git; the runtime and the demo read that one
+name from it when the environment does not already have it, and a value the shell set
+always wins. The key travels to the provider as a bearer header and appears in no
+receipt, trace, record or log — a test holds that.
 
 **4. Run the environment check**
 

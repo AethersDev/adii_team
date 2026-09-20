@@ -246,13 +246,15 @@ def test_the_credential_is_absent_from_the_workers_environment(tmp_path, answeri
 
 
 class Answers(BaseHTTPRequestHandler):
-    """An endpoint that answers whatever `reply` holds, at once."""
+    """An endpoint that answers whatever `reply` holds, at once — a dict as JSON, or bytes
+    as they are, for a body that is not the API's shape."""
 
-    reply: dict = {}
+    reply: dict | bytes = {}
 
     def do_POST(self):  # noqa: N802
         self.rfile.read(int(self.headers["Content-Length"]))
-        body = json.dumps(Answers.reply).encode("utf-8")
+        body = Answers.reply if isinstance(Answers.reply, bytes) \
+            else json.dumps(Answers.reply).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
@@ -312,6 +314,148 @@ def test_a_reply_without_text_keeps_its_usage(tmp_path, answering):
     assert responded.kind == "model_responded" and responded.payload["content"] is None
     assert responded.payload["usage"] == {"prompt_tokens": 7, "completion_tokens": 0}
     assert aggregate(recorder.trace, PRICE).proved == 1
+
+
+@pytest.mark.parametrize("body", [
+    b"<html>502 Bad Gateway</html>",                       # not JSON
+    b'"a string"',                                          # JSON, not an object
+    b'{"error": {"message": "overloaded", "type": "server_error"}}',
+    b'{"choices": []}',
+    b'{"choices": [{"message": null}]}',
+    b'{"choices": [{"message": {"role": "assistant"}}]}',   # no content key at all
+])
+def test_a_200_that_is_not_the_apis_shape_is_the_endpoints_failure(tmp_path, answering, body):
+    """A 200 is not yet an answer. The provider owns JSON decoding and the response's shape;
+    the model is blamed only for what a well-formed response says. Every body here used to
+    leave `respond()` as a KeyError, IndexError, TypeError or JSONDecodeError, which A wraps
+    and the runtime files as the model's failure."""
+    Answers.reply = body
+    recorder = Recorder()
+    provider = paid(tmp_path, recorder, answering, max_cost_usd=1.0)
+    with pytest.raises(ProviderFailure, match="provider malformed: HTTP 200") as failed:
+        provider.respond()
+    provider.close()
+    assert failed.value.kind == "malformed" and failed.value.status == 200
+    assert not isinstance(failed.value, ReserveBreached)
+
+
+def test_a_malformed_reply_keeps_the_usage_it_carries(tmp_path, answering):
+    """Usage is extracted before the shape is judged: a body with a bill and no message is
+    the endpoint's failure, and the bill is evidence all the same — recorded, priced, proved."""
+    Answers.reply = b'{"choices": [], "usage": {"prompt_tokens": 3, "completion_tokens": 0}}'
+    recorder = Recorder()
+    provider = paid(tmp_path, recorder, answering, max_cost_usd=1.0)
+    with pytest.raises(ProviderFailure, match="provider malformed"):
+        provider.respond()
+    provider.close()
+    [requested, responded] = recorder.trace
+    assert responded.kind == "model_responded" and responded.payload["content"] is None
+    assert responded.payload["usage"] == {"prompt_tokens": 3, "completion_tokens": 0}
+    assert aggregate(recorder.trace, PRICE).proved == 1
+
+
+def test_a_body_that_is_not_json_carries_no_bill_so_the_reserve_stands(tmp_path, answering):
+    """Nothing in a body that does not parse is trustworthy, not even a usage: no response
+    is recorded, and the ledger charges the request at its full reserve."""
+    Answers.reply = b"<html>502 Bad Gateway</html>"
+    recorder = Recorder()
+    provider = paid(tmp_path, recorder, answering, max_cost_usd=1.0)
+    with pytest.raises(ProviderFailure, match="provider malformed"):
+        provider.respond()
+    provider.close()
+    [requested] = recorder.trace
+    ledger = aggregate(recorder.trace, PRICE)
+    assert ledger.unknown == 1 and ledger.proved == 0
+    assert ledger.worst_case_usd == Decimal(requested.payload["reserve_usd"])
+
+
+def test_a_worker_that_cannot_be_started_is_the_providers_failure(tmp_path, answering,
+                                                                    monkeypatch):
+    """No process to make the request is our failure — filed "worker", never the model's."""
+    def cannot(*args, **kwargs):
+        raise OSError("no interpreter to start")
+    monkeypatch.setattr(module.subprocess, "Popen", cannot)
+    provider = paid(tmp_path, Recorder(), answering, max_cost_usd=1.0)
+    with pytest.raises(ProviderFailure, match="provider worker") as failed:
+        provider.respond()
+    assert failed.value.kind == "worker"
+    provider.close()
+
+
+class Elsewhere(BaseHTTPRequestHandler):
+    """The host a redirect points at. Anything arriving here is a leak."""
+
+    received: list[tuple[str, str | None]] = []
+
+    def do_GET(self):  # noqa: N802
+        Elsewhere.received.append(("GET", self.headers.get("Authorization")))
+        self.send_response(200)
+        self.send_header("Content-Length", "2")
+        self.end_headers()
+        self.wfile.write(b"{}")
+
+    do_POST = do_GET  # noqa: N815
+
+    def log_message(self, *_):
+        pass
+
+
+class Redirecting(BaseHTTPRequestHandler):
+    """The configured endpoint, answering every request with `code` and a Location."""
+
+    code: int = 302
+    to: str = ""
+
+    def do_POST(self):  # noqa: N802
+        self.rfile.read(int(self.headers["Content-Length"]))
+        self.send_response(Redirecting.code)
+        self.send_header("Location", Redirecting.to)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+    def log_message(self, *_):
+        pass
+
+
+@pytest.fixture
+def redirecting():
+    Elsewhere.received = []
+    elsewhere = ThreadingHTTPServer(("127.0.0.1", 0), Elsewhere)
+    threading.Thread(target=elsewhere.serve_forever, daemon=True).start()
+    Redirecting.to = f"http://127.0.0.1:{elsewhere.server_port}/v1/chat/completions"
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), Redirecting)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    yield f"http://127.0.0.1:{httpd.server_port}/v1"
+    for server in (httpd, elsewhere):
+        server.shutdown()
+        server.server_close()
+
+
+@pytest.mark.parametrize("code", [301, 302, 303, 307, 308])
+def test_no_redirect_is_followed_and_the_credential_goes_no_further(redirecting, code):
+    """`urllib` re-issues a 301, 302 or 303 POST as a GET at whatever host Location names,
+    the bearer header still on it and the body gone. The worker follows nothing: a 3xx is
+    the endpoint's refusal, reported with its status, and the second host hears nothing."""
+    from adii.provider.worker import transact
+    Redirecting.code = code
+    answer = transact({"url": redirecting.rstrip("/") + "/chat/completions", "body": "{}",
+                       "headers": {"Content-Type": "application/json",
+                                   "Authorization": "Bearer test-credential"},
+                       "timeout_s": 5.0})
+    assert answer == {"ok": False, "kind": "http", "status": code, "code": None}
+    assert Elsewhere.received == []
+
+
+def test_a_redirecting_endpoint_ends_the_run_as_the_providers_failure(tmp_path, redirecting):
+    """Through the worker process and the provider: the run ends as the provider's http
+    failure with the redirect's status, and the credential reached only the configured host."""
+    Redirecting.code = 302
+    provider = paid(tmp_path, Recorder(), redirecting, max_cost_usd=1.0)
+    with pytest.raises(ProviderFailure, match="provider http: HTTP 302") as failed:
+        provider.respond()
+    provider.close()
+    assert failed.value.kind == "http" and failed.value.status == 302
+    assert Elsewhere.received == []
 
 
 def test_the_request_count_is_a_bound_of_its_own():

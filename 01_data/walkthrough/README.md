@@ -3,7 +3,9 @@
 A deliberately trivial incident whose only job is to make the architecture concrete.
 
 **This is not a scientific scenario and it is not one of the frozen development
-incidents.** Nothing here has an answer key. You may read every file.
+incidents.** Nothing here has an answer key. You may read every file. It is a teaching
+fixture that demonstrates and tests the runtime's mechanics; it is not the canonical ADII
+demo world (`01_data/demo/world/`) and produces no product or evaluation claim.
 
 ```bash
 python -m adii.examples.walkthrough --step

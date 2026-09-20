@@ -259,6 +259,31 @@ def test_a_paid_run_puts_the_credential_on_the_wire_and_nowhere_else(tmp_path, e
     assert KEY not in (tmp_path / "refused" / "trace.jsonl").read_text(encoding="utf-8")
 
 
+def test_the_operators_env_local_is_read_when_the_shell_has_no_key(tmp_path, endpoint,
+                                                                    monkeypatch, capsys):
+    """One command for a rehearsal: with no key in the environment, `<repo>/.env.local` is
+    read for that one name before the paid preconditions are asked — and the key then goes
+    where it always went, the wire, and appears in no artefact and no output. A file that is
+    not NAME=value lines is refused before any label, by line number, never by value."""
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setattr(cli, "REPO", tmp_path)
+    FakeModel.authorization[:] = []
+    (tmp_path / ".env.local").write_text(f"# operator's\nOPENAI_API_KEY={KEY}\n", encoding="utf-8")
+    assert cli.main([*PAID, "--endpoint", endpoint, "--archive", str(tmp_path / "runs"),
+                     "--label", "from-env-local"]) == 0
+    assert FakeModel.authorization[0] == f"Bearer {KEY}"
+    for path in sorted((tmp_path / "runs" / "from-env-local").iterdir()):
+        assert KEY not in path.read_text(encoding="utf-8"), path.name
+    assert KEY not in capsys.readouterr().out
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    (tmp_path / ".env.local").write_text(f"export OPENAI_API_KEY={KEY}\n", encoding="utf-8")
+    assert cli.main([*PAID, "--endpoint", endpoint, "--archive", str(tmp_path / "runs"),
+                     "--label", "refused-file"]) == 2
+    said = capsys.readouterr().out
+    assert ".env.local line 1: expected NAME=value" in said and KEY not in said
+    assert not (tmp_path / "runs" / "refused-file").exists()
+
+
 def test_the_receipt_gates_the_paid_provider_and_the_cap_is_hard(tmp_path, endpoint,
                                                                 monkeypatch):
     """The provider refuses to exist without the receipt on disk. With it, every request is

@@ -329,6 +329,39 @@ GUARDS = (
           "in flight\n",
           "        if answer is None:                 # the deadline passed with the request "
           "in flight\n            answer = self._worker.ask({}, wait=None)\n"),
+    Guard("D.no_redirect_is_followed", "D", "provider/worker.py",
+          "    def redirect_request(self, req, fp, code, msg, headers, newurl):\n"
+          "        return None\n",
+          "    def redirect_request(self, req, fp, code, msg, headers, newurl):\n"
+          "        return super().redirect_request(req, fp, code, msg, headers, newurl)\n"),
+    Guard("D.body_that_is_not_json_is_the_endpoints_failure", "D",
+          "provider/openai_compatible.py",
+          "        if not isinstance(reply, dict):\n"
+          "            raise ProviderFailure(\"malformed\", status=answer.get(\"status\"))\n",
+          "        if not isinstance(reply, dict):\n"
+          "            raise ValueError(\"malformed\")\n"),
+    Guard("D.reply_without_the_apis_shape_is_the_endpoints_failure", "D",
+          "provider/openai_compatible.py",
+          "        if content is _NO_MESSAGE:          # the API's shape, not the model's answer, "
+          "is missing\n"
+          "            raise ProviderFailure(\"malformed\", status=answer.get(\"status\"))\n",
+          "        if content is _NO_MESSAGE:          # the API's shape, not the model's answer, "
+          "is missing\n"
+          "            raise ValueError(\"malformed\")\n"),
+    Guard("D.worker_spawn_failure_is_the_providers", "D", "provider/openai_compatible.py",
+          "            except OSError as failed:       # no process to ask: ours, never the "
+          "model's\n"
+          "                raise ProviderFailure(\"worker\") from failed\n",
+          "            except OSError as failed:       # no process to ask: ours, never the "
+          "model's\n"
+          "                raise\n"),
+    Guard("D.env_local_never_overwrites_the_environment", "D", "runtime/__main__.py",
+          "    if os.environ.get(\"OPENAI_API_KEY\"):\n        return\n"
+          "    path = root / ENV_LOCAL\n",
+          "    if False:\n        return\n    path = root / ENV_LOCAL\n"),
+    Guard("D.env_local_is_name_value_lines_only", "D", "runtime/__main__.py",
+          "        if not equals or not name.isidentifier():\n",
+          "        if False:\n"),
     Guard("D.max_tokens_refused_before_the_label", "D", "runtime/__main__.py",
           "    if isinstance(max_tokens, bool) or not isinstance(max_tokens, int) "
           "or max_tokens <= 0:\n",

@@ -17,10 +17,17 @@ how you reached it.
 If validation used the agent's own sandbox, a repair could make the data agree with
 itself and we would have measured nothing.
 
-## First build
+## What is built (M6, merged 20 September)
 
-Take fixture decisions and produce `ValidationResult`s. Start structural — does it
-rebuild, are row counts preserved — before anything semantic.
+`patching.py` rebuilds a brand-new `ReadOnlyDatabase` from the patched SQL text — never
+the investigator's own connection; `checks.py` runs three atomic checks over the rebuild;
+`validator.py` gives `Validator.validate(context, decision) -> ValidationResult`, the shape
+`runtime/run.py` requires, with no parameter through which a rehearsal claim could arrive.
+One frozen world so far, `demo-learning-001`; `_WORLD_BUILDERS` grows one entry per
+incident the validator can rebuild. `runtime/live.py` does not call it yet — a live REPAIR
+still reads "not checked" — and wiring it is the next integration step (build plan M7).
+Whether a target is *permitted* is authorization, a separate question answered before
+validation; a PASS here never implies permission.
 
 ## The question this component answers
 
