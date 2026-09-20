@@ -361,13 +361,16 @@ def write_csv(root: Path) -> list[Path]:
     for specimen in SPECIMENS:
         folder = root / specimen.context.incident_id
         folder.mkdir(parents=True, exist_ok=True)
-        (folder / "alert.txt").write_text(specimen.context.alert + "\n", encoding="utf-8")
+        (folder / "alert.txt").write_text(specimen.context.alert + "\n", encoding="utf-8",
+                                          newline="\n")
         world = ReadOnlyDatabase.in_memory(specimen.world)
         for table in world.tables():
             result = world.query(f'SELECT * FROM "{table}"', max_rows=100_000)
             path = folder / f"{table}.csv"
+            # LF, not csv's default CRLF: the repository stores every text file as LF
+            # (.gitattributes), and the committed folder is held to these bytes exactly.
             with path.open("w", encoding="utf-8", newline="") as sink:
-                writer = csv.writer(sink)
+                writer = csv.writer(sink, lineterminator="\n")
                 writer.writerow(result.columns)
                 writer.writerows([["" if v is None else v for v in row] for row in result.rows])
             written.append(path)

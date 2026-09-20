@@ -30,7 +30,7 @@ and a test fails the build when it is stale. Milestone marks come from
     evaluation        1335 lines
     reporting          586 lines
     runtime            663 lines
-    examples           570 lines
+    examples           571 lines
     demo               436 lines
 ```
 
