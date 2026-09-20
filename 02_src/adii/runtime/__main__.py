@@ -435,13 +435,14 @@ def main(argv: list[str] | None = None) -> int:
     if args.provider == "scripted":
         investigator, _, validator = replay(recorded)
     else:
-        from .live import LoopInvestigator, NoValidatorYet  # the spike
+        from ..validation.validator import Validator
+        from .live import LoopInvestigator  # the spike
         investigator = LoopInvestigator(endpoint=args.endpoint, model=args.model,
                                         max_turns=args.max_turns, recorder=recorder,
                                         served_as=args.served_as,
                                         max_model_requests=args.max_model_requests,
                                         max_wall_clock_s=args.max_wall_clock_seconds, **paid)
-        validator = NoValidatorYet()
+        validator = Validator()
 
     record = run_incident(label, context, investigator, tools, validator,
                           configuration=configuration, recorder=recorder)

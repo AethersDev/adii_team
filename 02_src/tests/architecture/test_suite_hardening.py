@@ -73,14 +73,26 @@ def test_every_test_file_lives_where_pytest_looks():
 
 def test_every_test_file_is_collected_in_a_full_run(request):
     """Inside the test path a directory can still be unreachable — a name pytest does not
-    recurse into, a conftest that ignores it. The full run knows what it collected."""
+    recurse into, a conftest that ignores it. The full run knows what it collected.
+
+    A file that reaches pytest.skip(allow_module_level=True) — the eval_authority answer-key
+    guard, deliberately absent so the system under evaluation can never read it — never
+    appears in request.session.items either, exactly like a file pytest never found. The two
+    must not be confused: reading the module-level collection reports (session._initialpaths
+    does not carry this; the terminal reporter's own count does) tells them apart."""
     config = request.config
     if config.getoption("file_or_dir") or config.getoption("keyword") \
             or config.getoption("markexpr"):
         pytest.skip("a partial run; the full run makes this assertion")
     collected = {item.path.resolve() for item in request.session.items}
+    reporter = config.pluginmanager.get_plugin("terminalreporter")
+    skipped_at_module_level = {
+        Path(str(report.fspath)).resolve()
+        for report in reporter.stats.get("skipped", [])
+        if getattr(report, "when", None) == "collect"
+    } if reporter is not None else set()
     missing = sorted(p.relative_to(ROOT).as_posix()
-                     for p in files_named_as_tests() - collected)
+                     for p in files_named_as_tests() - collected - skipped_at_module_level)
     assert not missing, f"test files on disk that this run did not collect: {missing}"
 
 

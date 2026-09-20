@@ -120,20 +120,24 @@ def test_the_model_is_shown_the_incident_the_tools_and_each_observation(endpoint
     assert fed["content"]["columns"] == ["order_id", "order_date", "amount_cents"]
 
 
-def test_a_live_repair_carries_the_only_truthful_verdict(tmp_path, endpoint):
-    """No validator exists. A REPAIR must carry a verdict, so it carries: not checked,
-    not accepted, no finding — never a crash, never a fabricated ACCEPT."""
+def test_a_live_repair_is_checked_by_the_real_validator(tmp_path, endpoint):
+    """The real validator is wired in (build plan M6): a live REPAIR is rebuilt from the
+    frozen world and actually checked, never waved through and never a crash. Runs against
+    demo-learning-001, the only incident validation has a frozen world for — orders-missing-day
+    (this file's INCIDENT) has none, so a REPAIR against it is an infrastructure_failure, not
+    a verdict; that gap is validation's coverage to close, not this test's to paper over."""
     FakeModel.script[:] = ['<TOOL_CALL>{"name": "get_schema", "arguments": {}}',
-                           '<DECISION>{"disposition": "REPAIR", "root_cause_id": "X", '
-                           '"root_cause_summary": "a fault", "repair_id": "R1", '
-                           '"patch": {"jobs/load_orders.yml": "rerun"}}']
-    assert cli.main(["--incident", INCIDENT, "--provider", "local", "--endpoint", endpoint,
-                     "--model", "test-model-1", "--archive", str(tmp_path), "--label", "repair",
-                     "--no-report"]) == 0
+                           '<DECISION>{"disposition": "REPAIR", '
+                           '"root_cause_id": "DEMO_DOUBLE_UNIT_CONVERSION", '
+                           '"root_cause_summary": "stg_orders.sql divides amount_cents by '
+                           '100 twice", "repair_id": "DEMO_REMOVE_SECOND_CONVERSION", '
+                           '"patch": {"stg_orders.sql": "count * 100 / 100"}}']
+    assert cli.main(["--incident", "demo-learning-001", "--provider", "local", "--endpoint",
+                     endpoint, "--model", "test-model-1", "--archive", str(tmp_path),
+                     "--label", "repair", "--no-report"]) == 0
     r = read_record(tmp_path / "repair" / "record.json")
     assert r.termination == "submitted" and r.decision.disposition.value == "REPAIR"
-    assert r.validation.accepted is False and r.validation.checks_run == ()
-    assert "not checked" in r.validation.report and "not a finding" in r.validation.report
+    assert r.validation.accepted is True and r.validation.checks_run
     assert [e.kind for e in r.trace][-2:] == ["decision_submitted", "validation_completed"]
 
 

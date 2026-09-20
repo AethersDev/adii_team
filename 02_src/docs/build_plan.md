@@ -177,13 +177,16 @@ signature has no parameter a rehearsal claim could arrive through
 `ValidatorProvider` shape for offline scoring
 (`test_validation_wired_into_evaluation.py`).
 
-**Not yet wired**: `runtime/live.py`'s `NoValidatorYet` (the `--provider local`
-path) still stands in for the real validator — that file is an unmerged spike
-gated on the D-1 trace contract, not validation's own scope. Swapping
-`NoValidatorYet()` for `validation.validator.Validator()` there is the
-remaining integration step, owned by whoever lands the D-1 rows.
+**Wired 18 September**: `runtime/__main__.py`'s `--provider local` path now builds
+`validation.validator.Validator()` instead of `runtime/live.py`'s `NoValidatorYet`
+stand-in — a live REPAIR is rebuilt from frozen inputs and actually checked, proven
+by `test_live_provider.py::test_a_live_repair_is_checked_by_the_real_validator`.
+`NoValidatorYet` itself stays in `live.py`, unused on this path, until the D-1 trace
+contract resolves what its remaining callers (if any) should do instead.
 
-**Only incident covered**: `demo-learning-001` (the walkthrough world). Extending
+**Only incident covered**: `demo-learning-001` (the walkthrough world). An incident
+`validate()` has no frozen world for raises `UnknownIncident`, recorded as an
+`infrastructure_failure` rather than a fabricated verdict. Extending
 `_WORLD_BUILDERS` in `validator.py` for additional incidents is required before
 M7's real incidents can be validated, not before M6 itself is done — C1's test
 spec is buildable and provable against one frozen world.
