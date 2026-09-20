@@ -141,7 +141,7 @@ class Trickle(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
-        for i in range(0, len(body), 4):
+        for i in range(0, len(body), 4):          # ~ 35 pieces: seven seconds, if let be
             self.wfile.write(body[i:i + 4])
             self.wfile.flush()
             time.sleep(0.2)
@@ -160,25 +160,89 @@ def trickling():
 
 
 def test_a_request_in_flight_is_cut_at_the_deadline_and_keeps_its_reserve(tmp_path, trickling):
-    """The acceptance case for the wall clock: a body that trickles for seconds against a
-    deadline of half a second. The local run is free at the deadline — the worker that made
-    the request is killed — the ending names the bound, no response is recorded, and the
-    request's full reserve stays charged: the endpoint may have computed and billed it."""
+    """The acceptance case for the wall clock: a body that trickles for seven seconds against
+    a deadline of one. The local run is free at the deadline — the worker that made the
+    request is killed, waited for, its pipes closed, and it answers nothing afterwards — the
+    ending names the bound, no response is recorded, and the request's full reserve stays
+    charged: the endpoint may have computed and billed it. The elapsed bound is wide on
+    purpose: the claim is that the trickle cannot finish, not that a shared runner schedules
+    a process within a hundred milliseconds."""
     recorder = Recorder()
-    provider = paid(tmp_path, recorder, trickling, max_cost_usd=1.0, max_wall_clock_s=0.5)
+    provider = paid(tmp_path, recorder, trickling, max_cost_usd=1.0, max_wall_clock_s=1.0)
     started = time.monotonic()
     with pytest.raises(BoundExceeded) as hit:
         provider.respond()
     elapsed = time.monotonic() - started
     assert hit.value.bound == "max_wall_clock_seconds" and hit.value.sent is True
     assert "the request in flight was cut at the deadline" in str(hit.value)
-    assert 0.5 <= elapsed < 1.5, elapsed                  # the body would have taken ~ 4 s
+    assert 1.0 <= elapsed < 4.0, elapsed                  # the body needs ~ 7 s to arrive
     assert [e.kind for e in recorder.trace] == ["model_requested"]
     [requested] = recorder.trace
     ledger = aggregate(recorder.trace, PRICE)
     assert ledger.unknown == 1 and ledger.lower_bound_usd == 0.0
     assert ledger.worst_case_usd == Decimal(requested.payload["reserve_usd"])
+    worker = provider._worker
+    assert not worker.alive and worker._process.returncode is not None
+    assert worker._process.stdin.closed and worker._process.stdout.closed
+    assert not worker._reader.is_alive()
+    assert worker.ask({}, wait=1.0) == {"ok": False, "kind": "worker"}   # never reused
     provider.close()
+
+
+def test_a_worker_that_dies_or_babbles_is_our_failure_never_the_models(tmp_path, answering):
+    """A worker gone before it answers, or answering outside its protocol, is filed as the
+    provider's failure ("worker") — the run ends as an infrastructure failure, and the model
+    is not blamed for it."""
+    import queue
+
+    from adii.provider.openai_compatible import RequestWorker
+    recorder = Recorder()
+    provider = paid(tmp_path, recorder, answering, max_cost_usd=1.0)
+    provider._worker = RequestWorker()
+    provider._worker._process.kill()
+    provider._worker._process.wait()
+    with pytest.raises(ProviderFailure, match="provider worker") as failed:
+        provider.respond()
+    assert failed.value.kind == "worker" and not isinstance(failed.value, ReserveBreached)
+    provider.close()
+
+    class Babbling(RequestWorker):
+        def __init__(self):
+            self._replies = queue.Queue()
+            self._replies.put(b"not json at all\n")
+            self._ended = False
+            self._process = type("P", (), {"stdin": type("S", (), {
+                "write": lambda self, b: None, "flush": lambda self: None,
+                "closed": True, "close": lambda self: None})(),
+                "stdout": None, "poll": lambda self: 0, "wait": lambda self, timeout=None: 0,
+                "kill": lambda self: None, "returncode": 0})()
+            self._reader = threading.Thread(target=lambda: None)
+    provider = paid(tmp_path, Recorder(), answering, max_cost_usd=1.0)
+    provider._worker = Babbling()
+    with pytest.raises(ProviderFailure, match="provider worker"):
+        provider.respond()
+
+
+def test_the_credential_is_absent_from_the_workers_environment(tmp_path, answering,
+                                                                monkeypatch):
+    """The credential reaches the wire through the pipe, once per request, and the worker is
+    started without it: fewer copies, and a worker crash dump cannot contain it."""
+    import subprocess
+    seen: list[dict] = []
+    real = subprocess.Popen
+
+    def recording(*args, **kwargs):
+        seen.append(kwargs["env"])
+        return real(*args, **kwargs)
+    monkeypatch.setattr(module.subprocess, "Popen", recording)
+    monkeypatch.setenv("OPENAI_API_KEY", "not-a-real-key-for-this-test")
+    Answers.reply = {"choices": [{"message": {"role": "assistant", "content": "<STOP>"}}],
+                     "usage": {"prompt_tokens": 1, "completion_tokens": 1}}
+    provider = paid(tmp_path, Recorder(), answering, max_cost_usd=1.0)
+    assert provider.respond() == "<STOP>"
+    provider.close()
+    [environment] = seen
+    assert "OPENAI_API_KEY" not in environment and "PATH" in environment
 
 
 class Answers(BaseHTTPRequestHandler):

@@ -362,18 +362,51 @@ def test_the_request_count_and_the_wall_clock_are_bounds_of_their_own(tmp_path, 
     assert r.detail == "model_turns: 3 of 3 used" and len(FakeModel.seen) == 3
     assert r.configuration["max_model_requests"] == 3       # derived: one request per turn
 
-    monkeypatch.setattr(FakeModel, "delay", 2.0)
+    # the stand-in answers after six seconds; the deadline is one. The run is over well
+    # before the answer would have come — the bound is wide on purpose, so a slow runner
+    # cannot fail a correct cut — and the worker that made the request is gone.
+    monkeypatch.setattr(FakeModel, "delay", 6.0)
     FakeModel.script[:] = ['<TOOL_CALL>{"name": "get_schema", "arguments": {}}'] * 6
     assert cli.main(["--incident", INCIDENT, "--provider", "local", "--endpoint", endpoint,
                      "--model", "m", "--archive", str(tmp_path), "--label", "clock",
-                     "--max-wall-clock-seconds", "0.5"]) == 3
+                     "--max-wall-clock-seconds", "1"]) == 3
     r = read_record(tmp_path / "clock" / "record.json")
     assert r.termination == "bound_hit"
-    assert r.detail.startswith("max_wall_clock_seconds: 0.5") and r.detail.endswith(
-        "s elapsed of 0.500 s; the request in flight was cut at the deadline")
-    assert 500 <= r.latency_ms < 1200 and r.model_turns == 0   # cut at the deadline, not waited out
-    assert r.configuration["max_wall_clock_seconds"] == 0.5
+    assert r.detail.startswith("max_wall_clock_seconds: 1.") and r.detail.endswith(
+        "s elapsed of 1.000 s; the request in flight was cut at the deadline")
+    assert 1000 <= r.latency_ms < 4500 and r.model_turns == 0   # cut, not waited out
+    assert r.configuration["max_wall_clock_seconds"] == 1.0
     assert r.configuration["timeout_s"] == 120.0
+
+
+def test_every_character_survives_the_round_trip_through_the_worker(tmp_path, endpoint):
+    """The worker is spoken to over binary pipes in ASCII JSON, so no platform's text encoding
+    touches an incident or a reply: Arabic in the alert reaches the endpoint exactly, and
+    Arabic in the model's decision reaches the record exactly."""
+    brought = tmp_path / "brought"
+    brought.mkdir()
+    alert = "الإيرادات انخفضت ٤٥٪ بعد النشر — لماذا؟"
+    (brought / "incident.json").write_text(json.dumps({
+        "incident_id": "brought-1", "alert": alert, "as_of": "2026-09-19",
+        "permitted_write_paths": []}, ensure_ascii=False), encoding="utf-8")
+    (brought / "world.sql").write_text("CREATE TABLE orders (id INTEGER);", encoding="utf-8")
+    summary = "لا خطأ في البيانات: عقدان انتهيا في ٧ آذار. 日本語も。"
+    FakeModel.script[:] = [
+        '<TOOL_CALL>{"name": "get_schema", "arguments": {}}',
+        json.dumps({"disposition": "NO_REPAIR", "root_cause_id": None, "repair_id": None,
+                    "patch": {}, "root_cause_summary": summary}, ensure_ascii=False).join(
+            ("<DECISION>", ""))]
+    FakeModel.seen[:] = []
+    assert cli.main(["--incident-dir", str(brought), "--provider", "local", "--endpoint",
+                     endpoint, "--model", "m", "--archive", str(tmp_path / "runs")]) == 0
+    # the provider hands the incident to the model as a JSON document (ASCII-escaped, as
+    # json.dumps writes it); the endpoint received that document character for character
+    received = FakeModel.seen[0]["messages"][1]["content"]
+    handed = json.loads(received)
+    assert handed["alert"] == alert and json.dumps(handed, indent=1) == received
+    [folder] = [p for p in (tmp_path / "runs").iterdir() if p.is_dir()]
+    r = read_record(folder / "record.json")
+    assert r.context.alert == alert and r.decision.root_cause_summary == summary
 
 
 def test_the_tool_call_budget_is_the_executor_s_and_independent_of_turns(tmp_path, endpoint):

@@ -169,8 +169,12 @@ def _positive(name: str, value: object, whole: bool) -> None:
 
 
 class RequestWorker:
-    """`worker.py` as a process of this run's own, spoken to by lines; killable, so the
-    run's deadline can end a request the endpoint will not."""
+    """`worker.py` as a process of this run's own, spoken to by lines of ASCII JSON over
+    binary pipes (so no platform's text encoding touches them — every character of an
+    incident or a reply survives the round trip exactly); killable, so the run's deadline
+    can end a request the endpoint will not. One wait decides: the answer that arrives
+    within it wins, and once the wait has expired the worker is killed and any answer that
+    was on its way is discarded — the decision is never revisited by re-reading a clock."""
 
     def __init__(self) -> None:
         # The credential travels the pipe, once per request, and not the environment.
@@ -180,7 +184,9 @@ class RequestWorker:
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, env=environment,
             cwd=str(Path(__file__).resolve().parents[2]))
         self._replies: queue.Queue[bytes | None] = queue.Queue()
-        threading.Thread(target=self._read, daemon=True).start()
+        self._reader = threading.Thread(target=self._read, daemon=True)
+        self._reader.start()
+        self._ended = False
 
     def _read(self) -> None:
         for line in self._process.stdout:
@@ -189,7 +195,11 @@ class RequestWorker:
 
     def ask(self, request: dict[str, object], *, wait: float | None) -> dict | None:
         """The worker's answer to `request`, or None when `wait` seconds passed without one —
-        the request is then in flight, and the caller decides what that means."""
+        the request is then in flight, and the caller decides what that means. A worker that
+        is gone, or answers with something that is not its protocol, is a failure of ours,
+        filed as the provider's ("worker"), never as the model's."""
+        if self._ended:
+            return {"ok": False, "kind": "worker"}
         try:
             self._process.stdin.write(json.dumps(request).encode("utf-8") + b"\n")
             self._process.stdin.flush()
@@ -199,19 +209,42 @@ class RequestWorker:
             line = self._replies.get(timeout=wait)
         except queue.Empty:
             return None
-        return json.loads(line) if line is not None else {"ok": False, "kind": "worker"}
+        if line is None:
+            return {"ok": False, "kind": "worker"}
+        try:
+            answer = json.loads(line)
+        except ValueError:
+            return {"ok": False, "kind": "worker"}
+        return answer if isinstance(answer, dict) and "ok" in answer \
+            else {"ok": False, "kind": "worker"}
 
     def kill(self) -> None:
+        """End the worker now — and everything the parent holds of it: the process waited
+        for, the reader joined at the pipe's end, both pipes closed. Nothing reuses it."""
+        self._ended = True
         self._process.kill()
-        self._process.wait()
+        self._release()
 
     def close(self) -> None:
         """Let the worker finish and leave; kill it if it will not."""
+        self._ended = True
         try:
             self._process.stdin.close()
             self._process.wait(timeout=5)
         except (OSError, subprocess.TimeoutExpired):
-            self.kill()
+            self._process.kill()
+        self._release()
+
+    def _release(self) -> None:
+        self._process.wait()
+        self._reader.join(timeout=5)
+        for pipe in (self._process.stdin, self._process.stdout):
+            if pipe is not None and not pipe.closed:
+                pipe.close()
+
+    @property
+    def alive(self) -> bool:
+        return self._process.poll() is None
 
 
 class ChatProvider:
