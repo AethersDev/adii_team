@@ -5,8 +5,9 @@
 One GET of the endpoint's model list with the credential as a bearer header — a request
 that costs nothing — and a plain answer: accepted or refused (by status and structured
 code, never the body), and whether the model id is among those listed. The credential is
-read from the environment and printed nowhere. Exit 0 accepted and the model listed; 1
-refused, unreachable, or the model absent; 2 usage.
+read from the environment — or from the repository's `.env.local` when the environment
+lacks it, as the runtime and the demo read it — and printed nowhere. Exit 0 accepted and
+the model listed; 1 refused, unreachable, or the model absent; 2 usage.
 """
 from __future__ import annotations
 
@@ -16,6 +17,7 @@ import os
 import urllib.error
 import urllib.request
 
+from .credential import load_env_local
 from .openai_compatible import endpoint_may_carry_a_credential
 from .worker import error_code as _error_code
 
@@ -50,6 +52,11 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if not endpoint_may_carry_a_credential(args.endpoint):
         print(f"{args.endpoint!r}: https (unless on this machine), no query string, no userinfo")
+        return 2
+    try:
+        load_env_local()                 # the operator's file, when the shell has no key
+    except ValueError as bad:
+        print(bad)
         return 2
     credential = os.environ.get("OPENAI_API_KEY")
     if not credential:

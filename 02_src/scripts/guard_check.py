@@ -355,11 +355,12 @@ GUARDS = (
           "            except OSError as failed:       # no process to ask: ours, never the "
           "model's\n"
           "                raise\n"),
-    Guard("D.env_local_never_overwrites_the_environment", "D", "runtime/__main__.py",
+    Guard("D.env_local_never_overwrites_the_environment", "D", "provider/credential.py",
           "    if os.environ.get(\"OPENAI_API_KEY\"):\n        return\n"
-          "    path = root / ENV_LOCAL\n",
-          "    if False:\n        return\n    path = root / ENV_LOCAL\n"),
-    Guard("D.env_local_is_name_value_lines_only", "D", "runtime/__main__.py",
+          "    path = (REPO if root is None else root) / ENV_LOCAL\n",
+          "    if False:\n        return\n"
+          "    path = (REPO if root is None else root) / ENV_LOCAL\n"),
+    Guard("D.env_local_is_name_value_lines_only", "D", "provider/credential.py",
           "        if not equals or not name.isidentifier():\n",
           "        if False:\n"),
     Guard("D.max_tokens_refused_before_the_label", "D", "runtime/__main__.py",

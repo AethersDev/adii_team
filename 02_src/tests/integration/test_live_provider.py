@@ -176,13 +176,22 @@ PAID = ["--incident", INCIDENT, "--provider", "openai", "--model", "gpt-4.1-mini
 KEY = "sk-test-DISTINCTIVE-9f3a1c"
 
 
-def test_the_pre_flight_costs_nothing_and_says_accepted_refused_or_absent(endpoint,
+def test_the_pre_flight_costs_nothing_and_says_accepted_refused_or_absent(endpoint, tmp_path,
                                                                             monkeypatch, capsys):
-    """Before a cent is spent: one GET of the model list with the credential. The answer
+    """Before a cent is spent: one GET of the model list with the credential — from the
+    environment, or from the operator's `.env.local` as every entrypoint reads it. The answer
     names the status and the structured code on refusal, never the body, never the key."""
     from adii.provider.__main__ import main as preflight
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     assert preflight(["--check", "--model", "gpt-4.1-mini", "--endpoint", endpoint]) == 2
+    assert "not set" in capsys.readouterr().out
+    # tmp_path is the loader's root for every test (conftest): the operator's file is never read
+    (tmp_path / ".env.local").write_text(f"OPENAI_API_KEY={KEY}\n", encoding="utf-8")
+    FakeModel.authorization[:] = []
+    assert preflight(["--check", "--model", "gpt-4.1-mini", "--endpoint", endpoint]) == 0
+    assert FakeModel.authorization[-1] == f"Bearer {KEY}" and KEY not in capsys.readouterr().out
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    (tmp_path / ".env.local").unlink()
     monkeypatch.setenv("OPENAI_API_KEY", KEY)
     FakeModel.authorization[:] = []
     assert preflight(["--check", "--model", "gpt-4.1-mini", "--endpoint", endpoint]) == 0
@@ -266,7 +275,7 @@ def test_the_operators_env_local_is_read_when_the_shell_has_no_key(tmp_path, end
     where it always went, the wire, and appears in no artefact and no output. A file that is
     not NAME=value lines is refused before any label, by line number, never by value."""
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    monkeypatch.setattr(cli, "REPO", tmp_path)
+    monkeypatch.setattr("adii.provider.credential.REPO", tmp_path)   # conftest does too
     FakeModel.authorization[:] = []
     (tmp_path / ".env.local").write_text(f"# operator's\nOPENAI_API_KEY={KEY}\n", encoding="utf-8")
     assert cli.main([*PAID, "--endpoint", endpoint, "--archive", str(tmp_path / "runs"),

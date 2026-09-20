@@ -15,9 +15,8 @@ from __future__ import annotations
 import argparse
 
 from adii.demo.server import main
-from adii.provider import endpoint_is_local
-from adii.reporting.record import REPO
-from adii.runtime.__main__ import load_env_local, refused_bounds, refused_paid
+from adii.provider import endpoint_is_local, load_env_local
+from adii.runtime.__main__ import refused_bounds, refused_paid
 
 parser = argparse.ArgumentParser(prog="python -m adii.demo", description=__doc__)
 parser.add_argument("port", nargs="?", type=int, default=8000)
@@ -57,7 +56,7 @@ if args.model:
                          "--provider openai")
     if args.provider == "openai":
         try:
-            load_env_local(REPO)            # the operator's .env.local, when the shell has no key
+            load_env_local()            # the operator's .env.local, when the shell has no key
         except ValueError as why:
             raise SystemExit(str(why)) from None
         # the page may ask for any priced model, so no wire alias can stand for "the" model
