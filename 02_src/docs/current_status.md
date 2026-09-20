@@ -13,7 +13,7 @@ and a test fails the build when it is stale. Milestone marks come from
     [>]  M3 — Multi-step investigation              1/4
     [ ]  M4 — Structured terminal decision          2/4
     [ ]  M5 — Candidate repair and escalation       0/3
-    [ ]  M6 — Independent validation                0/4
+    [x]  M6 — Independent validation                4/4
     [ ]  M7 — End-to-end vertical slice             4/9
     [ ]  M8 — Reliability and failure handling      0/4
     [ ]  M9 — Freeze                                0/3
@@ -36,7 +36,7 @@ and a test fails the build when it is stale. Milestone marks come from
 ## Scaffold only — a README and an empty package
 
 ```text
-    validation
+    (none)
 ```
 
 ## Verification
