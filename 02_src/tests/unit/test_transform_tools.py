@@ -91,7 +91,9 @@ def write_bundle(folder, mapping: dict[str, str], sources: dict[str, str]):
     source_dir = folder / "transform_sources"
     source_dir.mkdir()
     for filename, source in sources.items():
-        (source_dir / filename).write_text(source, encoding="utf-8")
+        # bytes, not write_text: on Windows write_text turns "\n" into "\r\n", and the
+        # loader returns exactly what is on disk — which is the point of the test
+        (source_dir / filename).write_bytes(source.encode("utf-8"))
 
 
 def test_incident_bundle_loads_exact_source_under_logical_identity(tmp_path):
