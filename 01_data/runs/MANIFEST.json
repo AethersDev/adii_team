@@ -1,7 +1,7 @@
 {
   "schema": "adii.archive_manifest/v1",
-  "written_at": "2026-09-17T03:27:49+00:00",
-  "source_revision": "b09dc48598ff5b64dd258cb05c0207553bf9c75d",
+  "written_at": "2026-09-20T04:36:05+00:00",
+  "source_revision": "b4e4c01dc170b2c807ce5ae0a7424a8d2e3f5ab3",
   "entries": [
     {
       "path": "customer-region-misassigned-20260916T092358-161Z/receipt.json",
@@ -175,6 +175,24 @@
       "path": "demo-learning-001-20260916T140450Z/trace.jsonl",
       "bytes": 1996,
       "digest": "sha256:c22c9b8c79b07c345d79755042c643fcd37f9bc46c0dc4a8e36e7154ab418090",
+      "retention": "evidence"
+    },
+    {
+      "path": "demo-learning-001-20260917T131901-745Z/receipt.json",
+      "bytes": 1037,
+      "digest": "sha256:9a328744d36fc0e244fa74c625b841865d2445eb5de7d2e65b45efc6ef984d67",
+      "retention": "evidence"
+    },
+    {
+      "path": "demo-learning-001-20260917T131901-745Z/record.json",
+      "bytes": 6911,
+      "digest": "sha256:c1ba48b6d59ae6bf082128eac32dde7396232164de1b0a9469ae4ff242e9b7c4",
+      "retention": "evidence"
+    },
+    {
+      "path": "demo-learning-001-20260917T131901-745Z/trace.jsonl",
+      "bytes": 3852,
+      "digest": "sha256:ec35b90d20408c8395b8dd377ba9cdaeb5fb9575123a677a0551a2338dbae13f",
       "retention": "evidence"
     },
     {
@@ -364,6 +382,24 @@
       "retention": "evidence"
     },
     {
+      "path": "revenue-after-deploy-openai-41mini-smoke-1/receipt.json",
+      "bytes": 1847,
+      "digest": "sha256:5331038f37e906d23eb7f0f6680c5468b75ee1b6fcf4c4e8d49a82ae578c204e",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-after-deploy-openai-41mini-smoke-1/record.json",
+      "bytes": 2500,
+      "digest": "sha256:7f4b4df268b0a75e6844ca9f15b3b8c48e83e23fc532d76981c46efa8ed33a48",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-after-deploy-openai-41mini-smoke-1/trace.jsonl",
+      "bytes": 458,
+      "digest": "sha256:77f991e19f46e5a139267e02096ca2d6f68d507f1a72c9d15b6b7c515d90bf55",
+      "retention": "evidence"
+    },
+    {
       "path": "revenue-after-deploy-qwen4b-1/receipt.json",
       "bytes": 838,
       "digest": "sha256:f3a4276981340a4f75157924f58ada64fa9e6de01aa26b28bf58e14b28d61f8a",
@@ -547,6 +583,36 @@
       "path": "shipment-counts-disagree-run-1/record.json",
       "bytes": 4793,
       "digest": "sha256:bbe188c18358f0661ae8fa64f338dfe119ea5e68fd2f635fdd5cb7f7c082e005",
+      "retention": "evidence"
+    },
+    {
+      "path": "upload-4e0cb7b0c1-20260917T162244-828Z/incident.json",
+      "bytes": 138,
+      "digest": "sha256:a3b685a8f6761b10f4ed8cfa294bf79c3a4f387f27f4b568870d7a712b3521b0",
+      "retention": "evidence"
+    },
+    {
+      "path": "upload-4e0cb7b0c1-20260917T162244-828Z/receipt.json",
+      "bytes": 1037,
+      "digest": "sha256:78e89439ce4853489080cda8d47160235ed54fc307ae4a3e8352dac40020cb31",
+      "retention": "evidence"
+    },
+    {
+      "path": "upload-4e0cb7b0c1-20260917T162244-828Z/record.json",
+      "bytes": 9338,
+      "digest": "sha256:4973249963a62088637a3f8f04236f7f1f9cb765ed3522c3e27089a1b1dd62e7",
+      "retention": "evidence"
+    },
+    {
+      "path": "upload-4e0cb7b0c1-20260917T162244-828Z/trace.jsonl",
+      "bytes": 5588,
+      "digest": "sha256:e4793c750b7f7fd60ba7dc7d154c5078aec07984a1aa9dc2e6c5c65400cecce2",
+      "retention": "evidence"
+    },
+    {
+      "path": "upload-4e0cb7b0c1-20260917T162244-828Z/world.sql",
+      "bytes": 48822,
+      "digest": "sha256:726f54ebcd8da973ebb9213343df0f68e813bcc47ec14b8d84f2ee726a3a7cf1",
       "retention": "evidence"
     }
   ]
