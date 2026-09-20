@@ -35,10 +35,15 @@ Without a credential, a non-local endpoint. With one — the paid path, since 17
 the provider refuses to exist unless the receipt is already on disk (plan D-15), a nominal
 price and a spend cap above zero are given (D-12), and the endpoint is https unless on
 this machine. The credential goes on the wire as a bearer header and nowhere else: not
-the receipt, the trace, the record, the report, an error, or the endpoint string. A refused
-status, an unreachable host or a timeout is raised as `ProviderFailure` carrying only the
-status and the structured error code — never the body, which a 401 fills with the masked
-key — and the runtime files it as an infrastructure failure, not the model's (D-14).
+the receipt, the trace, the record, the report, an error, or the endpoint string — and to
+the endpoint configured only: the worker follows no redirect, since `urllib` would re-issue
+a 301, 302 or 303 as a GET at whatever host the Location named, bearer header still on it.
+A refused status, a redirect, an unreachable host, a timeout, or a 200 whose body is not a
+JSON object with `choices[0].message.content` is raised as `ProviderFailure` carrying only
+the status and the structured error code — never the body, which a 401 fills with the
+masked key — and the runtime files it as an infrastructure failure, not the model's (D-14).
+The model is blamed only for what a well-formed response says; a malformed one keeps
+whatever usage it carried, and a body that does not parse keeps the request's reserve.
 
 The cap is hard by admission. Before each request the provider reserves that request's
 worst case — every byte of every message counted as a token at the input rate (a byte-level

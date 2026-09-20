@@ -14,6 +14,11 @@ fills with the masked key it was sent. The provider waits at most the run's rema
 wall clock for that line and kills this process when it does not come. Killing the local
 request cannot stop the remote endpoint computing or billing what it already received,
 which is why a request cut in flight keeps its full reserve in the ledger.
+
+No redirect is followed. The endpoint contacted is the endpoint configured, and the
+credential goes to it and nowhere else: `urllib` would otherwise re-issue a 301, 302 or 303
+as a GET at whatever host the Location header named, the bearer header still on it and the
+body gone. Any 3xx is the endpoint's refusal to answer, reported as `http` with its status.
 """
 from __future__ import annotations
 
@@ -23,12 +28,22 @@ import urllib.error
 import urllib.request
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Every 3xx is left as the HTTPError it arrived as; nothing is re-sent anywhere."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+_OPENER = urllib.request.build_opener(_NoRedirect)
+
+
 def transact(request: dict) -> dict:
     """One request as the provider described it, one structured answer."""
     sent = urllib.request.Request(request["url"], data=request["body"].encode("utf-8"),
                                   method="POST", headers=request["headers"])
     try:
-        with urllib.request.urlopen(sent, timeout=request["timeout_s"]) as response:
+        with _OPENER.open(sent, timeout=request["timeout_s"]) as response:
             return {"ok": True, "status": response.status,
                     "body": response.read().decode("utf-8")}
     except urllib.error.HTTPError as refused:

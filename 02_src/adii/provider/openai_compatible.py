@@ -27,11 +27,12 @@ runs out the worker is killed and the run ends as a bound hit — the local run 
 past its deadline, whatever the endpoint does. The endpoint may still have computed and
 billed what it received, so a request cut in flight keeps its full reserve in the ledger.
 
-A failure of the endpoint — a refused status, an unreachable host, a socket that stalled
-past the endpoint's own timeout — is the provider's, never the model's, and is raised as
-`ProviderFailure` carrying structured fields only: a status, a code, a kind. Never the
-response body, which a 401 fills with the masked key it was sent; the body of a refusal is
-read in the worker and does not cross to this process.
+A failure of the endpoint — a refused status, a redirect, an unreachable host, a socket that
+stalled past the endpoint's own timeout, a 200 whose body is not the API's shape — is the
+provider's, never the model's, and is raised as `ProviderFailure` carrying structured fields
+only: a status, a code, a kind. Never the response body, which a 401 fills with the masked
+key it was sent; the body of a refusal is read in the worker and does not cross to this
+process. The model is blamed only for what a well-formed response says.
 
 The credential is held by this object and put on the wire by the worker; it is never
 recorded, never echoed in an error, and never part of the endpoint string.
@@ -158,6 +159,21 @@ def estimator(price: Price) -> str:
     return (f"utf-8 bytes of every message + {TOKENS_PER_MESSAGE} per message + "
             f"{TOKENS_PER_REQUEST} per request; conservative for {price.tokenizer}, a byte-level "
             "BPE in which a token covers at least one byte")
+
+
+_NO_MESSAGE = object()     # the reply has no choices[0].message.content to read
+
+
+def _content_of(reply: dict) -> object:
+    """`choices[0].message.content` as the API promises it — a string, or null when the
+    model answered with no text — or `_NO_MESSAGE` when the body has no such place: the
+    endpoint's failure to answer in the API's shape, which is never the model's."""
+    choices = reply.get("choices")
+    first = choices[0] if isinstance(choices, list) and choices else None
+    message = first.get("message") if isinstance(first, dict) else None
+    if not isinstance(message, dict) or "content" not in message:
+        return _NO_MESSAGE
+    return message["content"]
 
 
 def _positive(name: str, value: object, whole: bool) -> None:
@@ -349,7 +365,10 @@ class ChatProvider:
         if self._credential is not None:
             headers["Authorization"] = f"Bearer {self._credential}"
         if self._worker is None:
-            self._worker = RequestWorker()
+            try:
+                self._worker = RequestWorker()
+            except OSError as failed:       # no process to ask: ours, never the model's
+                raise ProviderFailure("worker") from failed
         answer = self._worker.ask({"url": self._url, "body": json.dumps(body), "headers": headers,
                                    "timeout_s": self._timeout}, wait=remaining)
         if answer is None:                 # the deadline passed with the request in flight
@@ -358,10 +377,18 @@ class ChatProvider:
         if not answer["ok"]:
             raise ProviderFailure(answer["kind"], status=answer.get("status"),
                                   code=answer.get("code"))
-        reply = json.loads(answer["body"])
-        content = reply["choices"][0]["message"]["content"]
+        # A 200 is not yet an answer. A body that is not a JSON object carries nothing to
+        # trust, not even a bill: no response is recorded and the request keeps its reserve.
+        try:
+            reply = json.loads(answer["body"])
+        except ValueError:
+            reply = None
+        if not isinstance(reply, dict):
+            raise ProviderFailure("malformed", status=answer.get("status"))
         # The response is evidence before it is text: its usage and fingerprint are recorded
-        # whatever the content turns out to be, so a bill is never lost to a null.
+        # whatever the content turns out to be, so a bill is never lost to a null or to a
+        # body whose shape is wrong.
+        content = _content_of(reply)
         self._recorder.event("model_responded", {
             "turn": self._turn, "content": content if isinstance(content, str) else None,
             "usage": reply.get("usage"), "fingerprint": reply.get("system_fingerprint")})
@@ -369,6 +396,8 @@ class ChatProvider:
             billed = priced(reply.get("usage"), self._price)
             if billed is not None and billed > reserve:
                 raise ReserveBreached(self._turn, billed, reserve)
+        if content is _NO_MESSAGE:          # the API's shape, not the model's answer, is missing
+            raise ProviderFailure("malformed", status=answer.get("status"))
         if not isinstance(content, str):
             raise ValueError("the endpoint answered without text content")
         text = content.strip()
