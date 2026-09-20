@@ -84,7 +84,10 @@ writing as that rule requires (the first, on 16 September, allowed a local model
 ```
 
 The wrapper is the operator's, outside this repository: whatever puts `OPENAI_API_KEY`
-into this process's environment from wherever the operator keeps it. The server asks the
+into this process's environment from wherever the operator keeps it — or, since 20
+September, the repository's ignored `.env.local` (`.env.example` names the one variable),
+read for that name only when the environment lacks it; the shell's value always wins, and
+the file is the operator's convenience, not the provider's contract. The server asks the
 runtime's own question (`refused_paid`) before it binds a port — a priced model, a cap
 above zero, an endpoint that carries no secret, the credential present — and stops the
 process with the reason when any fails; a page never renders a "credential missing" state

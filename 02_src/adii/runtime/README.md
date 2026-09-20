@@ -124,8 +124,10 @@ request counted as unknown.
 
 ## What it does not do yet
 
-- **Validate.** No independent validator exists (build plan M6); a live REPAIR carries the
-  one truthful verdict — not checked, therefore not accepted.
+- **Validate.** The independent validator exists (build plan M6, `validation/validator.py`)
+  but is not wired here: `live.py` still supplies `NoValidatorYet`, so a live REPAIR
+  carries the one truthful verdict — not checked, therefore not accepted. Wiring it, with
+  authorization (is the target permitted) kept a separate question, is M7's next box.
 
 ## How to test it
 

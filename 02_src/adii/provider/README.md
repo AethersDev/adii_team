@@ -1,6 +1,8 @@
-# The model boundary — SPIKE
+# The model boundary
 
-**Local endpoints only. Not merged to main until the trace event contract's rows resolve.**
+**On main since 16 September, labelled a spike while trace-contract rows 1, 5 and 6 stay
+open: the placeholders it writes for them are replaced in place when the rows resolve.
+Local endpoints, and since 17 September paid ones behind a receipt, a price and a cap.**
 
 The one package that talks to a model. `ChatProvider` sits behind A's `respond()` seam and
 speaks A's protocol — `<TOOL_CALL>`, `<DECISION>`, `<STOP>` — to an OpenAI-compatible chat
@@ -87,8 +89,9 @@ OPENAI_API_KEY=... python -m adii.runtime --incident revenue-after-deploy --prov
 provider and the tools the runtime is already watching. A's two ending exceptions map to
 two termination classes by type, never by message. A stop with no decision has no class
 yet (contract row 5) and is mapped to `model_failure` with the detail saying so — the one
-policy choice this spike makes that main must not. No validator exists (build plan M6), so
-a live REPAIR carries the only truthful verdict: not checked, not accepted, no finding.
+policy choice this spike makes that main must not. The validator (build plan M6) is not
+yet wired into `live.py`, so a live REPAIR carries the only truthful verdict: not checked,
+not accepted, no finding.
 
 ## What the first live runs showed on 15 September
 

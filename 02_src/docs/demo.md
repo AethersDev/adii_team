@@ -97,7 +97,7 @@ a slide:
     REPAIR     NO_REPAIR    ESCALATE
        │           │           │
      CHECK         │           │      "Is this change allowed?"  (a slot: today it
-       │           │           │       answers 'not checked' — the checker is next)
+       │           │           │       answers 'not checked' — wiring the checker is next)
        └───────────┴───────────┘
                    │
                PRESERVE          "What did it see and do?"
@@ -115,7 +115,7 @@ with function calling and a log?"* — gets a yes:
 
 | tempting line | why not | say instead |
 |---|---|---|
-| "its action is independently checked" | no validator exists (M6); every live REPAIR reads *not checked by a validator* | "a repair it proposes is not applied — today by anyone; the checker that would decide is the next thing built" |
+| "its action is independently checked" | the validator exists (M6) but is not wired into the live runtime; every live REPAIR reads *not checked by a validator* | "a repair it proposes is not applied — today by anyone; the checker exists, and wiring it in front of the action is the next thing built" |
 | "it cannot invent evidence" | citations are not checked against minted ids yet (D-3) | "every request and answer is on the record; you can tell whether it looked" |
 | "custody preserves exactly what the system saw" | the record holds every tool result, but `model_requested` records a message *count*: the prompt and tool schemas sent are not in the record (contract row 1) | "everything it saw of the data is in the record" |
 | "scored against truth the investigator never saw" | the key is authored from the specimen's own world, which the investigator could have queried; what it cannot reach is the key file | "scored by a different program against a key it cannot reach" |
@@ -160,7 +160,7 @@ BEFORE ACTION
 1. Is the target permitted?          (R0: a repair where no path was permitted)
 2. Is the proposed repair executable? (41-2: SQL against a table that does not exist)
 3. Is the action supported by observed evidence?   (41-2: "likely incorrect")
-4. Does the independent validator accept it?       (M6 — the slot every live REPAIR shows as 'not checked')
+4. Does the independent validator accept it?       (M6 built, not wired — the slot every live REPAIR shows as 'not checked')
 ```
 
 This is not a spotless demo, and that is the point: we ran the system, it exposed a real
@@ -199,9 +199,10 @@ the morning of.
 
 ## Running it
 
-With the model the demo opens on — gpt-4.1, the paid path — the server is started through
-the operator's credential wrapper, so that `OPENAI_API_KEY` is in the server's environment
-and nowhere else; the wrapper is outside the repository and is not shown here. The
+With the model the demo opens on — gpt-4.1, the paid path — the server is started with
+`OPENAI_API_KEY` in its environment and nowhere else: through the operator's credential
+wrapper, outside the repository and not shown here, or from the ignored `.env.local` beside
+`.env.example`, which the server reads for that one name when the environment lacks it. The
 pre-flight first, free, so the credential is known good before the audience is in the
 room — the server checks that the credential is *present*, not that the provider accepts
 it; then the server, with the twenty-turn bound 41-2 ran under and a cap (41-2's was $0.50;

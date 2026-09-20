@@ -3,8 +3,8 @@
     python -m adii.runtime --incident demo-learning-001 --provider scripted
 
 `scripted` replays the investigator and the validator from the walkthrough's recorded run — no
-model runs and no validator exists yet — and drives them through the real runtime over the
-real tool layer, against the walkthrough world. The record that lands in the archive was
+model runs — and drives them through the real runtime over the real tool layer, against the
+walkthrough world. The record that lands in the archive was
 produced, not assembled, and its observations are what the tools actually returned.
 
     python -m adii.runtime --incident orders-missing-day --provider local \
@@ -21,13 +21,17 @@ is written all the same, before the investigator runs, on every path.
 `openai` is the same loop against a paid endpoint. Every precondition is checked before
 the label is claimed: the model has a nominal price in reporting/ledger.py, the cap is
 above zero, the endpoint is https and carries no secret, the credential is in the
-environment — and never in the command line, the receipt, the trace or the record. The
+environment — and never in the command line, the receipt, the trace or the record. When
+the environment lacks it, `<repo>/.env.local` (ignored by git; `.env.example` names it)
+is read for that one name, so a rehearsal is one command; the environment is the contract,
+the file the operator's convenience, and a value already set is never overwritten. The
 receipt names the cap and who permitted the spend. The cap is hard: before each request the
 provider reserves its worst case — every byte of the messages as a token at the input rate,
 `max_tokens` at the output rate — and a request whose reserve would cross the cap is not
 sent; the record's cost is the ledger's lower bound, proved usage at nominal prices, with
-the unknown rows counted. No validator exists yet, so a live REPAIR carries a verdict that
-says exactly that: not checked, therefore not accepted, and no finding about the repair.
+the unknown rows counted. The validator (M6) is not yet wired into the live path, so a live
+REPAIR carries a verdict that says exactly that: not checked, therefore not accepted, and no
+finding about the repair.
 
 Six bounds, each its own resource, each named in the `bound_hit` it causes: `--max-turns`
 (A's model turns), `--max-tool-calls` (the executor's), `--max-model-requests` (the
@@ -67,7 +71,7 @@ from ..reporting import render_run, write_record
 from ..reporting.ledger import BYTE_LEVEL_TOKENIZERS, PRICES, aggregate, reserve_for
 from ..reporting.receipts import NAME as RECEIPT
 from ..reporting.receipts import digest_of, write_receipt
-from ..reporting.record import ARCHIVE, reserve
+from ..reporting.record import ARCHIVE, REPO, reserve
 from ..tools import (
     EVIDENCE_BUNDLES,
     ReadOnlyDatabase,
@@ -264,6 +268,38 @@ def refused_bounds(max_turns: int, max_tool_calls: int, max_model_requests: int,
     return None
 
 
+ENV_LOCAL = ".env.local"
+
+
+def load_env_local(root: Path) -> None:
+    """The operator's convenience, never the provider's contract: when OPENAI_API_KEY is not
+    in the environment and `root/.env.local` is a file, that one name is read from it into
+    the environment. Bare `NAME=value` lines, blank lines and `#` comments; any other line
+    is refused by number — a value is never printed — and a quoted value is refused rather
+    than guessed at. Nothing else in the file is read, and a value already in the
+    environment is never overwritten, so the shell's word always stands."""
+    if os.environ.get("OPENAI_API_KEY"):
+        return
+    path = root / ENV_LOCAL
+    if not path.is_file():
+        return
+    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        name, equals, value = (part.strip() for part in line.partition("="))
+        if not equals or not name.isidentifier():
+            raise ValueError(f"{ENV_LOCAL} line {number}: expected NAME=value")
+        if name != "OPENAI_API_KEY":
+            continue
+        if value[:1] in ("'", '"'):
+            raise ValueError(f"{ENV_LOCAL} line {number}: OPENAI_API_KEY must be the bare "
+                             "value, unquoted")
+        if value:
+            os.environ["OPENAI_API_KEY"] = value
+        return
+
+
 def refused_paid(model: str | None, max_cost_usd: float, endpoint: str,
                  served_as: str | None, max_tokens: int) -> str | None:
     """Why a paid run may not start, or None. Every precondition of spending, checked
@@ -378,6 +414,11 @@ def main(argv: list[str] | None = None) -> int:
         print("--provider local needs --model <id the endpoint serves>")
         return 2
     if args.provider == "openai":
+        try:
+            load_env_local(REPO)
+        except ValueError as bad:                   # a file that is not NAME=value lines
+            print(bad)
+            return 2
         why = refused_paid(args.model, args.max_cost_usd, args.endpoint, args.served_as,
                            args.max_tokens)
         if why:

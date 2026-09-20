@@ -355,6 +355,13 @@ GUARDS = (
           "            except OSError as failed:       # no process to ask: ours, never the "
           "model's\n"
           "                raise\n"),
+    Guard("D.env_local_never_overwrites_the_environment", "D", "runtime/__main__.py",
+          "    if os.environ.get(\"OPENAI_API_KEY\"):\n        return\n"
+          "    path = root / ENV_LOCAL\n",
+          "    if False:\n        return\n    path = root / ENV_LOCAL\n"),
+    Guard("D.env_local_is_name_value_lines_only", "D", "runtime/__main__.py",
+          "        if not equals or not name.isidentifier():\n",
+          "        if False:\n"),
     Guard("D.max_tokens_refused_before_the_label", "D", "runtime/__main__.py",
           "    if isinstance(max_tokens, bool) or not isinstance(max_tokens, int) "
           "or max_tokens <= 0:\n",

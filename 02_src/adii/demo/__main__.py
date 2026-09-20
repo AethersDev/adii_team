@@ -3,9 +3,10 @@
 [--max-model-requests N] [--max-wall-clock-seconds S] [--max-cost-usd USD] [--max-tokens N]].
 Without --model the page is read-only. With it, runs may be started from the page: against
 a local model by default, costing nothing; against a paid one when the operator says
-`--provider openai` and starts this process with OPENAI_API_KEY in its environment — the
-credential wrapper's job, outside this repository. Every precondition of spending is checked
-here, before a port is bound, and stops the process; the page never learns of credentials.
+`--provider openai` and starts this process with OPENAI_API_KEY in its environment — or in
+the repository's ignored `.env.local`, read for that one name when the environment lacks it.
+Every precondition of spending is checked here, before a port is bound, and stops the
+process; the page never learns of credentials.
 The flags are each run's default and the ceiling a request from the page may not pass; every
 bound the runtime has is set here, so a run from the page runs under exactly the bounds a
 run from the command line would, and /api/launch reports each of them."""
@@ -15,7 +16,8 @@ import argparse
 
 from adii.demo.server import main
 from adii.provider import endpoint_is_local
-from adii.runtime.__main__ import refused_bounds, refused_paid
+from adii.reporting.record import REPO
+from adii.runtime.__main__ import load_env_local, refused_bounds, refused_paid
 
 parser = argparse.ArgumentParser(prog="python -m adii.demo", description=__doc__)
 parser.add_argument("port", nargs="?", type=int, default=8000)
@@ -54,6 +56,10 @@ if args.model:
                          "nothing because it is on this machine — for a paid one, say "
                          "--provider openai")
     if args.provider == "openai":
+        try:
+            load_env_local(REPO)            # the operator's .env.local, when the shell has no key
+        except ValueError as why:
+            raise SystemExit(str(why)) from None
         # the page may ask for any priced model, so no wire alias can stand for "the" model
         why = (refused_paid(args.model, args.max_cost_usd, args.endpoint, args.served_as,
                             args.max_tokens)
