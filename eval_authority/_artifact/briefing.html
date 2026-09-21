@@ -1,0 +1,288 @@
+<title>ADII Requirement Mapping</title>
+<style>
+  :root{
+    --bg:#ffffff;
+    --surface:#ffffff;
+    --panel:#fafaf9;
+    --ink:#141414;
+    --ink-dim:#6b6b68;
+    --line:#e7e5e0;
+    --rust:#c1440e;
+    --rust-bg:#fdece3;
+    --good:#3f6b3f;
+    --good-bg:#eaf1e6;
+    --code-bg:#f1efe9;
+    --code-ink:#8a4a1f;
+    --blue:#3a5a8c;
+    --blue-bg:#e9eef6;
+    --shadow: 0 1px 2px rgba(20,20,20,.04);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#121212;
+      --surface:#1a1a19;
+      --panel:#1c1c1a;
+      --ink:#f0efec;
+      --ink-dim:#a3a19b;
+      --line:#333330;
+      --rust:#e2794a;
+      --rust-bg:#3a2318;
+      --good:#8fbf8a;
+      --good-bg:#1f2c1e;
+      --code-bg:#242320;
+      --code-ink:#e2a172;
+      --blue:#8fb2e8;
+      --blue-bg:#1c2a3c;
+      --shadow: 0 1px 2px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#121212;
+    --surface:#1a1a19;
+    --panel:#1c1c1a;
+    --ink:#f0efec;
+    --ink-dim:#a3a19b;
+    --line:#333330;
+    --rust:#e2794a;
+    --rust-bg:#3a2318;
+    --good:#8fbf8a;
+    --good-bg:#1f2c1e;
+    --code-bg:#242320;
+    --code-ink:#e2a172;
+    --blue:#8fb2e8;
+    --blue-bg:#1c2a3c;
+    --shadow: 0 1px 2px rgba(0,0,0,.4);
+  }
+
+  * { box-sizing: border-box; }
+  body{
+    background: var(--bg);
+    color: var(--ink);
+    margin:0;
+    font-family: "Inter", -apple-system, "Segoe UI", sans-serif;
+    padding-inline: 20px;
+    padding-block: 40px;
+    line-height:1.55;
+  }
+  .wrap{ max-width: 860px; margin:0 auto; }
+
+  code, .mono{ font-family:"IBM Plex Mono","Consolas",monospace; }
+
+  .eyebrow{
+    display:flex; align-items:center; gap:8px;
+    font-size:12.5px; font-weight:700; letter-spacing:.08em; color:var(--rust);
+    margin-bottom:18px;
+  }
+  .eyebrow::before{ content:""; width:22px; height:3px; background:var(--rust); border-radius:2px; }
+
+  h1{
+    font-size: clamp(28px,4.4vw,38px); font-weight:800; letter-spacing:-0.01em;
+    margin:0 0 14px; text-wrap:balance;
+  }
+  .lede{ font-size:15.5px; color:var(--ink-dim); max-width:60ch; margin-bottom:26px; }
+
+  .req-box{
+    background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--rust);
+    border-radius:8px; padding:16px 20px; margin-bottom:36px; box-shadow:var(--shadow);
+  }
+  .req-box .tag{ font-size:11px; font-weight:700; letter-spacing:.08em; color:var(--rust); margin-bottom:6px; }
+  .req-box p{ margin:0; font-size:14.5px; font-style:italic; color:var(--ink); }
+
+  section{ margin-bottom:40px; }
+  .sec-head{ display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+  .num{
+    width:26px; height:26px; border-radius:7px; background:var(--rust); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; flex:none;
+  }
+  .sec-head h2{ font-size:19px; font-weight:800; margin:0; }
+
+  /* Section 1 — three-way disposition */
+  .three{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  @media (max-width:640px){ .three{ grid-template-columns:1fr; } }
+  .disp{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px; box-shadow:var(--shadow); }
+  .disp .name{ display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:12.5px; font-weight:700;
+    padding:3px 9px; border-radius:6px; margin-bottom:10px; }
+  .disp.repair .name{ background:var(--good-bg); color:var(--good); }
+  .disp.norepair .name{ background:var(--blue-bg); color:var(--blue); }
+  .disp.escalate .name{ background:var(--rust-bg); color:var(--rust); }
+  .disp p{ margin:0; font-size:13px; color:var(--ink-dim); }
+
+  /* Section 2 — pipeline */
+  .pipeline{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+  .step{
+    font-family:"IBM Plex Mono",monospace; font-size:13px; background:var(--code-bg); color:var(--code-ink);
+    border:1px solid var(--line); border-radius:7px; padding:8px 14px; font-weight:600;
+  }
+  .arrow{ color:var(--ink-dim); font-size:15px; }
+
+  /* Loop strip */
+  .loopwrap{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:22px 20px 20px; box-shadow:var(--shadow); }
+  .loop-note{ font-size:13.5px; color:var(--ink-dim); margin:0 0 16px; }
+  .loop{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; justify-content:center; }
+  .loop-step{
+    font-family:"IBM Plex Mono",monospace; font-size:12.5px; font-weight:700;
+    border-radius:8px; padding:9px 13px; text-align:center; white-space:nowrap;
+  }
+  .loop-step.baseline{ background:var(--blue-bg); color:var(--blue); border:1px solid color-mix(in srgb, var(--blue) 35%, transparent); }
+  .loop-step.core{ background:var(--rust-bg); color:var(--rust); border:1px solid color-mix(in srgb, var(--rust) 35%, transparent); }
+  .loop-step.gate{ background:var(--good-bg); color:var(--good); border:1px solid color-mix(in srgb, var(--good) 35%, transparent); }
+  .loop-arrow{ color:var(--ink-dim); font-size:14px; }
+  .scored{ margin-top:18px; padding-top:16px; border-top:1px dashed var(--line); }
+  .scored .tag{ font-size:11px; font-weight:700; letter-spacing:.08em; color:var(--ink-dim); margin-bottom:10px; }
+  .scored ul{ margin:0; padding:0; list-style:none; display:grid; grid-template-columns:repeat(3,1fr); gap:8px 16px; }
+  @media (max-width:640px){ .scored ul{ grid-template-columns:1fr 1fr; } }
+  .scored li{ font-size:13px; display:flex; align-items:center; gap:7px; }
+  .scored li::before{ content:""; width:5px; height:5px; border-radius:50%; background:var(--rust); flex:none; }
+
+  /* Section 3 — requirement rows */
+  .row{
+    display:grid; grid-template-columns: 1fr 28px 1fr; gap:14px; align-items:start;
+    padding:16px 0; border-bottom:1px solid var(--line);
+  }
+  .row:last-child{ border-bottom:none; }
+  @media (max-width:640px){ .row{ grid-template-columns:1fr; gap:8px; } .row .mid{ display:none; } }
+  .row .tag{ font-size:10.5px; font-weight:700; letter-spacing:.08em; color:var(--ink-dim); margin-bottom:4px; }
+  .row .ask .tag{ color:var(--ink-dim); }
+  .row .ours .tag{ color:var(--rust); }
+  .row p{ margin:0; font-size:14px; }
+  .row .mid{ display:flex; align-items:center; justify-content:center; color:var(--ink-dim); padding-top:20px; }
+  .fix{ background:var(--code-bg); color:var(--code-ink); font-family:"IBM Plex Mono",monospace; font-size:12.5px; padding:1px 6px; border-radius:5px; }
+  .note-fixed{ display:inline-block; margin-top:8px; font-size:12px; background:var(--good-bg); color:var(--good); padding:3px 9px; border-radius:6px; font-weight:600; }
+
+  /* arms table */
+  .arms{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:14px; }
+  @media (max-width:640px){ .arms{ grid-template-columns:1fr; } }
+  .arm{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px 16px; box-shadow:var(--shadow); }
+  .arm .name{ font-weight:800; font-size:13.5px; margin-bottom:4px; color:var(--rust); }
+  .arm p{ margin:0; font-size:12.5px; color:var(--ink-dim); }
+
+  /* Section 4 */
+  .callout{
+    background:var(--good-bg); border-radius:10px; padding:16px 20px; font-size:14px;
+    border:1px solid color-mix(in srgb, var(--good) 30%, transparent);
+  }
+  .callout b{ color:var(--good); }
+
+  footer{ margin-top:36px; padding-top:16px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-dim); font-family:"IBM Plex Mono",monospace; }
+</style>
+
+<div class="wrap">
+
+  <div class="eyebrow">TEAM BRIEFING</div>
+  <h1>Mapping ADII to the &ldquo;End-to-End Agent Evaluation&rdquo; requirement</h1>
+  <p class="lede">What the requirement asks for, next to what our project actually does &mdash; including the evaluation loop that closes it.</p>
+
+  <div class="req-box">
+    <div class="tag">REQUIREMENT</div>
+    <p>&ldquo;Run a full evaluation cycle on a tool-using agent: capture traces, compare a baseline against an improved version, and make a release decision from the results &mdash; judging observable behavior only, never the model's internal reasoning.&rdquo;</p>
+  </div>
+
+  <section>
+    <div class="sec-head"><span class="num">1</span><h2>The agent's decision</h2></div>
+    <div class="three">
+      <div class="disp repair">
+        <span class="name">REPAIR</span>
+        <p>The defect is real &mdash; here is the bounded fix.</p>
+      </div>
+      <div class="disp norepair">
+        <span class="name">NO_REPAIR</span>
+        <p>The state is legitimate; no action.</p>
+      </div>
+      <div class="disp escalate">
+        <span class="name">ESCALATE</span>
+        <p>Outside the agent's authority to decide.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="num">2</span><h2>Evaluation pipeline</h2></div>
+    <div class="pipeline">
+      <span class="step">investigate</span><span class="arrow">&rarr;</span>
+      <span class="step">trace</span><span class="arrow">&rarr;</span>
+      <span class="step">decision</span><span class="arrow">&rarr;</span>
+      <span class="step">validate</span><span class="arrow">&rarr;</span>
+      <span class="step">report</span>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="num">3</span><h2>The evaluation loop &mdash; not just the pipeline</h2></div>
+    <div class="loopwrap">
+      <p class="loop-note">The pipeline above runs <em>once per decision</em>. The requirement's harder ask is the loop that runs <em>around</em> it &mdash; evaluate, diagnose what failed, improve, and prove the improvement on data the model never saw:</p>
+      <div class="loop">
+        <span class="loop-step baseline">BASELINE (B0)</span><span class="loop-arrow">&rarr;</span>
+        <span class="loop-step core">EVALUATE</span><span class="loop-arrow">&rarr;</span>
+        <span class="loop-step core">FAILURE TAXONOMY</span><span class="loop-arrow">&rarr;</span>
+        <span class="loop-step core">IMPROVE</span><span class="loop-arrow">&rarr;</span>
+        <span class="loop-step baseline">P1</span><span class="loop-arrow">&rarr;</span>
+        <span class="loop-step gate">FREEZE</span><span class="loop-arrow">&rarr;</span>
+        <span class="loop-step gate">UNSEEN EVALUATION</span><span class="loop-arrow">&rarr;</span>
+        <span class="loop-step gate">RELEASE / HOLD</span>
+      </div>
+      <div class="scored">
+        <div class="tag">WHAT IS SCORED, AT EVERY LAP</div>
+        <ul>
+          <li>Investigation</li>
+          <li>Grounding</li>
+          <li>Authority</li>
+          <li>Validation</li>
+          <li>Final disposition</li>
+          <li>Cost / latency / bounds</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="num">4</span><h2>Requirement &larr; our equivalent</h2></div>
+    <div>
+      <div class="row">
+        <div class="ask"><div class="tag">ASK</div><p>Real tools, not free text</p></div>
+        <div class="mid">&rarr;</div>
+        <div class="ours"><div class="tag">OURS</div>
+          <p>Governed <span class="fix">adii/tools/</span> layer. Tool calls are scored by correct governed behavior; a correctly denied unauthorized call is a valid outcome.</p>
+          <span class="note-fixed">wording fixed &mdash; was: &ldquo;a DENIED result counts as success&rdquo;</span>
+        </div>
+      </div>
+      <div class="row">
+        <div class="ask"><div class="tag">ASK</div><p>Baseline vs. improved comparison</p></div>
+        <div class="mid">&rarr;</div>
+        <div class="ours"><div class="tag">OURS</div>
+          <p>Three explicit arms isolate one variable at a time:</p>
+          <div class="arms">
+            <div class="arm"><div class="name">Always-escalate</div><p>No model; deterministic control</p></div>
+            <div class="arm"><div class="name">Alert-only</div><p>Same model, same prompt, zero tools</p></div>
+            <div class="arm"><div class="name">Full ADII</div><p>Same model with governed evidence tools</p></div>
+          </div>
+          <span class="note-fixed">wording fixed &mdash; was: &ldquo;no model, and model-with-no-tools&rdquo;</span>
+        </div>
+      </div>
+      <div class="row">
+        <div class="ask"><div class="tag">ASK</div><p>Release decision from results</p></div>
+        <div class="mid">&rarr;</div>
+        <div class="ours"><div class="tag">OURS</div><p><span class="fix">evaluation_report.json</span> with an explicit outcome category, produced only after the freeze &rarr; unseen evaluation gate above.</p></div>
+      </div>
+      <div class="row">
+        <div class="ask"><div class="tag">ASK</div><p>Testing without an API key</p></div>
+        <div class="mid">&rarr;</div>
+        <div class="ours"><div class="tag">OURS</div><p><span class="fix">scripted</span> provider runs the same real path at no cost.</p></div>
+      </div>
+      <div class="row">
+        <div class="ask"><div class="tag">ASK</div><p>Score observable behavior only</p></div>
+        <div class="mid">&rarr;</div>
+        <div class="ours"><div class="tag">OURS</div><p>Scoring reads only the recorded trace, decision and validation.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section style="margin-bottom:8px;">
+    <div class="sec-head"><span class="num">5</span><h2>What we add beyond that</h2></div>
+    <div class="callout">
+      <b>Strict architectural separation:</b> the agent cannot import the scoring code or the answer key &mdash; enforced by automated tests, not team convention.
+    </div>
+  </section>
+
+  <footer>Code reference: adii_team/02_src/adii/evaluation/</footer>
+
+</div>

@@ -1,0 +1,46 @@
+{
+  "semantics_version": "1",
+  "frozen_at": "2026-09-15",
+  "frozen_by": "Person C — Evaluation & Reliability",
+  "governs": "scoring.py and judge.py as they exist in eval_authority/ at freeze time",
+  "purpose": "CONFORMANCE.md C6: what 'correct' and 'incorrect' mean is fixed here, in writing, before any real InvestigationRun is scored — so a later change to this meaning is a new, ratified version, never a silent edit to the code that changes what a past result meant.",
+
+  "rules": [
+    {
+      "id": "R1",
+      "statement": "A decision's disposition must equal the answer key's correct_disposition exactly, or the decision is incorrect. There is no partial credit and no near-miss allowance at this step.",
+      "implemented_by": "scoring.score_disposition"
+    },
+    {
+      "id": "R2",
+      "statement": "A REPAIR disposition is incorrect if no ValidationResult is supplied, or if the supplied ValidationResult has accepted == false — regardless of how correct the diagnosis was. Non-REPAIR dispositions are unaffected by this rule (trivially pass it).",
+      "implemented_by": "scoring.score_repair_validation"
+    },
+    {
+      "id": "R3",
+      "statement": "For a REPAIR decision that passes R1 and R2, the decision is correct without a judge call only if BOTH root_cause_id equals the answer key's correct_root_cause_id AND repair_id equals repair_must_satisfy.reference_repair_id. If either differs, the case is routed to the judge agent — never auto-passed on a match of only one of the two, and never auto-failed on a mismatch of only one of the two.",
+      "implemented_by": "scoring.decide_route"
+    },
+    {
+      "id": "R4",
+      "statement": "The judge agent's verdict on a routed case is final for that case: 'correct' or 'incorrect', with reasoning. The judge evaluates whether the decision counts as correct against the answer key's stated repair_must_satisfy conditions — it never re-opens whether the answer key itself (correct_disposition, correct_root_cause_id, or reference_repair_id) is right.",
+      "implemented_by": "judge.judge_repair, judge.JUDGE_PROMPT_TEMPLATE"
+    },
+    {
+      "id": "R5",
+      "statement": "A judge reply is parsed as a verdict only if it begins with the literal word 'correct' or 'incorrect' at a word boundary (followed by whitespace, punctuation, or end of string). A reply where the verdict word is a fragment of a longer word (e.g. 'Correctish') is not a valid verdict and scoring must raise rather than guess.",
+      "implemented_by": "judge.parse_judge_reply"
+    },
+    {
+      "id": "R6",
+      "statement": "A case that reaches needs_judge_review with no judge supplied is reported as 'unresolved', settled_by 'none' — never silently scored as either correct or incorrect.",
+      "implemented_by": "scoring.score_decision"
+    }
+  ],
+
+  "explicitly_not_covered_by_this_version": [
+    "grounding / decisive-evidence checks (C3, grounding.py) — a separate authority, checked separately, not part of what 'correct' means here",
+    "cost, latency, or tool-call-count thresholds — not a correctness criterion at all",
+    "partial credit of any kind for a disposition mismatch (R1 has none, by design)"
+  ]
+}
