@@ -120,8 +120,18 @@ state.
 **Done when**
 - [x] state is a value, inspectable and serialisable
 - [ ] a decision can cite the evidence ids it rests on
-- [ ] a run with different observations takes a different path
+- [x] a run with different observations takes a different path
 - [ ] the trace shows why the loop continued
+
+Reconciled 20 September against the merged tree. The different path is proved by
+`test_investigator_loop.py::test_accumulated_result_content_causes_different_next_tool_call`
+and `test_task_a_end_to_end.py::test_multi_step_repair_with_causally_derived_second_query`.
+Citation is not a contract property yet: `InvestigationDecision` has no field for evidence
+ids, and `root_cause_id` is used two ways — the frozen key's cause vocabulary
+(`DISTRIBUTOR_CONTRACTS_ENDED`) and, in live runs, an observation id (`ev-…`); settling it
+is a contract decision. Why the loop continued is in A's own trace (`decision_rejected`,
+`loop_stopped`, `budget_exceeded`) which the runtime discards by design; which events are
+canonical is trace-contract row D-1, open.
 
 ---
 
@@ -137,6 +147,13 @@ validation of the model's output.
 - [ ] a malformed model answer is a scored failure, not a crash
 - [ ] every claim cites an evidence id that exists
 - [x] all three dispositions are reachable
+
+Reconciled 20 September. Not a crash is proved (`test_structurally_invalid_decision_is_rejected_and_loop_continues`,
+`test_malformed_tool_call_json_is_rejected_without_executor_dispatch`; a run that never
+recovers lands as `bound_hit` or `model_failure`, archived); *scored* is not — the
+evaluation authority scores submitted runs only and says so
+(`evaluation_report.py`), so the box waits on C's decision whether a failed termination is a
+scored category. Citation against minted ids is D-3, open.
 
 ---
 
@@ -182,7 +199,12 @@ signature has no parameter a rehearsal claim could arrive through
 stand-in — a live REPAIR is rebuilt from frozen inputs and actually checked, proven
 by `test_live_provider.py::test_a_live_repair_is_checked_by_the_real_validator`.
 `NoValidatorYet` itself stays in `live.py`, unused on this path, until the D-1 trace
-contract resolves what its remaining callers (if any) should do instead.
+contract resolves what its remaining callers (if any) should do instead. What a
+REPAIR's verdict *is* when the world it patches cannot be rebuilt — every incident
+but `demo-learning-001` today — is proposed 20 September in
+[m7_validation_integration.md](m7_validation_integration.md): a runtime adapter,
+NOT_CHECKABLE for worlds the validator cannot rebuild, authorization recorded apart.
+Not yet agreed.
 
 **Only incident covered**: `demo-learning-001` (the walkthrough world). An incident
 `validate()` has no frozen world for raises `UnknownIncident`, recorded as an
@@ -215,10 +237,20 @@ contract (`plan_telemetry.md` D-1) and the adapter that wires A into the runtime
 
 **Complete when**, with no provider call, no judge and no development catalogue:
 - [ ] A's loop is invoked by the real runtime, with the scripted provider
-- [ ] it uses B's real tools, and their observation ids are carried, never re-minted
-- [ ] one canonical trace is recorded at the boundaries — never A's trace and the runtime's merged afterwards
+- [x] it uses B's real tools, and their observation ids are carried, never re-minted
+- [x] one canonical trace is recorded at the boundaries — never A's trace and the runtime's merged afterwards
 - [ ] every ending passes through the runtime boundary and lands as a termination class, a stop without a decision included
-- [ ] the result is one `adii.run_record/v1` in the archive that the inspector renders
+- [x] the result is one `adii.run_record/v1` in the archive that the inspector renders
+
+Reconciled 20 September. `runtime/live.py` invokes A's `run()` with the runtime's own tool
+executor and discards A's returned trace; `test_live_provider.py::test_a_live_run_leaves_one_record_with_one_trace`
+holds one record, one trace, every observation id minted by B at the boundary (A has no
+minting code — the boundary tests forbid it I/O); the inspector tests and
+`test_the_product_path_in_a_browser.py` render the result. Two boxes stay open on their
+letter, not their mechanics: the composition is driven through the real provider against a
+scripted *endpoint* (`fake_model.py`), not A's `ScriptedProvider` — and `--provider
+scripted` replays the walkthrough without A's loop; and a stop without a decision lands as
+`model_failure` with a detail saying that class is a placeholder (trace-contract row 5).
 
 **Done when** — the original four, proven by the scripted slice on 13 September
 - [x] one command, one incident, one run artifact
@@ -233,10 +265,25 @@ contract (`plan_telemetry.md` D-1) and the adapter that wires A into the runtime
 **Goal** The system behaves defensibly when the model, a tool, or the environment misbehaves.
 
 **Done when**
-- [ ] a model error is recorded as a model error, not a platform error
+- [x] a model error is recorded as a model error, not a platform error
 - [ ] a tool timeout is a `ToolResult`, not an exception escaping the loop
-- [ ] budgets and stopping hold under bad input
+- [x] budgets and stopping hold under bad input
 - [ ] cost and latency are measured from the trace
+
+Reconciled 20 September. Endings translate by exception type, never by message
+(`runtime/live.py`; `test_endings_translate_by_type_never_by_message`), and since 20
+September the converse holds too — a 200 that is not the API's shape, a redirect, a worker
+that cannot start are the provider's, never the model's. Bounds of zero, negative, `inf` or
+`nan` are refused before any label (`test_a_bound_that_binds_nothing_is_refused_before_any_label`,
+`test_bounds.py`), a malformed answer spends a turn and the budget still ends the run
+(`test_invalid_decision_on_final_permitted_turn_reaches_existing_budget_error`), tool calls past
+the cap are DENIED, a trickling endpoint is cut at the deadline, the cost cap admits the
+worst case — 71 guards. Two boxes are open on their letter: a runaway query is interrupted
+and returned as a REJECTED `ToolResult` (`database.py`, `test_a_runaway_query_is_interrupted_and_sent_back`),
+but by an execution budget in SQLite instructions, deterministic, not a timeout in seconds —
+the team decides whether that is the criterion; cost is measured from the trace
+(`ledger.aggregate` over `model_requested`/`model_responded`) but `latency_ms` is a wall
+clock around the run (`run.py`), not derived from the trace.
 
 ---
 

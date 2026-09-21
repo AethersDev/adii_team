@@ -3,8 +3,10 @@
 A four-person project on a six-week clock. Code arrives faster than it can be reviewed,
 so the constraints below are load-bearing rather than stylistic.
 
-**This file is generated from `02_src/docs/agent_briefing.md`. Edit that, not this — a test
-asserts they match.**
+**The block between the BEGIN/END markers is generated from
+`02_src/docs/agent_briefing.md` and shared with `AGENTS.md`. Edit that, then run
+`python 02_src/scripts/sync_briefing.py` — a test asserts they match. The sections after
+the block are this file's own.**
 
 <!-- BEGIN ADII BRIEFING -->
 ## For any AI assistant working in this repository
@@ -136,3 +138,83 @@ can explain to a large one they cannot.
 Top-level `01_data/ 02_src/ 03_assets/` is the submission structure, used from day one so
 there is no packaging migration at the deadline. Code goes in `02_src/`, data the system
 reads goes in `01_data/`, and nothing that states an answer goes in either.
+
+## Commands
+
+```bash
+python -m pytest                                                # the suite; pyproject sets pythonpath=02_src
+python -m pytest 02_src/tests/unit/test_env_local.py -k twice   # one file, one test by name
+python -m pytest 02_src/tests/architecture -q                   # the boundaries alone — CI's first test step
+python -m ruff check 02_src                                     # rules E F I UP B, line length 100
+python 02_src/scripts/guard_check.py --only D                   # one track's guards; --list prints the registry
+python -m adii.examples.walkthrough                             # end to end without a model; CI runs it too
+python -m adii.demo 8000 --model <id> --endpoint http://127.0.0.1:8090/v1 --served-as default_model
+```
+
+- Every test has a 60 s thread-based timeout. A test over budget is refactored; the budget
+  is not raised.
+- `guard_check.py` rewrites source files in place and restores them byte for byte. Never run
+  it while pytest or an editor may touch the tree. Exit 0 only when every guard is KILLED.
+- The browser tests find Chrome through `ADII_CHROME` or on PATH; without it they skip
+  locally and fail on CI. They occasionally flake in a full local run and pass alone; rerun
+  the file by itself before blaming a change.
+- `02_src/tests/eval_authority/test_step1_all.py` and `test_step2_all.py` are gitignored on
+  purpose: they need blind answer keys that are not in the repository.
+
+## Generated files — edit the source, run the sync
+
+| Generated | Source | Sync |
+|---|---|---|
+| the briefing block of `CLAUDE.md` and `AGENTS.md` | `02_src/docs/agent_briefing.md` | `python 02_src/scripts/sync_briefing.py` |
+| `02_src/docs/current_status.md` | the `- [x]` marks in `02_src/docs/build_plan.md`, plus the packages' line counts | `python 02_src/scripts/sync_status.py` |
+| `02_src/adii/demo/web/{tokens,base,components}.css` | `03_assets/identity/css/` | `python 02_src/scripts/sync_identity.py` |
+
+CI runs each sync and fails on any diff, and a test does the same locally.
+
+## How a run flows — what no single file says
+
+- **The runtime is the harness.** `run_incident` in `02_src/adii/runtime/run.py` drives three
+  protocols (Investigator, Tools, Validator), wraps the tools so every call and result lands
+  in the trace as it happens, lets only a REPAIR reach the validator, and archives every
+  ending under `01_data/runs/<label>/`: `receipt.json` before anything runs, `trace.jsonl`
+  as it happens, `record.json` at the end. Termination is one of four closed values:
+  `submitted`, `model_failure`, `bound_hit`, `infrastructure_failure`. A label names one
+  run forever; a taken label is refused, never overwritten.
+- **Three providers on `python -m adii.runtime`.** `scripted` replays the walkthrough over
+  the real tool layer with no model. `local` runs the investigator loop against an
+  OpenAI-compatible endpoint on this machine and spends nothing. `openai` is the paid path:
+  a receipt on disk first, a nominal price in `reporting/ledger.py`, a hard cap enforced by
+  worst-case reserve before each request, the credential from the environment or from the
+  ignored `.env.local` (`.env.example` names it) and nowhere in any artefact.
+- **`02_src/adii/provider/` is the only package that speaks to a model.** It is absent from
+  `system_map.md`'s table; `stack.md` describes it. `ChatProvider` records `model_requested`
+  and `model_responded` at the boundary, before the loop parses anything. HTTP runs in a
+  killable subprocess (`worker.py`) started without the key in its environment; no redirect
+  is followed; a failure comes back as `ProviderFailure` with kind, status and error code,
+  never a body. `runtime/live.py` classifies endings by exception type only:
+  `BoundExceeded` is `bound_hit`, `ProviderFailure` is `infrastructure_failure`, anything
+  else is `model_failure`. Never classify by message text.
+- **Cost is two numbers.** The record carries the lower bound (proved usage at nominal
+  prices). Admission uses the exact worst case (unknown rows at the reserve that admitted
+  them, `Decimal`). Neither is ever called a total, and a run of unknown rows is never 0.0.
+- **The validator exists but is not wired into the live path.** `validation/validator.py`
+  rebuilds `demo-learning-001` from the walkthrough world; `runtime/live.py` still carries
+  `NoValidatorYet`. How it is wired is decided row by row in
+  `02_src/docs/m7_validation_integration.md`; do not wire ahead of that record.
+- **The trace vocabulary is a contract in progress.** `02_src/docs/trace_event_contract.md`
+  lists the open rows; placeholders such as `usage` on `model_responded` move when a row
+  resolves. Do not invent event kinds.
+- **The guard registry is per track.** Rows are named `A.`, `B.`, `C.`, `D.` for the loop,
+  the tools, evaluation, and telemetry/runtime/provider. Each names a file and an exact
+  snippet; a snippet that moved fails the pass, so refactor guarded lines with the registry
+  open.
+
+## Conventions this team holds beyond the briefing
+
+- A change to a contract or to shared vocabulary is written up as a proposal with a per-row
+  decision table (APPROVED / REVISE / DEFER; see `02_src/docs/green_line.md` and
+  `02_src/docs/m7_validation_integration.md`). The resolution is a new commit; history is
+  never amended.
+- Nothing committed contains an absolute path.
+- Windows and macOS parity is enforced: LF line endings via `.gitattributes`, Python 3.12
+  only (`>=3.12,<3.13`), `pytest` and `ruff` pinned in `requirements.txt`.

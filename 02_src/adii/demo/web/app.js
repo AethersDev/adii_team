@@ -24,8 +24,6 @@
  * and a report that executes what the model wrote is inherited defect D12. Text nodes
  * cannot execute. */
 const SCHEMA = "adii.run_record/v1";
-const INVESTIGATOR = "ADII, the investigator";
-const VALIDATOR = "the validator, not ADII";
 const CHIP = {
   REPAIR: ["adii-chip--repair", "g-repair"],
   NO_REPAIR: ["adii-chip--no-repair", "g-no-repair"],
@@ -73,7 +71,7 @@ function outcome(row) {
   if (row.error) return plain("unreadable", "g-unresolved");
   if (row.disposition) {
     return el("span", "run__outcome", chip(row.disposition),
-      row.validation ? PHRASING.verdict[row.validation] ?? row.validation : "");
+      row.validation ? PHRASING.verdictLabelOf(row.validation, row.model) : "");
   }
   return plain(PHRASING.outcome[row.termination]?.() ?? row.termination, "g-unresolved");
 }
@@ -506,32 +504,38 @@ function story(r, compact = false, label = r.label, evaluation = null) {
     scriptedNote(cfg.model)));
 
   if (d) {
-    out.append(record("system", "What it concluded", `Asserted by ${INVESTIGATOR}`,
+    out.append(record("system", "What it concluded", PHRASING.by.investigator(r),
       el("p", "adii-assertion", d.root_cause_summary),
       el("p", "adii-field__hint adii-mt-sm", PHRASING.disposition[d.disposition]),
       el("p", "adii-mt-sm", el("b", null, "Action "), PHRASING.action[d.disposition]),
       d.root_cause_id ? meta(["Root cause id", d.root_cause_id]) : ""));
   } else {
     out.append(record("system", "Why there is no decision",
-      `Reported by ${r.termination === "infrastructure_failure" ? "the runtime" : INVESTIGATOR}`,
+      r.termination === "infrastructure_failure" ? PHRASING.by.runtime : PHRASING.by.investigator(r),
       el("p", "adii-measure", PHRASING.ended[r.termination]?.(r) ?? r.termination),
       el("p", "adii-field__hint adii-mt-2xs", "In the record's words: ", mono(r.detail))));
   }
 
   /* what it looked at: every answered request, one line each — a projection of the trace,
    * so a decision reached without looking reads as exactly that */
-  const looked = r.trace.filter((e) => e.kind === "tool_result" && e.payload.status === "OK");
+  const results = r.trace.filter((e) => e.kind === "tool_result");
+  const looked = results.filter((e) => e.payload.status === "OK");
+  const refused = results.filter((e) => e.payload.status === "DENIED" || e.payload.status === "REJECTED").length;
+  const failed = results.filter((e) => e.payload.status === "ERROR").length;
   const asked = Object.fromEntries(r.trace.filter((e) => e.kind === "tool_call")
     .map((e) => [e.payload.call_id, e.payload]));
+  /* every attempt counted, the refused ones beside the answered: a correct refusal is the
+   * boundary working, and a list of observations alone would hide that it happened */
   out.append(record("system", "What it looked at",
-    `Recorded by the runtime · ${PHRASING.product.looked(looked.length)}`,
+    `${PHRASING.by.runtime} · ${PHRASING.product.attempts(requests, looked.length, refused, failed)}`,
     looked.length
       ? el("ul", "looked", ...looked.map((e) => el("li", "looked__item",
           el("span", null, `${e.payload.name}${describeArgs(asked[e.payload.call_id]?.arguments)}`),
           " — ", PHRASING.turn.answered(e.payload),
           ...(e.payload.content && e.payload.content.evidence_id
             ? [" ", mono(e.payload.content.evidence_id)] : []))))
-      : el("p", "adii-field__hint", PHRASING.product.lookedAtNothing)));
+      : el("p", "adii-field__hint", requests
+          ? PHRASING.product.nothingAnswered(requests) : PHRASING.product.lookedAtNothing)));
 
   const rounds = turns(r.trace);
   out.append(el("details", "adii-panel tech investigation",
@@ -539,13 +543,16 @@ function story(r, compact = false, label = r.label, evaluation = null) {
     record("operator", "The incident", "Reported by the operator",
       el("p", "adii-measure", c.alert),
       meta(["As of", c.as_of],
-           ["May write", c.permitted_write_paths.length ? c.permitted_write_paths.join(", ") : "nothing"])),
+           [PHRASING.product.declaredPaths, c.permitted_write_paths.length
+             ? c.permitted_write_paths.join(", ") : PHRASING.product.declaredNone]),
+      el("p", "adii-field__hint adii-mt-2xs", PHRASING.product.declaredPathsHint)),
     record("system", "The investigation, turn by turn",
-      `Recorded by the runtime as it happened · ${rounds.length} turn${rounds.length === 1 ? "" : "s"}`,
-      el("ol", "turns", ...rounds.map((turn, i) => turnCard(turn, i, r.validation))))));
+      `${PHRASING.by.runtime} as it happened · ${rounds.length} turn${rounds.length === 1 ? "" : "s"}`,
+      el("ol", "turns", ...rounds.map((turn, i) =>
+        turnCard(turn, i, r.validation, PHRASING.scriptedRun(r)))))));
 
   if (d && d.repair_id) {
-    out.append(record("system", "The change it proposed", `Proposed by ${INVESTIGATOR}. Not applied by anyone.`,
+    out.append(record("system", "The change it proposed", PHRASING.by.proposed(r),
       defs(["Repair", d.repair_id]),
       ...Object.entries(d.patch).flatMap(([path, body]) => [
         el("p", "adii-claim__label adii-mt-md", path),
@@ -554,20 +561,23 @@ function story(r, compact = false, label = r.label, evaluation = null) {
   }
 
   if (r.validation) {
-    const v = r.validation, verdict = PHRASING.verdictOf(v);
-    const mark = { ACCEPT: ["pass", "g-pass"], REJECT: ["fail", "g-fail"], UNCHECKED: ["none", "g-none"] }[verdict];
-    out.append(record("validator", "What the validator said", `Asserted by ${VALIDATOR}`,
-      el("p", null, PHRASING.validation[{ ACCEPT: "accepted", REJECT: "rejected", UNCHECKED: "unchecked" }[verdict]]),
+    const v = r.validation, verdict = PHRASING.verdictOf(v), scripted = PHRASING.scriptedRun(r);
+    /* verdict colour belongs to the validator alone: a scripted preset is drawn achromatic,
+     * like an absence, and its word says it was scripted */
+    const mark = scripted || verdict === "UNCHECKED" ? ["none", "g-none"]
+      : { ACCEPT: ["pass", "g-pass"], REJECT: ["fail", "g-fail"] }[verdict];
+    out.append(record("validator", PHRASING.validation.title(r), PHRASING.by.validator(r),
+      el("p", null, PHRASING.validation.said(r)),
       el("div", "adii-verdicts", el("div", `adii-check adii-check--${mark[0]}`,
         glyph(mark[1], "adii-check__mark"),
         el("p", "adii-check__body",
           el("span", "adii-check__name", "candidate repair"), " ",
-          el("span", "adii-check__verdict", verdict), " ",
+          el("span", "adii-check__verdict", scripted && verdict !== "UNCHECKED" ? `${verdict} · scripted` : verdict), " ",
           el("span", "adii-check__note", v.report)))),
       v.checks_run.length ? el("p", "adii-field__hint adii-mt-sm", "Checks run: ",
         ...v.checks_run.flatMap((check, i) => [i ? ", " : "", mono(check)])) : ""));
   } else if (d) {
-    out.append(record("validator", "Validation", `Held by ${VALIDATOR}`,
+    out.append(record("validator", "Validation", PHRASING.by.runtime,
       el("p", null, plain("not evaluated", "g-none")),
       el("p", "adii-field__hint adii-mt-sm", PHRASING.validation.notInvoked)));
   }
@@ -578,14 +588,14 @@ function story(r, compact = false, label = r.label, evaluation = null) {
     const e = evaluation;
     const v = r.validation;
     const atRuntime = v === null ? "none" : v.accepted ? "accepted" : v.checks_run.length ? "rejected" : "unchecked";
-    out.append(record(null, "What the evaluation said",
-      "Asserted by the evaluation authority, against an answer key ADII never saw",
+    out.append(record(null, "What the evaluation said", PHRASING.evaluation.by,
       el("p", "adii-assertion", PHRASING.evaluation[e.category] ?? e.category),
       meta(["category", e.category], ...(e.sub_kind ? [["sub kind", e.sub_kind]] : []),
         ...(e.verdict ? [["verdict", e.verdict]] : []),
         ...(e.settled_by ? [["settled by", PHRASING.evaluation.settledBy[e.settled_by] ?? e.settled_by]] : []),
         ...(e.reason ? [["reason", e.reason]] : [])),
-      el("p", "adii-field__hint adii-mt-sm", `At runtime: ${PHRASING.evaluation.runtime[atRuntime]}.`)));
+      el("p", "adii-field__hint adii-mt-sm", `At runtime: ${PHRASING.evaluation.runtime[atRuntime]}.`),
+      el("p", "adii-field__hint adii-mt-2xs", PHRASING.evaluation.keys)));
   }
 
   if (!compact) out.append(feedbackBlock(label));
@@ -661,7 +671,7 @@ function turns(trace) {
 /* `validation` is the record's: the trace event says only whether the repair was accepted,
  * and the verdict's third state — not checked — is stated by the record's `checks_run`. The
  * live view has no record yet, so it leaves that line to the story that replaces it. */
-function turnCard(turn, i, validation) {
+function turnCard(turn, i, validation, scripted = false) {
   const by = (kind) => turn.events.find((e) => e.kind === kind);
   const call = by("tool_call"), result = by("tool_result"), said = by("model_responded");
   const decided = by("decision_submitted"), validated = by("validation_completed");
@@ -679,7 +689,7 @@ function turnCard(turn, i, validation) {
       : el("p", "turn__result", PHRASING.turn.unanswered));
   }
   if (decided) body.append(el("p", "turn__what", PHRASING.turn.decided(decided.payload.disposition)));
-  if (validated && validation) body.append(el("p", "turn__what", PHRASING.turn.validated(validation)));
+  if (validated && validation) body.append(el("p", "turn__what", PHRASING.turn.validated(validation, scripted)));
   if (!call && !decided && !validated) {
     body.append(said
       ? el("div", null, el("p", "turn__what", PHRASING.turn.wrote), el("blockquote", "turn__quote", said.payload.content))

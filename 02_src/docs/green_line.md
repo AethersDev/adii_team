@@ -12,6 +12,10 @@ the same incident with the second run revealing nothing the first did not.** Aft
 nothing that is added may sit on the canonical path: every improvement must be removable
 without changing what the sequence produces.
 
+What may be claimed at each release level, what is demonstrated and what is missing, and
+the gates in order are [release_evidence.md](release_evidence.md), written 21 September
+from an adversarial review of this tree; this page stays the integration backlog.
+
 ## The line, 16 September 2026
 
 | # | property | demonstrated by | state |
@@ -359,7 +363,9 @@ What we are missing that the old system had or paid for, ranked by what it chang
 5. **The write-path gate.** R0 archived a REPAIR on an incident with no permitted write
    path. Whether a patch outside `permitted_write_paths` is rejected by the loop (a
    sibling of the evidence gate, `decision_policy.md`), refused by the runtime, or left
-   to the validator (M6) decides whether Moment 2 can exist before M6.
+   to the validator (M6) decides whether Moment 2 can exist before M6. Proposed 20
+   September, [m7_validation_integration.md](m7_validation_integration.md) row 4:
+   recorded by the runtime as its own fact, refused by nobody, seen by no validator.
 6. **Reading what may be written.** `permitted_write_paths` names files the investigator
    can never read; the only tools are `get_schema` and `run_sql`. Whether the world carries
    transform sources as a bounded, allow-listed read (`get_transform(path)` over exactly
