@@ -194,17 +194,17 @@ signature has no parameter a rehearsal claim could arrive through
 `ValidatorProvider` shape for offline scoring
 (`test_validation_wired_into_evaluation.py`).
 
-**Wired 18 September**: `runtime/__main__.py`'s `--provider local` path now builds
-`validation.validator.Validator()` instead of `runtime/live.py`'s `NoValidatorYet`
-stand-in — a live REPAIR is rebuilt from frozen inputs and actually checked, proven
-by `test_live_provider.py::test_a_live_repair_is_checked_by_the_real_validator`.
-`NoValidatorYet` itself stays in `live.py`, unused on this path, until the D-1 trace
-contract resolves what its remaining callers (if any) should do instead. What a
-REPAIR's verdict *is* when the world it patches cannot be rebuilt — every incident
-but `demo-learning-001` today — is proposed 20 September in
-[m7_validation_integration.md](m7_validation_integration.md): a runtime adapter,
-NOT_CHECKABLE for worlds the validator cannot rebuild, authorization recorded apart.
-Not yet agreed.
+**Wired 21 September, interim**: `runtime/__main__.py`'s live path builds
+`runtime/live.py`'s `ValidatorOnLivePath` — the real `validation.validator.Validator()`,
+asked by attempt, with exactly one translation: the validator's `UnknownIncident` becomes
+the placeholder verdict (*not checked*, no finding), never an infrastructure failure that
+would lose the model's decision. Proven by
+`test_live_provider.py::test_a_live_repair_is_checked_by_the_real_validator` (a live
+REPAIR on `demo-learning-001` rebuilt and accepted) and
+`::test_a_live_repair_on_a_world_the_validator_cannot_rebuild_is_not_checked_not_lost`.
+This is rows 1 and 2 of [m7_validation_integration.md](m7_validation_integration.md) in
+their interim form; NOT_CHECKABLE with a reason code (row 3, a contract change) and the
+authorization fact (row 4) wait on the decision record.
 
 **Only incident covered**: `demo-learning-001` (the walkthrough world). An incident
 `validate()` has no frozen world for raises `UnknownIncident`, recorded as an
