@@ -232,11 +232,36 @@ function launcher(preset) {
   ask.rows = 3;
   ask.maxLength = 2000;                       /* the server's limit, said here first */
   ask.placeholder = PHRASING.product.askFor;
-  const files = el("input", "adii-input");
+  const askCount = el("p", "adii-field__hint adii-char-count");
+  const updateAskCount = () =>
+    askCount.replaceChildren(`${ask.value.length} / ${ask.maxLength}`);
+  ask.oninput = updateAskCount;
+  updateAskCount();
+  const files = el("input", "adii-upload__input");
   files.type = "file";
   files.id = "launch-files";
   files.accept = ".csv,text/csv";
   files.multiple = true;
+  const fileList = el("ul", "adii-upload__list");
+  /* the input's own FileList cannot be edited in place, so a removal is written back as a
+   * fresh DataTransfer with that one file left out — the input stays the source of truth */
+  const removeFile = (name) => {
+    const rest = [...files.files].filter((f) => f.name !== name);
+    const transfer = new DataTransfer();
+    rest.forEach((f) => transfer.items.add(f));
+    files.files = transfer.files;
+    updateFileList();
+  };
+  const updateFileList = () => fileList.replaceChildren(
+    ...[...files.files].map((f) => {
+      const remove = el("button", "adii-upload__remove", "×");
+      remove.type = "button";
+      remove.setAttribute("aria-label", `Remove ${f.name}`);
+      remove.onclick = () => removeFile(f.name);
+      return el("li", "adii-upload__item",
+        el("span", "adii-upload__name", f.name), remove);
+    }));
+  files.onchange = updateFileList;
   const select = el("select", "adii-select");
   select.id = "launch-incident";
   const examples = el("details", "settings example");
@@ -310,20 +335,31 @@ function launcher(preset) {
     el("p", "adii-type-sm adii-mt-sm", PHRASING.product.exampleWhat),
     el("div", "adii-toolbar",
       el("div", "adii-field", el("label", "adii-field__label", "Incident"), select), example));
-  return el("section", "adii-panel howto",
-    el("h2", "adii-panel__title", PHRASING.product.ask),
-    el("div", "adii-field", ask),
-    el("div", "adii-field", el("label", "adii-field__label", PHRASING.product.yourData), files,
-      el("p", "adii-field__hint", PHRASING.product.dataHint)),
-    el("div", "adii-toolbar", investigate),
+  /* whether a run can start right now, next to the question that starts one — not buried
+   * in the footer, several screens' worth of scroll from the button it answers */
+  const runningNote = el("p", "launcher__status", ...(running
+    ? [plain("busy", "g-unresolved"), " ",
+       link("adii-nav__link", PHRASING.product.busy(running.label), `#r/${encodeURIComponent(running.label)}`)]
+    : [plain("idle", "g-none"), " ", PHRASING.product.idle]));
+  return el("section", "adii-panel howto launcher",
+    el("div", "launcher__head",
+      el("h2", "adii-panel__title", PHRASING.product.ask),
+      runningNote),
+    el("div", "adii-field",
+      ask,
+      askCount),
+    el("div", "adii-field",
+      el("label", "adii-field__label", PHRASING.product.yourData),
+      el("div", "adii-upload",
+        files,
+        fileList,
+        el("p", "adii-upload__hint", PHRASING.product.dataHint))),
     summary,
+    el("div", "adii-toolbar", investigate),
+    status,
     el("details", "settings", el("summary", null, "Run settings"),
       el("div", "adii-toolbar", ...[modelField, costField, turnsField].filter(Boolean))),
-    examples,
-    el("p", "adii-field__hint", ...(running
-      ? [link("adii-nav__link", PHRASING.product.busy(running.label), `#r/${encodeURIComponent(running.label)}`)]
-      : [PHRASING.product.idle])),
-    status);
+    examples);
 }
 
 /* A run with no model was scripted. Said wherever such a run is shown, so a screenshot can
