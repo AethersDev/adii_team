@@ -83,6 +83,21 @@ OPENAI_API_KEY=... python -m adii.runtime --incident revenue-after-deploy --prov
     --model gpt-4.1-mini --max-cost-usd 0.25
 ```
 
+## The pre-flight
+
+`python -m adii.provider --check --model M` is passive: the model list with the credential,
+costing nothing, proving the credential is accepted and the model advertised. It cannot
+prove the project may spend — on 20 September it listed 252 models for a project whose every
+completion was refused with `project_spend_limit_exceeded`. `--check --spend` adds the
+active probe: one completion of one token through `worker.transact`, the run's own
+transaction, billable and said so before it is sent (the reserve at nominal prices) and
+after (the bill). Its output is classification, not prose — the provider's `error.code`
+first, the status only when there is no code, an unknown code preserved verbatim:
+`CREDENTIAL`, `PROJECT_BUDGET`, `MODEL_ACCESS`, `RATE_LIMIT`, `PROVIDER_INFRASTRUCTURE`,
+`UNKNOWN_CODE`, each with whether retrying can help. It is structurally not a run — one
+request, no investigator, no tools, nothing archived — and what it proves is that a
+completion succeeded at check time, not that one will.
+
 ## What the runtime does with it
 
 `runtime/live.py`: the runtime calls `investigate`, which calls A's `run()` with this

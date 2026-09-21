@@ -176,11 +176,12 @@ PAID = ["--incident", INCIDENT, "--provider", "openai", "--model", "gpt-4.1-mini
 KEY = "sk-test-DISTINCTIVE-9f3a1c"
 
 
-def test_the_pre_flight_costs_nothing_and_says_accepted_refused_or_absent(endpoint, tmp_path,
-                                                                            monkeypatch, capsys):
+def test_the_pre_flight_costs_nothing_and_classifies_what_it_sees(endpoint, tmp_path,
+                                                                  monkeypatch, capsys):
     """Before a cent is spent: one GET of the model list with the credential — from the
-    environment, or from the operator's `.env.local` as every entrypoint reads it. The answer
-    names the status and the structured code on refusal, never the body, never the key."""
+    environment, or from the operator's `.env.local` as every entrypoint reads it. The
+    answer is classification lines: the status and the structured code on refusal, never
+    the body, never the key."""
     from adii.provider.__main__ import main as preflight
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     assert preflight(["--check", "--model", "gpt-4.1-mini", "--endpoint", endpoint]) == 2
@@ -189,21 +190,121 @@ def test_the_pre_flight_costs_nothing_and_says_accepted_refused_or_absent(endpoi
     (tmp_path / ".env.local").write_text(f"OPENAI_API_KEY={KEY}\n", encoding="utf-8")
     FakeModel.authorization[:] = []
     assert preflight(["--check", "--model", "gpt-4.1-mini", "--endpoint", endpoint]) == 0
-    assert FakeModel.authorization[-1] == f"Bearer {KEY}" and KEY not in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert FakeModel.authorization[-1] == f"Bearer {KEY}" and KEY not in out
+    assert out == ("credential: accepted\nmodel: gpt-4.1-mini\nmodels_listed: 2\n"
+                   "model_listed: yes\npassive_check: PASS\n")
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     (tmp_path / ".env.local").unlink()
     monkeypatch.setenv("OPENAI_API_KEY", KEY)
-    FakeModel.authorization[:] = []
-    assert preflight(["--check", "--model", "gpt-4.1-mini", "--endpoint", endpoint]) == 0
-    assert "accepted" in capsys.readouterr().out and FakeModel.authorization[-1] == f"Bearer {KEY}"
     assert preflight(["--check", "--model", "gpt-9", "--endpoint", endpoint]) == 1
-    assert "not among them" in capsys.readouterr().out
+    assert "model_listed: no\npassive_check: FAIL" in capsys.readouterr().out
     FakeModel.refuse = (401, {"error": {"message": f"Incorrect API key: {KEY[:8]}***",
                                         "code": "invalid_api_key"}})
     assert preflight(["--check", "--model", "gpt-4.1-mini", "--endpoint", endpoint]) == 1
     out = capsys.readouterr().out
-    assert "refused: HTTP 401 invalid_api_key" in out and "sk-test" not in out
+    assert ("credential: refused\nmodel: gpt-4.1-mini\nprovider_status: 401\n"
+            "provider_error_code: invalid_api_key\nclassification: CREDENTIAL\n") in out
+    assert out.endswith("passive_check: FAIL\n") and "sk-test" not in out
+    assert "Incorrect" not in out
     assert preflight(["--check", "--model", "m", "--endpoint", "http://api.example.com/v1"]) == 2
+
+
+@pytest.mark.parametrize("kind, status, code, expected", [
+    ("http", 401, "invalid_api_key", "CREDENTIAL"),
+    ("http", 429, "project_spend_limit_exceeded", "PROJECT_BUDGET"),
+    ("http", 429, "organization_spend_limit_exceeded", "PROJECT_BUDGET"),
+    ("http", 429, "insufficient_quota", "PROJECT_BUDGET"),
+    ("http", 429, "credit_balance_exhausted", "PROJECT_BUDGET"),
+    ("http", 429, "rate_limit_exceeded", "RATE_LIMIT"),
+    ("http", 404, "model_not_found", "MODEL_ACCESS"),
+    ("http", 403, None, "MODEL_ACCESS"),
+    ("http", 429, None, "RATE_LIMIT"),
+    ("http", 500, None, "PROVIDER_INFRASTRUCTURE"),
+    ("http", 429, "a_code_we_have_not_seen", "UNKNOWN_CODE"),
+    ("unreachable", None, None, "PROVIDER_INFRASTRUCTURE"),
+    ("timeout", None, None, "PROVIDER_INFRASTRUCTURE"),
+    ("malformed", 200, None, "PROVIDER_INFRASTRUCTURE"),
+])
+def test_a_refusal_is_classified_by_the_providers_code_never_by_status_while_a_code_exists(
+        kind, status, code, expected):
+    """Two 429s can mean two different things — a project at its spend limit is not rate
+    limited, and retrying it does nothing. The code decides; the status only when there is
+    none; a code not in the tables is preserved, not interpreted."""
+    from adii.provider.__main__ import classify
+    assert classify(kind, status, code) == expected
+
+
+def test_the_active_pre_flight_spends_one_token_and_says_so_first(endpoint, monkeypatch, capsys,
+                                                                   tmp_path):
+    """`--spend`: one completion of one token through the run's own transaction, billable and
+    said so before it is sent, the bill and the reserve premise after. Structurally not a
+    run: one request, one message, no investigator, no tools, nothing archived."""
+    from adii.provider.__main__ import main as preflight
+    monkeypatch.setenv("OPENAI_API_KEY", KEY)
+    monkeypatch.setattr(FakeModel, "usage", {"prompt_tokens": 5, "completion_tokens": 1})
+    FakeModel.script[:] = ["pong"]
+    before = len(FakeModel.seen)
+    code = preflight(["--check", "--spend", "--model", "gpt-4.1-mini", "--endpoint", endpoint])
+    out = capsys.readouterr().out
+    assert code == 0 and KEY not in out
+    assert out == ("credential: accepted\nmodel: gpt-4.1-mini\nmodels_listed: 2\n"
+                   "model_listed: yes\npassive_check: PASS\n"
+                   "spend_check: BILLABLE — one request, max_tokens=1, "
+                   "nominal_max_cost_usd=0.0000096\n"
+                   "request_sent: 1\nspend_check: PASS\n"
+                   "usage: prompt_tokens=5 completion_tokens=1\n"
+                   "cost_usd: 0.0000036 (nominal, openai-list-2025-04 (verify on the day))\n"
+                   "reserve_premise: holds — prompt_tokens <= 20, completion_tokens <= 1\n"
+                   "completion: succeeded at check time\n")
+    [request] = FakeModel.seen[before:]
+    assert request["max_tokens"] == 1 and request["messages"] == [
+        {"role": "user", "content": "ping"}] and request["model"] == "gpt-4.1-mini"
+    assert [p.name for p in tmp_path.iterdir()] == []            # nothing archived anywhere
+
+
+def test_the_active_pre_flight_tells_a_spend_limit_from_a_rate_limit(endpoint, monkeypatch,
+                                                                      capsys):
+    """The case the passive check cannot see: 252 models listed, every completion refused.
+    The classification is the provider's code, PROJECT_BUDGET, with the retry answer no —
+    and the refusal's message, which names the project, never reaches the terminal."""
+    from adii.provider.__main__ import main as preflight
+    monkeypatch.setenv("OPENAI_API_KEY", KEY)
+    FakeModel.refuse_completion = (429, {"error": {
+        "message": "Project proj_x has exceeded its spend limit", "type": "insufficient_quota",
+        "code": "project_spend_limit_exceeded"}})
+    code = preflight(["--check", "--spend", "--model", "gpt-4.1-mini", "--endpoint", endpoint])
+    out = capsys.readouterr().out
+    assert code == 1 and "passive_check: PASS" in out
+    assert out.endswith("request_sent: 1\nspend_check: BLOCKED\nprovider_status: 429\n"
+                        "provider_error_code: project_spend_limit_exceeded\n"
+                        "classification: PROJECT_BUDGET\n"
+                        "retry: no — the project's owner must change the limit\n")
+    assert "proj_x" not in out and "spend_check: BILLABLE" in out
+    FakeModel.refuse_completion = (429, {"error": {"message": "slow down",
+                                                   "code": "rate_limit_exceeded"}})
+    assert preflight(["--check", "--spend", "--model", "gpt-4.1-mini",
+                      "--endpoint", endpoint]) == 1
+    out = capsys.readouterr().out
+    assert "classification: RATE_LIMIT\nretry: may succeed later" in out and "slow" not in out
+
+
+def test_the_active_pre_flight_refuses_an_unpriced_model_and_reports_a_broken_premise(
+        endpoint, monkeypatch, capsys):
+    """A bill needs a price, so `--spend` refuses an unpriced model before any request; and a
+    completion whose usage exceeds the reserve's arithmetic succeeds but fails the check —
+    the cap could not be trusted for that model."""
+    from adii.provider.__main__ import main as preflight
+    monkeypatch.setenv("OPENAI_API_KEY", KEY)
+    before = len(FakeModel.seen)
+    assert preflight(["--check", "--spend", "--model", "gpt-9", "--endpoint", endpoint]) == 2
+    assert "nominal price" in capsys.readouterr().out and len(FakeModel.seen) == before
+    monkeypatch.setattr(FakeModel, "usage", {"prompt_tokens": 1000, "completion_tokens": 1})
+    FakeModel.script[:] = ["pong"]
+    assert preflight(["--check", "--spend", "--model", "gpt-4.1-mini",
+                      "--endpoint", endpoint]) == 1
+    out = capsys.readouterr().out
+    assert "spend_check: PASS" in out and "reserve_premise: VIOLATED — prompt_tokens 1000" in out
 
 
 def test_a_paid_run_is_refused_before_the_label_unless_every_precondition_holds(

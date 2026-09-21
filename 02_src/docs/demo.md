@@ -17,8 +17,9 @@ Open on the incident, not on ADII.
 > back.
 >
 > A root-cause agent hands you a recommendation, and a prompt asking it to be careful.
-> Here the caution is enforced, not requested — that is the difference you are about to
-> watch. ADII starts one step earlier than "fix it". It asks: what actually happened —
+> Here the limits are enforced, not requested — what it may look at, how far it may go, and
+> that nothing it proposes is applied by anyone. That is the difference you are about to
+> watch. (What it may *change* is declared to it, and not yet enforced; the page says so.) ADII starts one step earlier than "fix it". It asks: what actually happened —
 > and are we justified in changing anything?
 
 The three outcomes, on one line:
@@ -203,14 +204,18 @@ With the model the demo opens on — gpt-4.1, the paid path — the server is st
 `OPENAI_API_KEY` in its environment and nowhere else: through the operator's credential
 wrapper, outside the repository and not shown here, or from the ignored `.env.local` beside
 `.env.example`, which the server reads for that one name when the environment lacks it. The
-pre-flight first, free, so the credential is known good before the audience is in the
-room — the server checks that the credential is *present*, not that the provider accepts
-it; then the server, with the twenty-turn bound 41-2 ran under and a cap (41-2's was $0.50;
-it spent $0.035):
+pre-flight first, so the path is known good before the audience is in the room — the server
+checks that the credential is *present*, not that the provider accepts it, and a listing
+of models cannot show whether the project may spend (20 September: 252 models listed,
+every completion refused, `project_spend_limit_exceeded`). So the morning-of pre-flight is
+the `--spend` form: one completion of one token, billable and said so, classified by the
+provider's code — `completion: succeeded at check time`, or `PROJECT_BUDGET`, `CREDENTIAL`,
+`MODEL_ACCESS`, `RATE_LIMIT` with whether retrying can help. Then the server, with the
+twenty-turn bound 41-2 ran under and a cap (41-2's was $0.50; it spent $0.035):
 
 ```bash
-<credential wrapper> python -m adii.provider --check --model gpt-4.1
-<credential wrapper> python -m adii.demo 8000 --provider openai --model gpt-4.1 --max-cost-usd 0.25 --max-turns 20
+python -m adii.provider --check --spend --model gpt-4.1
+python -m adii.demo 8000 --provider openai --model gpt-4.1 --max-cost-usd 0.25 --max-turns 20
 ```
 
 Started without the credential, the server stops with the reason before it binds a port —
