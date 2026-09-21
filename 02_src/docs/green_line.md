@@ -12,6 +12,10 @@ the same incident with the second run revealing nothing the first did not.** Aft
 nothing that is added may sit on the canonical path: every improvement must be removable
 without changing what the sequence produces.
 
+What may be claimed at each release level, what is demonstrated and what is missing, and
+the gates in order are [release_evidence.md](release_evidence.md), written 21 September
+from an adversarial review of this tree; this page stays the integration backlog.
+
 ## The line, 16 September 2026
 
 | # | property | demonstrated by | state |
