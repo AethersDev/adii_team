@@ -194,16 +194,21 @@ signature has no parameter a rehearsal claim could arrive through
 `ValidatorProvider` shape for offline scoring
 (`test_validation_wired_into_evaluation.py`).
 
-**Not yet wired**: `runtime/live.py`'s `NoValidatorYet` (the `--provider local`
-path) still stands in for the real validator — that file is an unmerged spike
-gated on the D-1 trace contract, not validation's own scope. Swapping
-`NoValidatorYet()` for `validation.validator.Validator()` there is the
-remaining integration step, owned by whoever lands the D-1 rows — proposed
-20 September in [m7_validation_integration.md](m7_validation_integration.md):
-a runtime adapter, NOT_CHECKABLE for worlds the validator cannot rebuild,
-authorization recorded apart.
+**Wired 21 September, interim**: `runtime/__main__.py`'s live path builds
+`runtime/live.py`'s `ValidatorOnLivePath` — the real `validation.validator.Validator()`,
+asked by attempt, with exactly one translation: the validator's `UnknownIncident` becomes
+the placeholder verdict (*not checked*, no finding), never an infrastructure failure that
+would lose the model's decision. Proven by
+`test_live_provider.py::test_a_live_repair_is_checked_by_the_real_validator` (a live
+REPAIR on `demo-learning-001` rebuilt and accepted) and
+`::test_a_live_repair_on_a_world_the_validator_cannot_rebuild_is_not_checked_not_lost`.
+This is rows 1 and 2 of [m7_validation_integration.md](m7_validation_integration.md) in
+their interim form; NOT_CHECKABLE with a reason code (row 3, a contract change) and the
+authorization fact (row 4) wait on the decision record.
 
-**Only incident covered**: `demo-learning-001` (the walkthrough world). Extending
+**Only incident covered**: `demo-learning-001` (the walkthrough world). An incident
+`validate()` has no frozen world for raises `UnknownIncident`, recorded as an
+`infrastructure_failure` rather than a fabricated verdict. Extending
 `_WORLD_BUILDERS` in `validator.py` for additional incidents is required before
 M7's real incidents can be validated, not before M6 itself is done — C1's test
 spec is buildable and provable against one frozen world.

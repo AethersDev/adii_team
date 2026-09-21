@@ -20,6 +20,19 @@
 .howto { display: grid; gap: var(--adii-space-sm); }
 .howto pre { padding: var(--adii-space-sm) var(--adii-space-md); background: var(--adii-surface-2); border: 1px solid var(--adii-border-subtle); border-radius: var(--adii-radius-1); font-size: var(--adii-text-sm); white-space: pre-wrap; overflow-wrap: anywhere; }
 
+/* the launcher: the one action the front door leads with, grouped as a single card so it
+   reads as one decision, not a row of unrelated controls (still an .adii-panel — no new
+   surface, no new colour) */
+.launcher { border-top-color: var(--adii-accent); }
+.launcher__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--adii-space-sm); margin-bottom: var(--adii-space-sm); }
+.launcher__status { display: flex; align-items: center; gap: var(--adii-space-2xs); font-size: var(--adii-text-meta); color: var(--adii-ink-3); }
+.adii-char-count { text-align: left; }
+
+/* one attached file, with its own removal — the file input keeps the source of truth,
+   this button only rewrites it */
+.adii-upload__remove { justify-self: end; margin-left: auto; padding: 0 var(--adii-space-xs); background: transparent; border: 1px solid var(--adii-border-default); border-radius: var(--adii-radius-1); color: var(--adii-ink-2); font-size: var(--adii-text-sm); line-height: 1; cursor: pointer; }
+.adii-upload__remove:hover { background: var(--adii-surface-hover); color: var(--adii-ink-1); }
+
 /* what it looked at: one answered request per line */
 .looked { margin: 0; padding-left: var(--adii-space-md); display: grid; gap: var(--adii-space-2xs); font-size: var(--adii-text-sm); }
 .looked__item { max-width: var(--adii-measure); overflow-wrap: anywhere; }

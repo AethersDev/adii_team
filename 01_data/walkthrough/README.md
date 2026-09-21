@@ -3,7 +3,11 @@
 A deliberately trivial incident whose only job is to make the architecture concrete.
 
 **This is not a scientific scenario and it is not one of the frozen development
-incidents.** Nothing here has an answer key. You may read every file. It is a teaching
+incidents.** You may read every file: its truth is in this folder for everyone. The
+evaluation authority holds a *development* key for it
+(`02_src/adii/evaluation/fixtures/demo-learning-001.answer.json`, authored by C, frozen
+15 September), which carries no evaluation claim: it exists so the scoring path can be
+exercised on the one world the validator can rebuild. It is a teaching
 fixture that demonstrates and tests the runtime's mechanics; it is not the canonical ADII
 demo world (`01_data/demo/world/`) and produces no product or evaluation claim.
 

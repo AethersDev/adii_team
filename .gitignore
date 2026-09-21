@@ -31,7 +31,3 @@ dist/
 
 # Logs
 *.log
-
-# eval_authority: local-only tests that need blind answer keys not present in the repo
-02_src/tests/eval_authority/test_step1_all.py
-02_src/tests/eval_authority/test_step2_all.py
