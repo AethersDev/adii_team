@@ -17,8 +17,9 @@ Open on the incident, not on ADII.
 > back.
 >
 > A root-cause agent hands you a recommendation, and a prompt asking it to be careful.
-> Here the caution is enforced, not requested — that is the difference you are about to
-> watch. ADII starts one step earlier than "fix it". It asks: what actually happened —
+> Here the limits are enforced, not requested — what it may look at, how far it may go, and
+> that nothing it proposes is applied by anyone. That is the difference you are about to
+> watch. (What it may *change* is declared to it, and not yet enforced; the page says so.) ADII starts one step earlier than "fix it". It asks: what actually happened —
 > and are we justified in changing anything?
 
 The three outcomes, on one line:

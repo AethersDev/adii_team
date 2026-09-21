@@ -39,6 +39,19 @@ const PHRASING = {
       `${answered} answered.`,
     looked: (n) => `${n} observation${n === 1 ? "" : "s"}`,
     lookedAtNothing: "It looked at nothing before deciding: no request was answered.",
+    /* what it looked at, counted from the trace: every request, the answered ones, the
+     * refused ones (DENIED or REJECTED — the boundary working, nobody's success or failure)
+     * and the failed ones (ERROR — a defect of ours); a refusal is never hidden in the count */
+    attempts: (asked, answered, refused, failed) =>
+      `${asked} tool attempt${asked === 1 ? "" : "s"} · ${PHRASING.product.looked(answered)}` +
+      (refused ? ` · ${refused} refused` : "") + (failed ? ` · ${failed} failed` : ""),
+    nothingAnswered: (asked) => `It looked at nothing before deciding: ${asked} ` +
+      `request${asked === 1 ? "" : "s"}, none answered.`,
+    /* the incident's declared write surface: text the investigator is told, not a gate —
+     * product copy about today's system, struck the day the runtime enforces it */
+    declaredPaths: "Declared permitted paths",
+    declaredNone: "none declared",
+    declaredPathsHint: "Declared to the investigator as text. Nothing enforces it yet.",
     idle: "Nothing is running now.",
     busy: (label) => `Investigating now: ${label}`,
     history: (incidents, runs) => `${incidents} incident${incidents === 1 ? "" : "s"} · ` +
@@ -69,6 +82,25 @@ const PHRASING = {
     thenOpen: "python -m adii.demo",
     /* shown wherever a record's model is null: a scripted run, never a model result */
     scripted: "Scripted investigator · development demonstration, not a model result",
+  },
+
+  /* ── who produced what, from one field: configuration.model null means a scripted run,
+   * written by hand — its decision and its verdict are presets, not a model's and not the
+   * validator's — so no card, headline or section can attribute a preset to an authority ── */
+  scriptedRun: (r) => r.configuration.model === null || r.configuration.model === undefined,
+  by: {
+    investigator: (r) => (PHRASING.scriptedRun(r)
+      ? "Scripted decision, written by hand with this example — not a model's"
+      : "Asserted by ADII, the investigator"),
+    proposed: (r) => (PHRASING.scriptedRun(r)
+      ? "Scripted proposal, written by hand with this example. Not applied by anyone."
+      : "Proposed by ADII, the investigator. Not applied by anyone."),
+    validator: (r) => (PHRASING.verdictOf(r.validation) === "UNCHECKED"
+      ? "Recorded by the runtime: no validator checked it"
+      : PHRASING.scriptedRun(r)
+        ? "Scripted verdict, written by hand with this example — not computed by the validator"
+        : "Asserted by the validator, not ADII"),
+    runtime: "Recorded by the runtime",
   },
 
   /* ── dispositions: the contract's own definitions ─────────────────── */
@@ -108,11 +140,17 @@ const PHRASING = {
     UNCHECKED: "not checked by a validator",
   },
   verdictOf: (v) => (v.accepted ? "ACCEPT" : v.checks_run.length ? "REJECT" : "UNCHECKED"),
+  /* the verdict with who produced it: a scripted run's ACCEPT or REJECT is a preset and says
+   * so; "not checked" is nobody's verdict on any run */
+  verdictLabelOf: (state, model) => (state === "UNCHECKED" || (model !== null && model !== undefined)
+    ? PHRASING.verdict[state]
+    : `${state === "ACCEPT" ? "accepted" : "not accepted"} · scripted verdict`),
+  verdictLabel: (r) => PHRASING.verdictLabelOf(PHRASING.verdictOf(r.validation), r.configuration.model),
 
   /* the outcome as a headline, from the same fields: what an operator reads first */
   headline: {
     submitted: (r) => `Decided: ${r.decision.disposition}` + (r.validation
-      ? ` — ${PHRASING.verdict[PHRASING.verdictOf(r.validation)]}` : ""),
+      ? ` — ${PHRASING.verdictLabel(r)}` : ""),
     bound_hit: () => "Stopped at its limit, no decision",
     model_failure: () => "Stopped: the model failed, no decision",
     infrastructure_failure: () => "Stopped: a failure outside the model, no decision",
@@ -121,7 +159,7 @@ const PHRASING = {
   /* the same classes as a short label for lists and cards */
   outcome: {
     submitted: (r) => r.decision.disposition + (r.validation
-      ? ` · ${PHRASING.verdict[PHRASING.verdictOf(r.validation)]}` : ""),
+      ? ` · ${PHRASING.verdictLabel(r)}` : ""),
     bound_hit: () => "Stopped at its limit, no decision",
     model_failure: () => "Stopped: the model failed, no decision",
     infrastructure_failure: () => "Stopped: a failure outside the model, no decision",
@@ -151,8 +189,11 @@ const PHRASING = {
     })[p.status] || `returned ${p.status}`,
     wrote: "The model wrote, instead of acting:",
     decided: (disposition) => `Committed to ${disposition}`,
-    validated: (v) => ({ ACCEPT: "The validator accepted the repair",
-      REJECT: "The validator did not accept the repair",
+    validated: (v, scripted = false) => ({
+      ACCEPT: scripted ? "The scripted verdict accepted the repair"
+        : "The validator accepted the repair",
+      REJECT: scripted ? "The scripted verdict did not accept the repair"
+        : "The validator did not accept the repair",
       UNCHECKED: "No validator checked the repair" })[PHRASING.verdictOf(v)],
     unanswered: "The run ended before this call was answered",
   },
@@ -169,6 +210,11 @@ const PHRASING = {
     failure: "The decision did not match the answer key.",
     not_evaluable: "No decision was submitted, so there was nothing to score.",
     settledBy: { deterministic: "the scoring rules", judge: "the judge", none: "no one" },
+    /* who scored, and what kind of key: the scorer refuses an unfrozen key, so "frozen" is
+     * the record's; "team-authored development" and "no unseen key" are product copy about
+     * today's keys, struck the day a custodian-held key exists */
+    by: "Scored by the evaluation authority against a frozen answer key it holds",
+    keys: "Development keys are team-authored and frozen by digest. No unseen key exists.",
     /* orthogonal to the score: what the runtime did with the decision before anyone scored
      * it — from the record's own validation, so every archived run says it */
     runtime: {
@@ -184,7 +230,22 @@ const PHRASING = {
     accepted: "The validator accepted the repair.",
     rejected: "The validator did not accept the repair.",
     unchecked: "No validator checked the repair.",
+    scriptedAccepted: "The scripted verdict, written by hand, accepted the repair.",
+    scriptedRejected: "The scripted verdict, written by hand, did not accept the repair.",
     notInvoked: "No repair was proposed, so there was nothing to validate.",
+    /* the section's title and sentence, by who produced the verdict */
+    title: (r) => {
+      const state = PHRASING.verdictOf(r.validation);
+      if (state === "UNCHECKED") return "Validation";
+      return PHRASING.scriptedRun(r) ? "What the scripted verdict said" : "What the validator said";
+    },
+    said: (r) => {
+      const state = PHRASING.verdictOf(r.validation), scripted = PHRASING.scriptedRun(r);
+      if (state === "UNCHECKED") return PHRASING.validation.unchecked;
+      if (state === "ACCEPT") return scripted ? PHRASING.validation.scriptedAccepted
+        : PHRASING.validation.accepted;
+      return scripted ? PHRASING.validation.scriptedRejected : PHRASING.validation.rejected;
+    },
   },
 };
 
