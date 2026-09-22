@@ -1,7 +1,7 @@
 {
   "schema": "adii.archive_manifest/v1",
-  "written_at": "2026-09-21T08:04:42+00:00",
-  "source_revision": "d1db156570218a917a87fd39f003285346db689a",
+  "written_at": "2026-09-22T11:06:38+00:00",
+  "source_revision": "b663b668fa6d8d73f1cfe2aff151939d1e2f565d",
   "entries": [
     {
       "path": "customer-region-misassigned-20260916T092358-161Z/receipt.json",
@@ -205,6 +205,30 @@
       "path": "demo-learning-001-20260917T131901-745Z/trace.jsonl",
       "bytes": 3852,
       "digest": "sha256:ec35b90d20408c8395b8dd377ba9cdaeb5fb9575123a677a0551a2338dbae13f",
+      "retention": "evidence"
+    },
+    {
+      "path": "demo-learning-001-openai-41-m7-1/evaluation_report.json",
+      "bytes": 347,
+      "digest": "sha256:d97a02cdfe3a787bc0285e1af56f1d59cc09cd1c2b0251022c57142f510b30e4",
+      "retention": "evaluation"
+    },
+    {
+      "path": "demo-learning-001-openai-41-m7-1/receipt.json",
+      "bytes": 1824,
+      "digest": "sha256:7044a0933f9717d9f6d8625ebaee0b4cfc738128a826c8de7835b75858c85043",
+      "retention": "evidence"
+    },
+    {
+      "path": "demo-learning-001-openai-41-m7-1/record.json",
+      "bytes": 37633,
+      "digest": "sha256:af57f2c5ace870f8bed03a8e33bc944eab800f02d09bc520ef9596f66cf33516",
+      "retention": "evidence"
+    },
+    {
+      "path": "demo-learning-001-openai-41-m7-1/trace.jsonl",
+      "bytes": 27155,
+      "digest": "sha256:e95d968c6c9644400a6a102a9e93a646e1f9a43421cb99ac999474936f049046",
       "retention": "evidence"
     },
     {
