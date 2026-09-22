@@ -87,7 +87,10 @@ python -m ruff check 02_src
 python -m pytest
 ```
 
-Both must pass, and CI must be green on Windows *and* macOS. If you added a guard — a
+Both must pass on your machine, with the syncs and the guard pass for every track you
+touched. CI is optional assistance, not a gate: cross-platform correctness is established
+by qualifying the exact submission ZIP on clean Windows and macOS machines
+(`02_src/docs/final_plan.md`, decision CI). If you added a guard — a
 check that rejects, bounds or validates — it is not done until its row is in
 `02_src/scripts/guard_check.py` and the pass reports it killed: a guard is demonstrated
 when removing it makes a test fail, not when a test passes.

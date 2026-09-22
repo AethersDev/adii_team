@@ -2,10 +2,11 @@ name: ci
 
 # "Works on my machine" stops being an argument here. Windows and macOS are where the
 # team actually develops; Ubuntu is a neutral third opinion.
+# Optional assistance, not a gate (02_src/docs/final_plan.md, decision CI): it runs only
+# when dispatched by hand, so it spends nothing unless someone asks. The merge gate is the
+# local one; cross-platform correctness is established on the exact submission ZIP.
 on:
-  pull_request:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
   test:

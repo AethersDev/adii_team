@@ -97,7 +97,10 @@ python -m ruff check 02_src
 python -m pytest
 ```
 
-Both must pass, and CI must be green on Windows *and* macOS. If you added a guard — a
+Both must pass on your machine, with the syncs and the guard pass for every track you
+touched. CI is optional assistance, not a gate: cross-platform correctness is established
+by qualifying the exact submission ZIP on clean Windows and macOS machines
+(`02_src/docs/final_plan.md`, decision CI). If you added a guard — a
 check that rejects, bounds or validates — it is not done until its row is in
 `02_src/scripts/guard_check.py` and the pass reports it killed: a guard is demonstrated
 when removing it makes a test fail, not when a test passes.
@@ -144,10 +147,10 @@ reads goes in `01_data/`, and nothing that states an answer goes in either.
 ```bash
 python -m pytest                                                # the suite; pyproject sets pythonpath=02_src
 python -m pytest 02_src/tests/unit/test_env_local.py -k twice   # one file, one test by name
-python -m pytest 02_src/tests/architecture -q                   # the boundaries alone — CI's first test step
+python -m pytest 02_src/tests/architecture -q                   # the boundaries alone — run these first
 python -m ruff check 02_src                                     # rules E F I UP B, line length 100
 python 02_src/scripts/guard_check.py --only D                   # one track's guards; --list prints the registry
-python -m adii.examples.walkthrough                             # end to end without a model; CI runs it too
+python -m adii.examples.walkthrough                             # end to end without a model
 python -m adii.demo 8000 --model <id> --endpoint http://127.0.0.1:8090/v1 --served-as default_model
 ```
 
@@ -155,8 +158,8 @@ python -m adii.demo 8000 --model <id> --endpoint http://127.0.0.1:8090/v1 --serv
   is not raised.
 - `guard_check.py` rewrites source files in place and restores them byte for byte. Never run
   it while pytest or an editor may touch the tree. Exit 0 only when every guard is KILLED.
-- The browser tests find Chrome through `ADII_CHROME` or on PATH; without it they skip
-  locally and fail on CI. They occasionally flake in a full local run and pass alone; rerun
+- The browser tests find Chrome through `ADII_CHROME` or on PATH; without it they skip.
+  Run the gate with Chrome present. They occasionally flake in a full local run and pass alone; rerun
   the file by itself before blaming a change.
 - `02_src/tests/eval_authority/test_step1_all.py` and `test_step2_all.py` are gitignored on
   purpose: they need blind answer keys that are not in the repository.
@@ -169,7 +172,7 @@ python -m adii.demo 8000 --model <id> --endpoint http://127.0.0.1:8090/v1 --serv
 | `02_src/docs/current_status.md` | the `- [x]` marks in `02_src/docs/build_plan.md`, plus the packages' line counts | `python 02_src/scripts/sync_status.py` |
 | `02_src/adii/demo/web/{tokens,base,components}.css` | `03_assets/identity/css/` | `python 02_src/scripts/sync_identity.py` |
 
-CI runs each sync and fails on any diff, and a test does the same locally.
+A test fails on any drift between a generated file and its source, so the local gate catches it.
 
 ## How a run flows — what no single file says
 

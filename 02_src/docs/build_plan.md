@@ -11,7 +11,7 @@ that file.
 
 ```text
 CODE WORKS          the demo below runs
-TESTS PASS          pytest and ruff green on Windows and macOS
+TESTS PASS          pytest and ruff green locally; the submission ZIP green on Windows and macOS
 DEMO WORKS          someone else can run it from the command in this file
 ANOTHER TEAMMATE    a person who did not implement it can explain the flow
 UNDERSTANDS IT      and run its demonstration
