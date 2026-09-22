@@ -25,6 +25,7 @@ from ..contracts import (
     IncidentContext,
     InvestigationDecision,
     InvestigationRun,
+    RepairAuthorization,
     TraceEvent,
     ValidationResult,
 )
@@ -65,6 +66,9 @@ class RunRecord:
     latency_ms: int
     configuration: dict[str, object]
     provenance: dict[str, str | None]
+    # the runtime's fact about a REPAIR's targets (m7 row 4); None on records written
+    # before 22 September 2026, and on any run that proposed no repair
+    authorization: RepairAuthorization | None = None
 
     def __post_init__(self) -> None:
         _check_label(self.label)
@@ -79,6 +83,9 @@ class RunRecord:
         if (self.termination == "submitted" and self.validation is None
                 and self.decision.disposition is Disposition.REPAIR):
             raise ValueError("a submitted REPAIR carries the validator's verdict")
+        if self.authorization is not None and (
+                self.decision is None or self.decision.disposition is not Disposition.REPAIR):
+            raise ValueError("only a REPAIR decision has targets to authorize")
         for name in ("tool_calls", "model_turns", "latency_ms"):
             if getattr(self, name) < 0:
                 raise ValueError(f"{name} must be non-negative")
@@ -86,22 +93,35 @@ class RunRecord:
             raise ValueError(
                 f"api_cost_usd must be finite and non-negative, got {self.api_cost_usd!r}")
 
+    @property
+    def admissible(self) -> bool:
+        """Derived here, stored nowhere (m7 row 4): the runtime's fact and the validator's,
+        both established and both in the repair's favour. A denial, a rejection, a verdict
+        that was not established, or a missing fact is not admissible. Nothing executes
+        either way."""
+        return (self.authorization is not None and self.authorization.authorized
+                and self.validation is not None and self.validation.state == "ACCEPT")
+
     @classmethod
     def from_run(cls, label: str, context: IncidentContext, run: InvestigationRun, *,
-                 configuration: dict[str, object], origin: str) -> RunRecord:
-        """A submitted run assembled outside the runtime — the walkthrough's."""
+                 configuration: dict[str, object], origin: str,
+                 authorization: RepairAuthorization | None = None) -> RunRecord:
+        """A submitted run assembled outside the runtime — the walkthrough's, which
+        establishes the runtime's authorization fact with the runtime's own function."""
         return cls(
             label=label, context=context, trace=run.trace,
             termination="submitted", detail="the investigator committed to a disposition",
             decision=run.decision, validation=run.validation,
             tool_calls=run.tool_calls, model_turns=run.model_turns,
             api_cost_usd=run.api_cost_usd, latency_ms=run.latency_ms,
-            configuration=dict(configuration), provenance=provenance(origin))
+            configuration=dict(configuration), provenance=provenance(origin),
+            authorization=authorization)
 
     def to_json(self) -> str:
         """Strict RFC 8259. Raises ValueError on NaN or Infinity anywhere in the record,
         before anything reaches a sink."""
         context, decision, validation = self.context, self.decision, self.validation
+        authorization = self.authorization
         doc = {
             "schema": SCHEMA,
             "label": self.label,
@@ -121,6 +141,11 @@ class RunRecord:
                 "accepted": validation.accepted, "report": validation.report,
                 "checks_run": list(validation.checks_run),
                 "reason_code": validation.reason_code},
+            "authorization": None if authorization is None else {
+                "authorized": authorization.authorized,
+                "checked_paths": list(authorization.checked_paths),
+                "denied_paths": list(authorization.denied_paths),
+                "reason_code": authorization.reason_code},
             "counters": {"tool_calls": self.tool_calls, "model_turns": self.model_turns,
                          "api_cost_usd": self.api_cost_usd, "latency_ms": self.latency_ms},
             "configuration": self.configuration,
@@ -151,6 +176,7 @@ def from_json(text: str) -> RunRecord:
         raise ValueError(f"unknown record schema {schema!r}: this reader understands {SCHEMA}")
     try:
         c, d, v, n = doc["context"], doc["decision"], doc["validation"], doc["counters"]
+        a = doc.get("authorization")            # absent in records before 22 Sep
         return RunRecord(
             label=doc["label"],
             context=IncidentContext(
@@ -166,6 +192,9 @@ def from_json(text: str) -> RunRecord:
             validation=None if v is None else ValidationResult(
                 accepted=v["accepted"], report=v["report"], checks_run=tuple(v["checks_run"]),
                 reason_code=v.get("reason_code")),      # absent in records before 22 Sep
+            authorization=None if a is None else RepairAuthorization(
+                authorized=a["authorized"], checked_paths=tuple(a["checked_paths"]),
+                denied_paths=tuple(a["denied_paths"]), reason_code=a["reason_code"]),
             tool_calls=n["tool_calls"], model_turns=n["model_turns"],
             api_cost_usd=n["api_cost_usd"], latency_ms=n["latency_ms"],
             configuration=doc["configuration"], provenance=doc["provenance"])
@@ -211,7 +240,7 @@ def strict(record: RunRecord) -> RunRecord:
         record.to_json()
     except (TypeError, ValueError) as poison:
         kept = tuple(e for e in record.trace if _is_strict(e.payload))
-        return replace(record, trace=kept, decision=None, validation=None,
+        return replace(record, trace=kept, decision=None, validation=None, authorization=None,
                        termination="infrastructure_failure",
                        detail=f"record is not strict JSON: {poison}")
     return record

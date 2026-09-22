@@ -87,6 +87,7 @@ def render_run(record: RunRecord) -> str:
             for path, body in decision.patch.items():
                 out.append(f"  --- {path}")
                 out += [f"      {line}" for line in body.rstrip("\n").splitlines()]
+            out += ["", "AUTHORIZATION", *_authorization(record)]
             verdict = record.validation
             # the contract's one derivation: accepted; rejected after checks; not checkable
             # (no world to rebuild, said in structure); or the legacy placeholder
@@ -95,7 +96,8 @@ def render_run(record: RunRecord) -> str:
             out += ["", "INDEPENDENT VALIDATION",
                     f"  {state}   (decided by the validator, never by the agent)",
                     _wrap(verdict.report),
-                    f"  checks: {', '.join(verdict.checks_run) or '(none recorded)'}"]
+                    f"  checks: {', '.join(verdict.checks_run) or '(none recorded)'}",
+                    "", "ADMISSION", *_admission(record)]
         else:
             out += ["", "INDEPENDENT VALIDATION", "  not applicable — no repair was proposed"]
 
@@ -103,6 +105,38 @@ def render_run(record: RunRecord) -> str:
             f"  tool calls {record.tool_calls}   model turns {record.model_turns}"
             f"   {_cost(record)}   {record.latency_ms} ms", _RULE]
     return "\n".join(out) + "\n"
+
+
+def _authorization(record: RunRecord) -> list[str]:
+    """The runtime's fact about the targets, in its own terms: never a word about whether the
+    patch works. A record from before the fact existed says so rather than implying one."""
+    fact = record.authorization
+    if fact is None:
+        return ["  not recorded   (a record from before the runtime established this fact)"]
+    if fact.authorized:
+        return ["  AUTHORIZED   (the runtime's: every target is a path the incident permitted)",
+                f"  checked: {', '.join(fact.checked_paths)}"]
+    return [f"  DENIED   (the runtime's: {fact.reason_code}; a patch is authorized whole or "
+            "not at all)",
+            f"  checked: {', '.join(fact.checked_paths)}   denied: {', '.join(fact.denied_paths)}"]
+
+
+def _admission(record: RunRecord) -> list[str]:
+    """Derived from the two facts above by the record's own rule, stored nowhere; the reasons
+    are the facts themselves. Nothing was executed in any case."""
+    if record.admissible:
+        return ["  admissible   (authorized and accepted; nothing was executed)"]
+    fact, verdict = record.authorization, record.validation
+    why = []
+    if fact is None:
+        why.append("no authorization fact was recorded")
+    elif not fact.authorized:
+        why.append(f"authorization denied: {fact.reason_code}")
+    if verdict.state != "ACCEPT":
+        why.append({"REJECT": "the repair was not accepted",
+                    "NOT_CHECKABLE": "validation was not established",
+                    "UNCHECKED": "no validator checked the repair"}[verdict.state])
+    return [f"  not admissible   ({'; '.join(why)}; nothing was executed)"]
 
 
 def _arguments(arguments: object) -> str:

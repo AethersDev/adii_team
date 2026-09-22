@@ -203,8 +203,12 @@ CI runs each sync and fails on any diff, and a test does the same locally.
   `demo-learning-001`) is NOT_CHECKABLE, said in structure by `reason_code`, never a lost
   decision and never a verdict. A verdict is ACCEPT or REJECT, and a REJECT always names
   the checks that ran; a validator returning the legacy no-checks shape is an
-  infrastructure failure. Row 4 (authorization apart from validation) is the open unit in
-  `02_src/docs/m7_validation_integration.md`; do not build ahead of that record.
+  infrastructure failure. Beside the verdict, and never gating it, the runtime records its
+  own fact for every REPAIR: `authorize` in `runtime/run.py` checks the patch's targets
+  against the incident's permitted paths, whole or not at all, and the validator is handed
+  the incident without those paths. `RunRecord.admissible` derives authorized-and-ACCEPT and
+  is stored nowhere. Nothing executes. M7 is closed; the record is
+  `02_src/docs/m7_validation_integration.md`.
 - **The trace vocabulary is a contract in progress.** `02_src/docs/trace_event_contract.md`
   lists the open rows; placeholders such as `usage` on `model_responded` move when a row
   resolves. Do not invent event kinds.

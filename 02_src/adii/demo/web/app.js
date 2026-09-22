@@ -560,6 +560,17 @@ function story(r, compact = false, label = r.label, evaluation = null) {
           el("span", "adii-diff__line", el("span", "adii-diff__marker", " "), line, "\n")))])));
   }
 
+  /* the runtime's fact about the targets, beside the validator's verdict and never in
+   * place of it: two questions, two authorities, two records on the page */
+  if (d && d.disposition === "REPAIR") {
+    const a = r.authorization;
+    out.append(record(null, PHRASING.authorization.title, PHRASING.by.runtime,
+      el("p", null, PHRASING.authorization.said(r)),
+      ...(a ? [meta(["checked", a.checked_paths.join(", ")],
+        ...(a.denied_paths.length ? [["denied", a.denied_paths.join(", ")]] : []))] : []),
+      el("p", "adii-field__hint adii-mt-sm", PHRASING.authorization.aside)));
+  }
+
   if (r.validation) {
     const v = r.validation, verdict = PHRASING.verdictOf(v), scripted = PHRASING.scriptedRun(r);
     /* verdict colour belongs to the validator alone: a scripted preset is drawn achromatic,
@@ -580,6 +591,14 @@ function story(r, compact = false, label = r.label, evaluation = null) {
     out.append(record("validator", "Validation", PHRASING.by.runtime,
       el("p", null, plain("not evaluated", "g-none")),
       el("p", "adii-field__hint adii-mt-sm", PHRASING.validation.notInvoked)));
+  }
+
+  /* what follows from both facts, by the record's rule: drawn achromatic, since it is
+   * nobody's verdict, and the sentence names the facts it rests on */
+  if (d && d.disposition === "REPAIR") {
+    out.append(record(null, PHRASING.admission.title, PHRASING.admission.by,
+      el("p", null, plain(PHRASING.admissibleOf(r) ? "admissible" : "not admissible", "g-none")),
+      el("p", "adii-field__hint adii-mt-sm", PHRASING.admission.said(r))));
   }
 
   /* the evaluation authority's category, when the run has been scored: its report,

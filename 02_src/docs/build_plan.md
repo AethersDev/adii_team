@@ -206,6 +206,16 @@ This is rows 1 and 2 of [m7_validation_integration.md](m7_validation_integration
 their interim form; NOT_CHECKABLE with a reason code (row 3, a contract change) and the
 authorization fact (row 4) wait on the decision record.
 
+**Decided and built 22 September**: all four rows APPROVED (rows 1–2 on 21 Sep, rows 3–4
+by the project owner after advisor review). Row 3: the validation state space is closed at
+the contract — ACCEPT, REJECT (checks named, `rebuild` first), NOT_CHECKABLE
+(`reason_code: no_rebuildable_world`), the legacy UNCHECKED loadable and never produced.
+Row 4: `RepairAuthorization`, the runtime's fact for every REPAIR, apart from validation;
+the validator never receives the permitted paths; `RunRecord.admissible` derived, stored
+nowhere; nothing executes. M7 is closed; the units are
+`test_repair_authorization.py` (the 2×2 and NOT_CHECKABLE, cell by cell) and the row 3
+tests named in [m7_validation_integration.md](m7_validation_integration.md).
+
 **Only incident covered**: `demo-learning-001` (the walkthrough world). An incident
 `validate()` has no frozen world for raises `UnknownIncident`, recorded as an
 `infrastructure_failure` rather than a fabricated verdict. Extending

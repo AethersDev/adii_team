@@ -1,4 +1,4 @@
-"""The v0 contracts. Eight names — one enum and seven frozen dataclasses — no logic.
+"""The v0 contracts. Nine names — one enum and eight frozen dataclasses — no logic.
 
 WHY THESE SHAPES AND NOT OTHERS. Not a free design exercise. A working implementation of
 ADII was built, evaluated, and audited before this one, and these are the shapes that
@@ -189,6 +189,51 @@ class ValidationResult:
         if self.reason_code is not None:
             return "NOT_CHECKABLE"
         return "REJECT" if self.checks_run else "UNCHECKED"
+
+
+# The one reason a patch can be denied today: it touches a path the incident did not
+# permit. A closed set — a code outside it is an invalid fact, refused at construction.
+AUTHORIZATION_REASONS = ("target_not_permitted",)
+
+
+@dataclass(frozen=True)
+class RepairAuthorization:
+    """RUNTIME  ──▶  TELEMETRY
+
+    Whether every path a REPAIR's patch touches is one the incident permitted. The runtime's
+    own fact, established for every REPAIR beside — never instead of, never gated by — the
+    validator's verdict (m7_validation_integration.md, row 4, decided 22 September 2026).
+    It says nothing about whether the patch works; the validator says nothing about whether
+    it was allowed. Admission is derived from both and stored nowhere.
+
+        AUTHORIZED   authorized=True    denied_paths=()          reason_code=None
+        DENIED       authorized=False   denied_paths non-empty   reason_code set
+
+    A patch is authorized whole or not at all: one target outside the permitted paths denies
+    the patch entire, and `denied_paths` names every such target. `checked_paths` is every
+    target the patch named, so the fact is auditable without the decision beside it.
+    """
+
+    authorized: bool
+    checked_paths: tuple[str, ...]
+    denied_paths: tuple[str, ...] = ()
+    reason_code: str | None = None
+
+    def __post_init__(self) -> None:
+        if not self.checked_paths:
+            raise ValueError("an authorization names the paths it checked")
+        if set(self.denied_paths) - set(self.checked_paths):
+            raise ValueError("a denied path is one of the paths that were checked")
+        if self.authorized != (not self.denied_paths):
+            raise ValueError("authorized means no path was denied, and nothing else")
+        if self.reason_code is None:
+            if not self.authorized:
+                raise ValueError("a denial carries its reason_code")
+        elif self.reason_code not in AUTHORIZATION_REASONS:
+            raise ValueError(f"unknown reason_code {self.reason_code!r}; the closed set is "
+                             f"{AUTHORIZATION_REASONS}")
+        elif self.authorized:
+            raise ValueError("an authorization carries no reason_code")
 
 
 @dataclass(frozen=True)

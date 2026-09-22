@@ -43,6 +43,15 @@ frozen inputs and never asks the investigator about its own work.
 **Validation**
 *Can this proposed action be accepted?* Runs after the decision, inside the run.
 
+**Authorization**
+*Were the paths this repair touches ones the incident permitted?* The runtime's own
+fact about a REPAIR, established beside the verdict and never through it. Whole or not at
+all. Says nothing about whether the repair works.
+
+**Admissible**
+Authorized *and* accepted. Derived from the two facts wherever it is shown, stored
+nowhere. Not a third authority, and not an execution: nothing is ever applied.
+
 **Evaluation**
 *How did the investigator score against hidden truth?* Runs offline, outside the run, and
 is never visible to the agent. Not a synonym for validation — different data, different

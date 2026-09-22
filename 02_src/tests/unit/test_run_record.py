@@ -10,7 +10,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
-from adii.contracts import TraceEvent, ValidationResult
+from adii.contracts import RepairAuthorization, TraceEvent, ValidationResult
 from adii.examples.walkthrough import load
 from adii.reporting.record import (
     SCHEMA,
@@ -21,6 +21,7 @@ from adii.reporting.record import (
     strict,
     write_record,
 )
+from adii.runtime.run import authorize
 
 COMMITTED = Path(__file__).resolve().parents[3] / "01_data" / "walkthrough" / "record.json"
 
@@ -29,7 +30,8 @@ def walkthrough_record() -> RunRecord:
     context, run = load()
     return RunRecord.from_run("demo-learning-001", context, run,
                               configuration={"provider": "fixture", "model": None},
-                              origin="walkthrough")
+                              origin="walkthrough",
+                              authorization=authorize(context, run.decision))
 
 
 def test_a_record_round_trips_through_strict_json():
@@ -56,6 +58,28 @@ def test_a_verdict_that_could_not_be_established_round_trips_and_older_records_l
     doc = json.loads(record.to_json())
     doc["validation"] = {"accepted": False, "checks_run": [], "report": "no validator yet"}
     assert from_json(json.dumps(doc)).validation.state == "UNCHECKED"
+
+
+def test_the_authorization_fact_round_trips_and_records_before_it_load_without_one():
+    """Row 4: the runtime's fact travels in the record; a record written before it existed
+    has no such key and loads with none — which the page and the report say, rather than
+    implying a fact nobody established. It is never carried by a run without a repair."""
+    record = walkthrough_record()
+    assert record.authorization.authorized is True and record.admissible is True
+    denied = replace(record, authorization=RepairAuthorization(
+        authorized=False, checked_paths=("transforms/stg_orders.sql",),
+        denied_paths=("transforms/stg_orders.sql",), reason_code="target_not_permitted"))
+    assert from_json(denied.to_json()) == denied and denied.admissible is False
+    doc = json.loads(record.to_json())
+    del doc["authorization"]
+    older = from_json(json.dumps(doc))
+    assert older.authorization is None and older.admissible is False
+    doc = json.loads(record.to_json())
+    doc["decision"] = {"disposition": "NO_REPAIR", "root_cause_id": None,
+                       "root_cause_summary": "the business moved", "repair_id": None, "patch": {}}
+    doc["validation"] = None
+    with pytest.raises(ValueError, match="only a REPAIR decision has targets to authorize"):
+        from_json(json.dumps(doc))
 
 
 def test_an_unknown_schema_is_refused_not_guessed():
