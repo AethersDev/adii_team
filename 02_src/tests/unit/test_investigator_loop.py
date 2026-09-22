@@ -677,7 +677,79 @@ def test_valid_decision_is_constructed_traced_and_returned(
         "root_cause_summary": expected.root_cause_summary,
         "repair_id": expected.repair_id,
         "patch": expected.patch,
+        "evidence_refs": list(expected.evidence_refs),
     }
+
+
+MINTED = "ev-0123456789abcdef"
+
+
+class MintingExecutor:
+    """The tool layer as the loop meets it: a successful result carries the id it minted."""
+
+    def execute(self, call: ToolCall) -> ToolResult:
+        return ToolResult(call.call_id, call.name, "OK", {"value": 1, "evidence_id": MINTED})
+
+
+def test_a_decision_citing_an_observation_it_received_carries_the_citation():
+    """Trace contract row 3: the citation is the tool layer's id, copied by the model, and
+    it travels on the decision and in the loop's own submission event."""
+    provider = ScriptedProvider([tool_call_response(),
+                                 decision_response(evidence_refs=[MINTED])])
+    decision, trace = run(incident(), provider, MintingExecutor(), max_turns=2)
+    assert decision.evidence_refs == (MINTED,)
+    assert trace[-1].kind == "decision_submitted"
+    assert trace[-1].payload["evidence_refs"] == [MINTED]
+
+
+@pytest.mark.parametrize("cited", [
+    "ev-0123456789abcdee",          # one character off a minted id: never received
+    "ev-never-minted",
+])
+def test_a_citation_to_an_id_the_model_never_received_is_refused_and_told_once(cited):
+    """The archived run that cited an id one character off a minted one and nothing
+    noticed (Phase 6) is the case: a citation resolves to a successful result this model
+    received, or the decision is rejected at the evidence gate with the id named, the
+    reason returned once, and a corrected decision accepted on the next turn."""
+    provider = ScriptedProvider([tool_call_response(),
+                                 decision_response(evidence_refs=[cited]),
+                                 decision_response(evidence_refs=[MINTED])])
+    decision, trace = run(incident(), provider, MintingExecutor(), max_turns=3)
+    assert decision.evidence_refs == (MINTED,)
+    assert [e.kind for e in trace] == ["tool_call", "tool_result", "decision_rejected",
+                                       "decision_submitted"]
+    rejected = trace[2].payload
+    assert rejected["rejection_class"] == "evidence_gate"
+    assert rejected["reason"].startswith(f"cites evidence this run never observed: {cited};")
+    assert provider.received_rejections == (None, None, {"class": "evidence_gate",
+                                                          "reason": rejected["reason"]})
+
+
+def test_a_refused_tool_result_minted_nothing_a_decision_can_cite():
+    """A DENIED result is an observation for the minimum-observation rule and carries no
+    evidence id: citing anything after it alone is citing what was never minted."""
+    provider = ScriptedProvider([tool_call_response(name="no_such_tool"),
+                                 decision_response(evidence_refs=[MINTED]), STOP_SIGNAL])
+    executor = FakeToolExecutor()
+    decision, trace = run(incident(), provider, executor, max_turns=3)
+    assert executor.results[0].status == "DENIED" and decision is None
+    assert [e.kind for e in trace] == ["tool_call", "tool_result", "decision_rejected",
+                                       "loop_stopped"]
+    assert trace[2].payload["rejection_class"] == "evidence_gate"
+
+
+@pytest.mark.parametrize(("refs", "reason"), [
+    ("ev-0123456789abcdef", "evidence_refs must be a list of evidence ids, as text"),
+    ([1, 2], "evidence_refs must be a list of evidence ids, as text"),
+    ([MINTED, MINTED], "evidence_refs cites each observation once"),
+])
+def test_malformed_citations_are_an_invalid_decision(refs, reason):
+    provider = ScriptedProvider([tool_call_response(), decision_response(evidence_refs=refs),
+                                 STOP_SIGNAL])
+    decision, trace = run(incident(), provider, MintingExecutor(), max_turns=3)
+    assert decision is None and trace[2].kind == "decision_rejected"
+    assert trace[2].payload["rejection_class"] == "invalid_decision"
+    assert trace[2].payload["reason"] == reason
 
 
 @pytest.mark.parametrize(

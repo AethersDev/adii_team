@@ -41,7 +41,14 @@ evaluation authority.
 
 ## Evidence grounding
 
-The current `InvestigationDecision` contract has no `evidence_ids` field, and this policy
-does not change the shared contract. `root_cause_summary` should describe how the decision
-is grounded in observed evidence. Task A enforces only the objective minimum-observation
-rule; it does not claim that the model's prose is semantically true.
+Decided 22 September 2026 (trace contract row 3): a decision names the observations it
+rests on in `evidence_refs`, by the evidence ids the tool layer minted on successful
+results. The gate is mechanical and objective: every cited id must be one the model
+received in this run, or the decision is an invalid submission (`decision_rejected`,
+class `evidence_gate`, the ids named, the reason returned once) — an id one character off
+a minted one is one the model never saw. The minimum-observation rule stays as it is:
+REPAIR and NO_REPAIR need an observation, ESCALATE does not, and none of the three is
+required to cite. `root_cause_summary` still describes the reasoning in prose. Neither the
+gate nor this policy claims the cited observations warrant the conclusion: cited means
+observed, and whether it was the decisive observation is the evaluation authority's
+question, answered by a grounding key.

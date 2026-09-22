@@ -24,6 +24,19 @@ def decision(**overrides) -> InvestigationDecision:
     return InvestigationDecision(**{**base, **overrides})
 
 
+def test_a_decision_cites_each_observation_once_by_a_non_empty_id():
+    """Trace contract row 3: `evidence_refs` names observations by the ids the tool layer
+    minted. The contract holds what it can see — each id non-empty, each cited once; that
+    the id was minted in this run is the loop's gate and the record's invariant."""
+    cited = decision(evidence_refs=("ev-0123456789abcdef", "ev-fedcba9876543210"))
+    assert cited.evidence_refs == ("ev-0123456789abcdef", "ev-fedcba9876543210")
+    assert decision().evidence_refs == ()
+    with pytest.raises(ValueError, match="cites each observation once"):
+        decision(evidence_refs=("ev-0123456789abcdef", "ev-0123456789abcdef"))
+    with pytest.raises(ValueError, match="names nothing"):
+        decision(evidence_refs=("ev-0123456789abcdef", "  "))
+
+
 def test_a_decision_must_explain_itself():
     with pytest.raises(ValueError, match="explain itself"):
         decision(root_cause_summary="   ")

@@ -490,6 +490,16 @@ GUARDS = (
     Guard("D.legacy_unchecked_is_never_a_verdict", "D", "runtime/run.py",
           '            if validation.state == "UNCHECKED":\n',
           "            if False:\n"),
+    # trace contract row 3: a citation resolves to an observation the run minted, or it is refused
+    Guard("contracts.a_decision_cites_each_observation_once", "contracts", "contracts/core.py",
+          "        if len(set(self.evidence_refs)) != len(self.evidence_refs):\n",
+          "        if False:\n"),
+    Guard("A.citation_must_be_an_observation_the_model_received", "A", "investigator/loop.py",
+          "            if unresolved:\n",
+          "            if False:\n"),
+    Guard("D.a_record_never_cites_what_its_trace_never_minted", "D", "reporting/record.py",
+          "            if dangling:\n                raise ValueError(",
+          "            if False:\n                raise ValueError("),
     # m7 row 4: the authorization fact, the runtime's, for every REPAIR, apart from validation
     Guard("contracts.authorization_state_space_is_closed", "contracts", "contracts/core.py",
           "        if self.authorized != (not self.denied_paths):\n",

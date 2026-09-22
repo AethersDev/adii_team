@@ -1,10 +1,10 @@
 {"sequence": 0, "kind": "incident_received", "payload": {"incident_id": "demo-learning-001"}}
 {"sequence": 1, "kind": "tool_call", "payload": {"call_id": "c1", "name": "get_schema", "arguments": {"table": "orders"}}}
-{"sequence": 2, "kind": "tool_result", "payload": {"call_id": "c1", "name": "get_schema", "status": "OK", "content": {"table": "orders", "columns": ["order_id", "order_date", "amount_cents"]}}}
+{"sequence": 2, "kind": "tool_result", "payload": {"call_id": "c1", "name": "get_schema", "status": "OK", "content": {"table": "orders", "columns": ["order_id", "order_date", "amount_cents"], "evidence_id": "ev-d76ae1003a801552"}}}
 {"sequence": 3, "kind": "tool_call", "payload": {"call_id": "c2", "name": "run_sql", "arguments": {"query": "SELECT order_date, COUNT(*) AS n FROM orders GROUP BY order_date LIMIT 3"}}}
-{"sequence": 4, "kind": "tool_result", "payload": {"call_id": "c2", "name": "run_sql", "status": "OK", "content": {"rows": [["2026-01-14", 297], ["2026-01-13", 301], ["2026-01-12", 298]]}}}
+{"sequence": 4, "kind": "tool_result", "payload": {"call_id": "c2", "name": "run_sql", "status": "OK", "content": {"rows": [["2026-01-14", 297], ["2026-01-13", 301], ["2026-01-12", 298]], "evidence_id": "ev-cf8f69bccba4aa57"}}}
 {"sequence": 5, "kind": "tool_call", "payload": {"call_id": "c3", "name": "run_sql", "arguments": {"query": "SELECT * FROM mart_daily WHERE day = '2026-01-14'"}}}
-{"sequence": 6, "kind": "tool_result", "payload": {"call_id": "c3", "name": "run_sql", "status": "OK", "content": {"rows": [["2026-01-14", 2.97]]}}}
+{"sequence": 6, "kind": "tool_result", "payload": {"call_id": "c3", "name": "run_sql", "status": "OK", "content": {"rows": [["2026-01-14", 2.97]], "evidence_id": "ev-1746cb628b7300fb"}}}
 {"sequence": 7, "kind": "tool_call", "payload": {"call_id": "c4", "name": "delete_table", "arguments": {"table": "orders"}}}
 {"sequence": 8, "kind": "tool_result", "payload": {"call_id": "c4", "name": "delete_table", "status": "DENIED", "content": {"error": "unknown tool 'delete_table'"}}}
 {"sequence": 9, "kind": "decision_submitted", "payload": {"disposition": "REPAIR"}}

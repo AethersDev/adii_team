@@ -86,6 +86,11 @@ class RunRecord:
         if self.authorization is not None and (
                 self.decision is None or self.decision.disposition is not Disposition.REPAIR):
             raise ValueError("only a REPAIR decision has targets to authorize")
+        if self.decision is not None:
+            dangling = unresolved_citations(self.decision, self.trace)
+            if dangling:
+                raise ValueError("a decision cites evidence its trace never minted: "
+                                 f"{', '.join(dangling)}")
         for name in ("tool_calls", "model_turns", "latency_ms"):
             if getattr(self, name) < 0:
                 raise ValueError(f"{name} must be non-negative")
@@ -136,7 +141,8 @@ class RunRecord:
                 "disposition": decision.disposition.value,
                 "root_cause_id": decision.root_cause_id,
                 "root_cause_summary": decision.root_cause_summary,
-                "repair_id": decision.repair_id, "patch": decision.patch},
+                "repair_id": decision.repair_id, "patch": decision.patch,
+                "evidence_refs": list(decision.evidence_refs)},
             "validation": None if validation is None else {
                 "accepted": validation.accepted, "report": validation.report,
                 "checks_run": list(validation.checks_run),
@@ -152,6 +158,20 @@ class RunRecord:
             "provenance": self.provenance,
         }
         return json.dumps(doc, indent=2, ensure_ascii=False, allow_nan=False) + "\n"
+
+
+def unresolved_citations(decision: InvestigationDecision,
+                         trace: tuple[TraceEvent, ...]) -> tuple[str, ...]:
+    """The cited ids this trace never minted. An evidence id exists only on a successful tool
+    result, minted by the tool layer (inherited D2); a decision may reference one, never
+    invent one. Empty means every citation resolves — or there are none."""
+    minted = set()
+    for event in trace:        # a payload of any other shape minted nothing
+        content = event.payload.get("content")
+        if (event.kind == "tool_result" and event.payload.get("status") == "OK"
+                and isinstance(content, dict)):
+            minted.add(content.get("evidence_id"))
+    return tuple(ref for ref in decision.evidence_refs if ref not in minted)
 
 
 def _not_json(constant: str) -> None:
@@ -188,7 +208,8 @@ def from_json(text: str) -> RunRecord:
             decision=None if d is None else InvestigationDecision(
                 disposition=Disposition(d["disposition"]), root_cause_id=d["root_cause_id"],
                 root_cause_summary=d["root_cause_summary"], repair_id=d["repair_id"],
-                patch=_patch(d["patch"])),
+                patch=_patch(d["patch"]),
+                evidence_refs=tuple(d.get("evidence_refs", ()))),   # absent before 22 Sep
             validation=None if v is None else ValidationResult(
                 accepted=v["accepted"], report=v["report"], checks_run=tuple(v["checks_run"]),
                 reason_code=v.get("reason_code")),      # absent in records before 22 Sep

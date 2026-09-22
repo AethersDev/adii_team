@@ -188,6 +188,20 @@ def test_a_verdict_names_who_produced_it():
         "a run-list card labels a verdict without its provenance"
 
 
+def test_what_a_decision_cites_is_said_from_its_refs_alone():
+    """Trace contract row 3: the page says how many observations the decision cites and shows
+    the ids; it never says the citations warrant the conclusion."""
+    cited = load("accepted")["decision"]
+    assert len(cited["evidence_refs"]) == 3
+    assert phrase("citations", "said", cited) == \
+        "Rests on 3 cited observations, each minted by the tool layer in this run."
+    assert phrase("citations", "said", {**cited, "evidence_refs": cited["evidence_refs"][:1]}) == \
+        "Rests on 1 cited observation, each minted by the tool layer in this run."
+    assert phrase("citations", "said", {**cited, "evidence_refs": []}) == \
+        "No observation is cited as the ground for this decision."
+    assert "PHRASING.citations.said(d)" in (WEB / "app.js").read_text(encoding="utf-8")
+
+
 def test_declared_paths_are_never_called_enforced():
     """The incident's permitted paths are text the investigator is told; the runtime checks a
     repair's targets against them and records the fact (m7 row 4), and nothing is ever
@@ -257,6 +271,7 @@ def test_every_sentence_the_page_adds_is_recoverable_from_the_record_alone(name)
                         phrase("by", "validator", record)]
     if record["decision"]:
         projections.append(phrase("action", record["decision"]["disposition"], record))
+        projections.append(phrase("citations", "said", record["decision"]))
     if record["decision"] and record["decision"]["disposition"] == "REPAIR":
         projections += [phrase("authorization", "said", record),
                         phrase("authorization", "aside", record),
@@ -427,6 +442,6 @@ def test_the_readme_lists_every_sentence_the_page_adds():
                 "attempts", "nothingAnswered", "declaredPaths", "declaredNone",
                 "declaredPathsHint", "scriptedRun", "by", "verdictLabelOf", "title", "said",
                 "scriptedAccepted", "scriptedRejected", "notCheckable", "keys",
-                "authorization", "admission", "admissibleOf"):
+                "authorization", "admission", "admissibleOf", "citations"):
         assert key in source, f"phrasing.js lost {key}"
         assert f"`{key}`" in readme, f"README does not list the {key} sentence"

@@ -25,6 +25,7 @@ DECISION
   orders.amount_cents is already in cents, but stg_orders.sql divides by 100
   twice, so the mart reports 1/100th of the real count-weighted revenue.
   Source counts are steady at ~300/day; only the mart moved.
+  cites: ev-d76ae1003a801552, ev-cf8f69bccba4aa57, ev-1746cb628b7300fb
 
 PROPOSED REPAIR
   repair_id: DEMO_REMOVE_SECOND_CONVERSION

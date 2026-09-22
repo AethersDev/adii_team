@@ -5,5 +5,10 @@
   "repair_id": "DEMO_REMOVE_SECOND_CONVERSION",
   "patch": {
     "transforms/stg_orders.sql": "SELECT order_id, order_date, amount_cents / 100.0 AS amount_usd FROM orders;\n"
-  }
+  },
+  "evidence_refs": [
+    "ev-d76ae1003a801552",
+    "ev-cf8f69bccba4aa57",
+    "ev-1746cb628b7300fb"
+  ]
 }

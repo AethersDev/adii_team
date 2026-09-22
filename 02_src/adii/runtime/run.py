@@ -27,7 +27,7 @@ from ..contracts import (
     TraceEvent,
     ValidationResult,
 )
-from ..reporting.record import RunRecord, provenance, strict
+from ..reporting.record import RunRecord, provenance, strict, unresolved_citations
 
 
 class Tools(Protocol):
@@ -156,6 +156,12 @@ def run_incident(label: str, context: IncidentContext, investigator: Investigato
     decision = authorization = validation = None
     try:
         decision = investigator.investigate(context, recorder.watch(tools))
+        # the loop refuses a citation the model never received; an investigator that reaches
+        # here with one — a script, or a defect — is ours, and no record carries the claim
+        dangling = unresolved_citations(decision, recorder.trace)
+        if dangling:
+            raise RuntimeError("the decision cites evidence this run never minted: "
+                               f"{', '.join(dangling)}")
         recorder.event("decision_submitted", {"disposition": decision.disposition.value})
         if decision.disposition is Disposition.REPAIR:
             # two facts about the one proposal, each its own authority's, neither gating

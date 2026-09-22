@@ -178,7 +178,12 @@
     "repair_id": "DEMO_REMOVE_SECOND_CONVERSION",
     "patch": {
       "transforms/stg_orders.sql": "SELECT order_id, order_date, amount_cents / 100.0 AS amount_usd FROM orders;\n"
-    }
+    },
+    "evidence_refs": [
+      "ev-d76ae1003a801552",
+      "ev-cf8f69bccba4aa57",
+      "ev-1746cb628b7300fb"
+    ]
   },
   "validation": {
     "accepted": false,
@@ -214,7 +219,7 @@
   },
   "provenance": {
     "origin": "runtime",
-    "written_at": "2026-09-22T17:09:10+00:00",
-    "source_revision": "b885cc59e0273d7b48ee1bd5549f691a436d6042"
+    "written_at": "2026-09-22T17:34:20+00:00",
+    "source_revision": "dfc149d333a5df54f1468b2b7cf524e1965960b7"
   }
 }

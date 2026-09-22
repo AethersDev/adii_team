@@ -26,7 +26,7 @@ python -m adii.examples.walkthrough --step
 | 5 | It checks the **source**: counts steady at ~300/day | `ToolCall` / `ToolResult` |
 | 6 | It checks the **mart**: 2.97 where the source says 297 | a 100× gap, located |
 | 7 | It tries `delete_table`. **DENIED** — B refuses | **B** is a boundary, not a helper |
-| 8 | It commits: `REPAIR` with a `repair_id` **and** a patch | **A** → `InvestigationDecision` → **C** |
+| 8 | It commits: `REPAIR` with a `repair_id` **and** a patch, citing the three observations by the ids the tool layer minted — an id the run never minted would be refused | **A** → `InvestigationDecision` → **C** |
 | 9 | The runtime records that the patch's target is a permitted path; the validator, asked regardless and told no permitted paths, rebuilds from frozen inputs and returns **ACCEPT**. Admissible is derived from both, stored nowhere | **D** → `RepairAuthorization`; **C** → `ValidationResult` |
 | 10 | Everything observable is persisted and rendered | → `TraceEvent` → **D** |
 
@@ -36,7 +36,7 @@ python -m adii.examples.walkthrough --step
 |---|---|
 | `incident.json` | what the investigator was told |
 | `trace.jsonl` | every event, in order — including the refused call |
-| `decision.json` | the disposition, the reasoning, the patch |
+| `decision.json` | the disposition, the reasoning, the patch, and `evidence_refs` — the observations it rests on, by id |
 | `validation.json` | the independent verdict |
 | `transform_map.json`, `transform_sources/stg_orders.sql` | the transform the incident permits the investigator to change, as it is before the repair — served through `get_transform("stg_orders")`, so a repair is never written blind; applied as-is it reproduces the defect, and the committed patch is what fixes it |
 | `expected_report.txt` | what the telemetry layer renders — a committed regression test |

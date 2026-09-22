@@ -110,8 +110,11 @@ the tools listed below, and you answer with exactly one of three message forms, 
 <DECISION>{"disposition": "REPAIR" | "NO_REPAIR" | "ESCALATE", "root_cause_id": "<ID_OR_NULL>",
            "root_cause_summary": "<what you established, citing what you observed>",
            "repair_id": "<ID, REPAIR only, else null>",
-           "patch": {"<permitted path>": "<new content>"}}
-    to end the investigation. REPAIR needs a repair_id and a non-empty patch and may write only
+           "patch": {"<permitted path>": "<new content>"},
+           "evidence_refs": ["<evidence_id>", ...]}
+    to end the investigation. In evidence_refs, cite the evidence_id of every tool result your
+    conclusion rests on, copied exactly from results you received; a decision citing any other
+    id is rejected. REPAIR needs a repair_id and a non-empty patch and may write only
     to the permitted paths. NO_REPAIR means the change is legitimate and nothing should change.
     ESCALATE means the evidence cannot settle it or the action is not yours to take; say what
     is missing. REPAIR and NO_REPAIR require that you looked at least once.

@@ -209,6 +209,12 @@ CI runs each sync and fails on any diff, and a test does the same locally.
   the incident without those paths. `RunRecord.admissible` derives authorized-and-ACCEPT and
   is stored nowhere. Nothing executes. M7 is closed; the record is
   `02_src/docs/m7_validation_integration.md`.
+- **A decision cites what it observed, or it is refused.** `evidence_refs` on the decision
+  names observations by the ids the tool layer minted on successful results. The loop
+  refuses a citation the model never received, with the ids named and the reason returned
+  once; a record is never built citing what its trace never minted. Cited means observed,
+  never warranted: the evaluation report carries grounding beside the category, and
+  whether the decisive observation was cited is a grounding key's question.
 - **The trace vocabulary is a contract in progress.** `02_src/docs/trace_event_contract.md`
   lists the open rows; placeholders such as `usage` on `model_responded` move when a row
   resolves. Do not invent event kinds.

@@ -76,7 +76,22 @@ class TestSubmittedRuns:
             "verdict": "correct",
             "settled_by": "deterministic",
             "runtime_validation": {"state": "checked", "accepted": True, "checks_run": []},
+            "grounding": {"evidence_refs": [], "grounded": False},
         }
+
+    def test_a_correct_disposition_that_cites_nothing_is_not_a_grounded_success(self):
+        """Trace contract row 3: grounding is a dimension beside the category, never inside
+        it. The same success reads grounded only when the decision cites observations the
+        run minted — and cited is not yet warranted, which a grounding key decides."""
+        decision = {"disposition": "REPAIR", "root_cause_id": "CAUSE_A", "root_cause_summary": "x",
+                    "repair_id": "REPAIR_A", "patch": {"a": "b"}}
+        validation = {"accepted": True, "report": "ok", "checks_run": ["rebuild"]}
+        bare = build_evaluation_report(submitted_run_record(decision, validation), ANSWER_KEY)
+        cited = build_evaluation_report(submitted_run_record(
+            {**decision, "evidence_refs": ["ev-0123456789abcdef"]}, validation), ANSWER_KEY)
+        assert bare["category"] == cited["category"] == "success"
+        assert bare["grounding"] == {"evidence_refs": [], "grounded": False}
+        assert cited["grounding"] == {"evidence_refs": ["ev-0123456789abcdef"], "grounded": True}
 
     def test_runtime_validation_is_a_dimension_orthogonal_to_the_verdict(self):
         """The same category — an unwarranted repair — means a different system behaviour

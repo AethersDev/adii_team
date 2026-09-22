@@ -15,6 +15,9 @@ def test_the_fixture_loads_into_real_contract_objects():
     context, run = load()
     assert context.incident_id == "demo-learning-001"
     assert run.decision.disposition is Disposition.REPAIR
+    minted = [e.payload["content"]["evidence_id"] for e in run.trace
+              if e.kind == "tool_result" and e.payload["status"] == "OK"]
+    assert list(run.decision.evidence_refs) == minted      # it cites what it observed
     assert run.validation.accepted is True
     assert run.tool_calls == 3                       # counted from the trace, not declared
 

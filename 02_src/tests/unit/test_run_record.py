@@ -82,6 +82,25 @@ def test_the_authorization_fact_round_trips_and_records_before_it_load_without_o
         from_json(json.dumps(doc))
 
 
+def test_citations_round_trip_and_a_record_never_cites_what_its_trace_never_minted():
+    """Trace contract row 3: the decision's citations travel in the record; a record written
+    before the field loads citing nothing; and a record whose decision cites an id its own
+    trace never minted is refused where the record is built — a hand-edited archive cannot
+    manufacture grounding."""
+    record = walkthrough_record()
+    assert len(record.decision.evidence_refs) == 3
+    assert from_json(record.to_json()).decision.evidence_refs == record.decision.evidence_refs
+    doc = json.loads(record.to_json())
+    del doc["decision"]["evidence_refs"]
+    assert from_json(json.dumps(doc)).decision.evidence_refs == ()
+    doc = json.loads(record.to_json())
+    doc["decision"]["evidence_refs"] = [doc["decision"]["evidence_refs"][0], "ev-never-minted"]
+    with pytest.raises(ValueError, match="cites evidence its trace never minted: ev-never-minted"):
+        from_json(json.dumps(doc))
+    with pytest.raises(ValueError, match="never minted"):
+        replace(record, decision=replace(record.decision, evidence_refs=("ev-never-minted",)))
+
+
 def test_an_unknown_schema_is_refused_not_guessed():
     doc = json.loads(walkthrough_record().to_json())
     doc["schema"] = "adii.run_record/v2"
