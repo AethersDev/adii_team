@@ -26,12 +26,15 @@ from pathlib import Path
 from ..reporting.record import ARCHIVE, LABEL, read_record
 from .evaluation_report import build_evaluation_report, to_json
 from .freeze import compute_digest, load_frozen_answer_key
+from .grounding import load_grounding_key
 
 NAME = "evaluation_report.json"
 
 
-def score(folder: Path, key_path: Path) -> dict:
-    """The report for one archived run, or ValueError naming why it is not scored."""
+def score(folder: Path, key_path: Path, grounding_path: Path | None = None) -> dict:
+    """The report for one archived run, or ValueError naming why it is not scored. With a
+    grounding key — bound by digest to this very answer key — the report's grounding says
+    whether the decisive observations were made and cited."""
     record = json.loads(read_record(folder / "record.json").to_json())
     key = load_frozen_answer_key(key_path)
     incident = record["context"]["incident_id"]
@@ -48,7 +51,13 @@ def score(folder: Path, key_path: Path) -> dict:
                          (f"; reason_code {verdict['reason_code']}" if verdict.get("reason_code")
                           else "") + ") and the key says REPAIR: an unestablished verdict is "
                          "not a rejection, so this run is not scored until a validator has run")
-    return build_evaluation_report(record, key)
+    grounding = None
+    if grounding_path is not None:
+        grounding = load_grounding_key(grounding_path, answer_key_dir=key_path.parent)
+        if grounding["answer_key_filename"] != key_path.name:
+            raise ValueError(f"the grounding key is bound to {grounding['answer_key_filename']!r}, "
+                             f"not to {key_path.name!r}: a run is grounded against its own key")
+    return build_evaluation_report(record, key, grounding_key=grounding)
 
 
 def write_report(folder: Path, report: dict) -> Path:
@@ -66,6 +75,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--run", required=True, metavar="LABEL", help="the archived run")
     parser.add_argument("--key", required=True, metavar="PATH",
                         help="the frozen answer key (its .sha256 beside it)")
+    parser.add_argument("--grounding-key", metavar="PATH",
+                        help="a grounding key bound to --key: whether the decisive observations "
+                             "were made and cited, beside the category")
     parser.add_argument("--archive", default=str(ARCHIVE), metavar="DIR",
                         help="the archive (default: 01_data/runs)")
     args = parser.parse_args(argv)
@@ -75,7 +87,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     key_path = Path(args.key)
     try:
-        report = score(folder, key_path)
+        report = score(folder, key_path,
+                       Path(args.grounding_key) if args.grounding_key else None)
     except (ValueError, FileNotFoundError) as why:   # not scorable, or the key is not frozen
         print(f"not scored: {why}")
         return 2

@@ -12,6 +12,7 @@ Uses tmp_path throughout — never touches the real answer key or grounding
 files in this directory.
 """
 import json
+from pathlib import Path
 
 import pytest
 from adii.evaluation.freeze import freeze_answer_key
@@ -187,32 +188,40 @@ class TestAuthoritiesFreezeIndependently:
         assert loaded["answer_key_digest"] == grounding["answer_key_digest"]
 
 
+# The committed walkthrough record: its trace is what the runtime archived — c1 get_schema
+# orders, c2 and c3 run_sql, all OK with minted ids, and c4 delete_table DENIED.
+WALKTHROUGH = json.loads((Path(__file__).resolve().parents[3] / "01_data" / "walkthrough"
+                          / "record.json").read_text(encoding="utf-8"))
+TRACE, REFS = WALKTHROUGH["trace"], WALKTHROUGH["decision"]["evidence_refs"]
+
+
+def key_of(*predicates):
+    return {"required_tool_calls": [{"tool": t, "argument_contains": a} for t, a in predicates]}
+
+
 class TestCheckingGroundingAgainstATrace:
-    def test_a_trace_satisfying_every_predicate_is_grounded(self):
-        grounding_key = {
-            "required_tool_calls": [
-                {"tool": "run_sql", "argument_contains": "amount_cents"},
-                {"tool": "get_schema", "argument_contains": "stg_orders"},
-            ]
-        }
-        trace = [
-            {"tool": "run_sql", "arguments": {"query": "SELECT amount_cents FROM orders"}},
-            {"tool": "get_schema", "arguments": {"table": "stg_orders"}},
-        ]
-        result = check_grounding(trace, grounding_key)
-        assert result == {"grounded": True, "missing": []}
+    def test_a_predicate_answered_ok_and_cited_is_observed_and_cited(self):
+        key = key_of(("run_sql", "MART_DAILY"), ("get_schema", "orders"))    # case is not meaning
+        assert check_grounding(TRACE, key, REFS) == {"observed": True, "cited": True,
+                                                     "missing": []}
 
-    def test_a_trace_missing_one_predicate_names_it(self):
-        grounding_key = {
-            "required_tool_calls": [
-                {"tool": "run_sql", "argument_contains": "amount_cents"},
-                {"tool": "get_schema", "argument_contains": "stg_orders"},
-            ]
-        }
-        trace = [{"tool": "run_sql", "arguments": {"query": "SELECT amount_cents FROM orders"}}]
-        result = check_grounding(trace, grounding_key)
-        assert result["grounded"] is False
-        assert result["missing"] == [{"tool": "get_schema", "argument_contains": "stg_orders"}]
+    def test_observed_is_not_cited_when_the_decision_does_not_name_the_evidence(self):
+        result = check_grounding(TRACE, key_of(("run_sql", "mart_daily")), [])
+        assert result == {"observed": True, "cited": False, "missing": []}
 
-    def test_an_empty_trace_against_no_requirements_is_grounded(self):
-        assert check_grounding([], {"required_tool_calls": []}) == {"grounded": True, "missing": []}
+    def test_a_refused_call_observes_nothing_whatever_it_asked_for(self):
+        """c4 asked delete_table for orders and was DENIED: nothing was seen."""
+        predicate = ("delete_table", "orders")
+        result = check_grounding(TRACE, key_of(predicate), REFS)
+        assert result["observed"] is False and result["cited"] is False
+        assert result["missing"] == [{"tool": "delete_table", "argument_contains": "orders"}]
+
+    def test_a_decisive_call_never_made_is_named(self):
+        result = check_grounding(TRACE, key_of(("run_sql", "orders"), ("get_transform",
+                                                                         "stg_orders")), REFS)
+        assert result["observed"] is False
+        assert result["missing"] == [{"tool": "get_transform", "argument_contains": "stg_orders"}]
+
+    def test_no_requirements_is_trivially_observed_and_cited(self):
+        assert check_grounding([], key_of(), []) == {"observed": True, "cited": True,
+                                                     "missing": []}

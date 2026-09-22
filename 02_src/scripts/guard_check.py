@@ -484,6 +484,14 @@ GUARDS = (
           "    missing = [p for p in context.permitted_write_paths\n",
           "    missing = [p for p in ()\n"),
     # ── C: validation — the patch is applied from frozen inputs or refused, never guessed ──
+    # grounding is read from the archived trace: a refused call observes nothing
+    Guard("C.decisive_is_read_from_the_trace", "C", "evaluation/grounding.py",
+          '                if e.get("kind") == "tool_result"'
+          ' and e["payload"].get("status") == "OK"}\n',
+          '                if e.get("kind") == "tool_result"}\n'),
+    Guard("C.grounding_key_bound_to_this_answer_key", "C", "evaluation/__main__.py",
+          '        if grounding["answer_key_filename"] != key_path.name:\n',
+          "        if False:\n"),
     Guard("C.failed_rebuild_is_reject_not_unchecked", "C", "validation/validator.py",
           '                                 checks_run=("rebuild",))\n',
           '                                 checks_run=())\n'),
