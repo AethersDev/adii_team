@@ -128,8 +128,9 @@ request counted as unknown.
   wired here (`live.py`, `ValidatorOnLivePath`, M7 rows 1–3) and rebuilds
   `demo-learning-001` only; a REPAIR on any other incident is archived NOT_CHECKABLE —
   `reason_code: no_rebuildable_world`, not accepted, no checks — which is the validator's
-  statement that it had no world, not a finding about the repair. Authorization (is the
-  target permitted) kept apart from validation is M7 row 4, the next box.
+  statement that it had no world, not a finding about the repair. Whether the targets were
+  permitted is this package's own fact (`authorize`, M7 row 4), established for every
+  REPAIR beside the verdict; admission is derived from both and nothing is applied.
 
 ## How to test it
 

@@ -4,6 +4,7 @@ from .core import (
                    IncidentContext,
                    InvestigationDecision,
                    InvestigationRun,
+                   RepairAuthorization,
                    ToolCall,
                    ToolResult,
                    TraceEvent,
@@ -11,4 +12,5 @@ from .core import (
 )
 
 __all__ = ["Disposition", "IncidentContext", "InvestigationDecision", "InvestigationRun",
+           "RepairAuthorization",
            "ToolCall", "ToolResult", "TraceEvent", "ValidationResult"]

@@ -145,6 +145,8 @@ def test_a_live_repair_on_a_world_the_validator_cannot_rebuild_is_not_checkable_
     assert [e.kind for e in r.trace][-2:] == ["decision_submitted", "validation_completed"]
     # the trace event keeps its contract payload; the state is the record's to derive
     assert r.trace[-1].payload == {"accepted": False}
+    # m7 row 4: the target was permitted, the verdict was not established — not admissible
+    assert r.authorization.authorized is True and r.admissible is False
 
 
 def test_a_live_repair_is_checked_by_the_real_validator(tmp_path, endpoint):
@@ -167,6 +169,9 @@ def test_a_live_repair_is_checked_by_the_real_validator(tmp_path, endpoint):
     assert r.termination == "submitted" and r.decision.disposition.value == "REPAIR"
     assert r.validation.accepted is True and r.validation.checks_run
     assert [e.kind for e in r.trace][-2:] == ["decision_submitted", "validation_completed"]
+    # m7 row 4, the one admissible cell: a permitted target and an ACCEPT, both established
+    # by the live path; still nothing executed
+    assert r.authorization.authorized is True and r.admissible is True
 
 
 def test_an_invalid_submission_is_recorded_told_once_and_the_run_goes_on(tmp_path, endpoint):

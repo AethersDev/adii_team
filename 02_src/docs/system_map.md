@@ -58,7 +58,7 @@ that proposes a repair never gets to say whether the repair was accepted.
 | Validation | `02_src/adii/validation/` | independent acceptance of a candidate action |
 | Evaluation | `02_src/adii/evaluation/` | scoring against hidden truth; kept away from the investigator |
 | Reporting | `02_src/adii/reporting/` | traces, run artifacts, human-readable output |
-| Runtime | `02_src/adii/runtime/` | one incident end to end: investigator, validation, archive, report |
+| Runtime | `02_src/adii/runtime/` | one incident end to end: investigator, authorization, validation, archive, report |
 | Examples | `02_src/adii/examples/` | the runnable walkthrough, and one produced record per ending |
 | The page | `02_src/adii/demo/` | ADII's one page: investigate (against the provider the operator configured the server with — local, or paid under a cap — with a model, cap and turn budget at most the operator's), watch, read the archive, answer |
 | Run archive | `01_data/runs/` | one record per run, what the inspector reads |

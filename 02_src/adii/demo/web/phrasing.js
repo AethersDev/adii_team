@@ -51,7 +51,8 @@ const PHRASING = {
      * product copy about today's system, struck the day the runtime enforces it */
     declaredPaths: "Declared permitted paths",
     declaredNone: "none declared",
-    declaredPathsHint: "Declared to the investigator as text. Nothing enforces it yet.",
+    declaredPathsHint: "Declared to the investigator as text. A repair's targets are checked " +
+      "against it by the runtime and the fact recorded; nothing is applied.",
     idle: "Nothing is running now.",
     busy: (label) => `Investigating now: ${label}`,
     history: (incidents, runs) => `${incidents} incident${incidents === 1 ? "" : "s"} · ` +
@@ -262,6 +263,43 @@ const PHRASING = {
       if (state === "ACCEPT") return scripted ? PHRASING.validation.scriptedAccepted
         : PHRASING.validation.accepted;
       return scripted ? PHRASING.validation.scriptedRejected : PHRASING.validation.rejected;
+    },
+  },
+
+  /* ── the runtime's fact about the patch's targets (m7 row 4), in its own terms — never
+   * a word about whether the patch works; a record from before the fact says so ────── */
+  authorization: {
+    title: "Authorization",
+    authorized: "Every path the patch touches is one the incident permitted.",
+    denied: (a) => `The patch touches a path the incident did not permit: ${a.denied_paths.join(", ")}. ` +
+      "A patch is authorized whole or not at all.",
+    notRecorded: "No authorization fact was recorded: this run predates the runtime establishing one.",
+    said: (r) => (r.authorization === null || r.authorization === undefined
+      ? PHRASING.authorization.notRecorded
+      : r.authorization.authorized ? PHRASING.authorization.authorized
+        : PHRASING.authorization.denied(r.authorization)),
+    aside: "Whether the repair works is the validator's question, answered apart from this one.",
+  },
+
+  /* ── admission: derived from the two facts by the record's own rule (record.py
+   * `admissible`; test_phrasing holds the two equal), stored nowhere, asserted by nobody ── */
+  admissibleOf: (r) => Boolean(r.authorization && r.authorization.authorized
+    && r.validation && PHRASING.verdictOf(r.validation) === "ACCEPT"),
+  admission: {
+    title: "Admission",
+    by: "Derived from the two facts above by the record's rule; stored nowhere, asserted by nobody",
+    admissible: "Admissible: authorized and accepted. Nothing was executed.",
+    notAdmissible: (why) => `Not admissible: ${why}. Nothing was executed.`,
+    said: (r) => {
+      if (PHRASING.admissibleOf(r)) return PHRASING.admission.admissible;
+      const why = [];
+      if (!r.authorization) why.push("no authorization fact was recorded");
+      else if (!r.authorization.authorized) why.push(`authorization denied: ${r.authorization.reason_code}`);
+      const state = PHRASING.verdictOf(r.validation);
+      if (state !== "ACCEPT") why.push({ REJECT: "the repair was not accepted",
+        NOT_CHECKABLE: "validation was not established",
+        UNCHECKED: "no validator checked the repair" }[state]);
+      return PHRASING.admission.notAdmissible(why.join("; "));
     },
   },
 };

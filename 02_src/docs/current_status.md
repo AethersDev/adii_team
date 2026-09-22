@@ -23,14 +23,14 @@ and a test fails the build when it is stale. Milestone marks come from
 ## What exists
 
 ```text
-    contracts          180 lines
+    contracts          216 lines
     investigator       340 lines
     tools             1230 lines
     validation         217 lines
     evaluation        1341 lines
-    reporting          591 lines
-    runtime            709 lines
-    examples           586 lines
+    reporting          647 lines
+    runtime            728 lines
+    examples           592 lines
     demo               439 lines
 ```
 

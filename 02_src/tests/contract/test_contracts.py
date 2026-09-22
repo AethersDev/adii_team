@@ -8,6 +8,7 @@ from adii.contracts import (
     IncidentContext,
     InvestigationDecision,
     InvestigationRun,
+    RepairAuthorization,
     ToolCall,
     ToolResult,
     TraceEvent,
@@ -76,6 +77,35 @@ def test_a_validation_result_is_one_of_four_states_and_says_which():
                          reason_code="no_rebuildable_world")
     with pytest.raises(ValueError, match="explain itself"):
         ValidationResult(accepted=False, report="  ", reason_code="no_rebuildable_world")
+
+
+def test_an_authorization_is_one_of_two_states_and_names_its_paths():
+    """m7 row 4: the runtime's fact about a patch's targets. Authorized with nothing denied,
+    or denied with the offending paths and a reason from the closed set; every other shape
+    is refused at construction, so no reader meets a fact that contradicts itself."""
+    ok = RepairAuthorization(authorized=True, checked_paths=("a.sql",))
+    assert ok.denied_paths == () and ok.reason_code is None
+    denied = RepairAuthorization(authorized=False, checked_paths=("a.sql", "b.yml"),
+                                 denied_paths=("b.yml",), reason_code="target_not_permitted")
+    assert denied.authorized is False
+    with pytest.raises(ValueError, match="names the paths it checked"):
+        RepairAuthorization(authorized=True, checked_paths=())
+    with pytest.raises(ValueError, match="one of the paths that were checked"):
+        RepairAuthorization(authorized=False, checked_paths=("a.sql",), denied_paths=("z",),
+                            reason_code="target_not_permitted")
+    with pytest.raises(ValueError, match="no path was denied"):
+        RepairAuthorization(authorized=True, checked_paths=("a.sql",), denied_paths=("a.sql",))
+    with pytest.raises(ValueError, match="no path was denied"):
+        RepairAuthorization(authorized=False, checked_paths=("a.sql",),
+                            reason_code="target_not_permitted")
+    with pytest.raises(ValueError, match="carries its reason_code"):
+        RepairAuthorization(authorized=False, checked_paths=("a.sql",), denied_paths=("a.sql",))
+    with pytest.raises(ValueError, match="unknown reason_code"):
+        RepairAuthorization(authorized=False, checked_paths=("a.sql",), denied_paths=("a.sql",),
+                            reason_code="because")
+    with pytest.raises(ValueError, match="carries no reason_code"):
+        RepairAuthorization(authorized=True, checked_paths=("a.sql",),
+                            reason_code="target_not_permitted")
 
 
 def test_tool_result_status_is_a_closed_set():

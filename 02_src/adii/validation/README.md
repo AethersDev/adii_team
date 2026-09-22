@@ -27,11 +27,13 @@ the investigator's own connection; `checks.py` runs three atomic checks over the
 `validator.py` gives `Validator.validate(context, decision) -> ValidationResult`, the shape
 `runtime/run.py` requires, with no parameter through which a rehearsal claim could arrive.
 One frozen world so far, `demo-learning-001`; `_WORLD_BUILDERS` grows one entry per
-incident the validator can rebuild. `runtime/live.py` does not call it yet — a live REPAIR
-reads NOT_CHECKABLE, in structure (`reason_code`), for a world it cannot rebuild; a patch
-it cannot apply is REJECT by the check named `rebuild` (m7_validation_integration.md).
-Whether a target is *permitted* is authorization, a separate question answered before
-validation; a PASS here never implies permission.
+incident the validator can rebuild. `runtime/live.py` calls it for every live REPAIR — one
+on a world it cannot rebuild reads NOT_CHECKABLE, in structure (`reason_code`); a patch it
+cannot apply is REJECT by the check named `rebuild` (m7_validation_integration.md).
+Whether a target is *permitted* is authorization, the runtime's own fact (`runtime/run.py`,
+`authorize`, row 4), established for every REPAIR beside this verdict and never through
+it: the validator is handed the incident without its permitted paths, and a PASS here
+never implies permission.
 
 ## The question this component answers
 

@@ -27,7 +27,7 @@ python -m adii.examples.walkthrough --step
 | 6 | It checks the **mart**: 2.97 where the source says 297 | a 100× gap, located |
 | 7 | It tries `delete_table`. **DENIED** — B refuses | **B** is a boundary, not a helper |
 | 8 | It commits: `REPAIR` with a `repair_id` **and** a patch | **A** → `InvestigationDecision` → **C** |
-| 9 | The validator rebuilds from frozen inputs and returns **ACCEPT** | **C** → `ValidationResult` |
+| 9 | The runtime records that the patch's target is a permitted path; the validator, asked regardless and told no permitted paths, rebuilds from frozen inputs and returns **ACCEPT**. Admissible is derived from both, stored nowhere | **D** → `RepairAuthorization`; **C** → `ValidationResult` |
 | 10 | Everything observable is persisted and rendered | → `TraceEvent` → **D** |
 
 ## Files

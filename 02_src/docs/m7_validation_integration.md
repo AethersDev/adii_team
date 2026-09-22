@@ -310,6 +310,21 @@ authorization NEVER decides whether the patch works
 Orthogonal to the table: `validation = NOT_CHECKABLE` — the validation side of admission
 cannot be established. Nothing executes in any cell.
 
+**Row 4, built 22 September.** The fact is the contract's ninth type,
+`RepairAuthorization {authorized, checked_paths, denied_paths, reason_code}`, a closed
+two-state space (authorized with nothing denied; denied with the offending paths named and
+`reason_code = target_not_permitted`), refused at construction otherwise. The runtime
+establishes it in `run_incident` for every REPAIR — `authorize(context, decision)`, sets,
+whole: one target outside the permitted paths denies the patch entire — before it asks the
+validator, and asks the validator regardless, handing it the incident **without** its
+permitted paths. The record carries `authorization` beside `validation` (additive, like
+`reason_code`; records before it load with none, and say so). `RunRecord.admissible` derives
+`authorized ∧ ACCEPT` and is stored nowhere; the page derives it by the same rule and a test
+holds the two equal, cell by cell. NO_REPAIR and ESCALATE carry no authorization. Nothing
+executes. The fact's trace event is still D-1's to name (trace contract, open row 7); until
+then the record is where it lives. With this, M7 is closed: proposal → authorization fact →
+independent validation fact → derived admissibility, in the runtime that exists.
+
 **Sequencing.** M7's completion does not spend the paid key: run 2 is development
 evidence, used only to debug or qualify something cheaply before the freeze. The line is
 row 3 → row 4 → the remaining final-system seams → the final architecture → freeze → the

@@ -42,6 +42,11 @@ def test_a_correct_repair_runs_through_the_real_runtime_and_is_accepted():
     assert record.decision.disposition is Disposition.REPAIR
     assert record.validation is not None
     assert record.validation.accepted is True
+    # m7 row 4, the "works, but not allowed" cell: CONTEXT permits no path, so the target
+    # is denied by the runtime while the validator, asked regardless, accepts the repair
+    assert record.authorization.authorized is False
+    assert record.authorization.denied_paths == (TRANSFORM,)
+    assert record.admissible is False
     # The runtime's own trace records the validation boundary being crossed —
     # the investigator never sees how the verdict was reached.
     kinds = [e.kind for e in record.trace]
@@ -69,5 +74,5 @@ def test_non_repair_dispositions_never_reach_the_validator():
     record = run_incident("e2e-no-repair", CONTEXT, investigator, tools, Validator(),
                            configuration={})
 
-    assert record.validation is None
+    assert record.validation is None and record.authorization is None
     assert "validation_completed" not in [e.kind for e in record.trace]

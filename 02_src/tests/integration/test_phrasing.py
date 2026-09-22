@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pytest
 from adii.contracts import ValidationResult
+from adii.reporting.record import from_json
 
 ROOT = Path(__file__).resolve().parents[3]
 WEB = ROOT / "02_src" / "adii" / "demo" / "web"
@@ -188,12 +189,14 @@ def test_a_verdict_names_who_produced_it():
 
 
 def test_declared_paths_are_never_called_enforced():
-    """The incident's permitted paths are text the investigator is told; nothing enforces them
-    yet, and the page says exactly that beside them — never "may write"."""
+    """The incident's permitted paths are text the investigator is told; the runtime checks a
+    repair's targets against them and records the fact (m7 row 4), and nothing is ever
+    applied — the page says exactly that beside them, never "may write"."""
     assert phrase("product", "declaredPaths", {}) == "Declared permitted paths"
     assert phrase("product", "declaredNone", {}) == "none declared"
     assert phrase("product", "declaredPathsHint", {}) == \
-        "Declared to the investigator as text. Nothing enforces it yet."
+        "Declared to the investigator as text. A repair's targets are checked against it " \
+        "by the runtime and the fact recorded; nothing is applied."
     for key in ("declaredPaths", "declaredPathsHint", "declaredNone"):
         assert f"PHRASING.product.{key}" in (WEB / "app.js").read_text(encoding="utf-8")
 
@@ -254,6 +257,10 @@ def test_every_sentence_the_page_adds_is_recoverable_from_the_record_alone(name)
                         phrase("by", "validator", record)]
     if record["decision"]:
         projections.append(phrase("action", record["decision"]["disposition"], record))
+    if record["decision"] and record["decision"]["disposition"] == "REPAIR":
+        projections += [phrase("authorization", "said", record),
+                        phrase("authorization", "aside", record),
+                        phrase("admission", "said", record), phrase("admission", "by", record)]
     text = " ".join(projections).lower()
     hits = [w for w in FORBIDDEN if w in text]
     assert not hits, f"a projection grants what the record does not state: {hits}"
@@ -286,6 +293,47 @@ def test_the_pages_verdict_derivation_is_the_contracts(validation):
               f"process.stdout.write(PHRASING.verdictOf({json.dumps(validation)}));")
     assert subprocess.run([node(), "-e", script], capture_output=True, text=True,
                           encoding="utf-8", check=True, timeout=30).stdout == expected
+
+
+AUTHORIZED = {"authorized": True, "checked_paths": ["a.sql"], "denied_paths": [],
+              "reason_code": None}
+DENIED = {"authorized": False, "checked_paths": ["a.sql"], "denied_paths": ["a.sql"],
+          "reason_code": "target_not_permitted"}
+ACCEPT = {"accepted": True, "checks_run": ["rebuild"], "report": "r"}
+REJECT = {"accepted": False, "checks_run": ["rebuild"], "report": "r"}
+NOT_CHECKABLE = {"accepted": False, "checks_run": [], "report": "r",
+                 "reason_code": "no_rebuildable_world"}
+
+
+@pytest.mark.parametrize(("authorization", "validation", "said"), [
+    (AUTHORIZED, ACCEPT, "Admissible: authorized and accepted. Nothing was executed."),
+    (AUTHORIZED, REJECT, "Not admissible: the repair was not accepted. Nothing was executed."),
+    (DENIED, ACCEPT, "Not admissible: authorization denied: target_not_permitted. "
+                     "Nothing was executed."),
+    (DENIED, REJECT, "Not admissible: authorization denied: target_not_permitted; the repair "
+                     "was not accepted. Nothing was executed."),
+    (AUTHORIZED, NOT_CHECKABLE, "Not admissible: validation was not established. "
+                                "Nothing was executed."),
+    (None, ACCEPT, "Not admissible: no authorization fact was recorded. Nothing was executed."),
+])
+def test_admission_is_derived_the_same_way_on_the_page_and_in_the_record(authorization,
+                                                                          validation, said):
+    """m7 row 4: the page derives admission by the record's own rule (record.py `admissible`)
+    and the two are held equal, cell by cell, so the page can never call admissible what the
+    record would not — and the sentence names the facts that fall short."""
+    record = {**load("accepted"), "authorization": authorization, "validation": validation}
+    expected = from_json(json.dumps(record)).admissible
+    script = (f"{(WEB / 'phrasing.js').read_text(encoding='utf-8')}\n"
+              f"process.stdout.write(String(PHRASING.admissibleOf({json.dumps(record)})));")
+    assert subprocess.run([node(), "-e", script], capture_output=True, text=True,
+                          encoding="utf-8", check=True, timeout=30).stdout == str(expected).lower()
+    assert phrase("admission", "said", record) == said
+    assert phrase("authorization", "said", record) == (
+        "No authorization fact was recorded: this run predates the runtime establishing one."
+        if authorization is None else
+        "Every path the patch touches is one the incident permitted." if authorization["authorized"]
+        else "The patch touches a path the incident did not permit: a.sql. A patch is "
+             "authorized whole or not at all.")
 
 
 @pytest.mark.parametrize("name", list(RECORDS))
@@ -378,6 +426,7 @@ def test_the_readme_lists_every_sentence_the_page_adds():
                 "not_evaluable", "action", "looked", "lookedAtNothing", "soFar",
                 "attempts", "nothingAnswered", "declaredPaths", "declaredNone",
                 "declaredPathsHint", "scriptedRun", "by", "verdictLabelOf", "title", "said",
-                "scriptedAccepted", "scriptedRejected", "notCheckable", "keys"):
+                "scriptedAccepted", "scriptedRejected", "notCheckable", "keys",
+                "authorization", "admission", "admissibleOf"):
         assert key in source, f"phrasing.js lost {key}"
         assert f"`{key}`" in readme, f"README does not list the {key} sentence"

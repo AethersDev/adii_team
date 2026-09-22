@@ -389,7 +389,7 @@ What we are missing that the old system had or paid for, ranked by what it chang
 | loop → model | a rejected decision is re-asked with no reason fed back; the model repeats itself to the bound | `investigator/loop.py` — the seam's owner; a proposal belongs beside row 6 |
 | adapter → trace | A's `decision_rejected` events, with reasons, are discarded (`decision, _ = run(...)`) | `runtime/live.py:51`; contract row 6, then D-6b |
 | scoring semantics | a NO_REPAIR scores `success` on disposition alone; runs 2–3 are the case | `evaluation/scoring.py` — the authority's |
-| decision → permitted paths | `permitted_write_paths` is told to the model and recorded; nothing enforces it — R0 archived a REPAIR where none was permitted | decision 5 |
+| decision → permitted paths | `permitted_write_paths` is told to the model and recorded; nothing enforces it — R0 archived a REPAIR where none was permitted. **Closed 22 Sep** (m7 row 4): the runtime records its own authorization fact for every REPAIR, whole or not at all; admission is derived, nothing executes | decision 5 |
 | loop → evidence gate | a REJECTED result counts as an observation: `delivery-duplicated-qwen4b-1` submitted REPAIR after one refused request and nothing else; `decision_policy.md` says "observed" | the loop's owner; decision 5's sibling |
 | decision → evidence ids | nothing checks a cited id against the minted ones: `shipment-counts-disagree-qwen4b-1` cited `ev-ee53eb377d154e4` for minted `ev-ee53eb377d7154e4` | D-3; contract row 3 |
 | runtime → tools | `ToolExecutor.max_calls` is never set on the runtime path; the only bounds are turns and, paid, cost | D-9 |

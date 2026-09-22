@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import time
 import traceback
+from dataclasses import replace
 from pathlib import Path
 from typing import Protocol
 
@@ -20,6 +21,7 @@ from ..contracts import (
     Disposition,
     IncidentContext,
     InvestigationDecision,
+    RepairAuthorization,
     ToolCall,
     ToolResult,
     TraceEvent,
@@ -45,6 +47,22 @@ class Validator(Protocol):
 
     def validate(self, context: IncidentContext,
                  decision: InvestigationDecision) -> ValidationResult: ...
+
+
+def authorize(context: IncidentContext, decision: InvestigationDecision) -> RepairAuthorization:
+    """The runtime's own fact about a REPAIR: is every path the patch touches one the incident
+    permitted? Sets, whole — one target outside `permitted_write_paths` denies the patch
+    entire, because a repair is applied whole or not at all. It never asks whether the patch
+    works: that is the validator's question, established independently of this one
+    (m7_validation_integration.md, row 4). Nothing executes on either answer."""
+    if decision.disposition is not Disposition.REPAIR:
+        raise ValueError("only a REPAIR has targets to authorize; nothing is fabricated for "
+                         f"{decision.disposition.value}")
+    checked = tuple(decision.patch)
+    permitted = set(context.permitted_write_paths)
+    denied = tuple(path for path in checked if path not in permitted)
+    return RepairAuthorization(authorized=not denied, checked_paths=checked, denied_paths=denied,
+                               reason_code="target_not_permitted" if denied else None)
 
 
 class Terminated(Exception):
@@ -135,12 +153,19 @@ def run_incident(label: str, context: IncidentContext, investigator: Investigato
     started = time.monotonic()
     recorder = recorder or Recorder()   # a provider records at its boundary into the same one
     recorder.event("incident_received", {"incident_id": context.incident_id})
-    decision = validation = None
+    decision = authorization = validation = None
     try:
         decision = investigator.investigate(context, recorder.watch(tools))
         recorder.event("decision_submitted", {"disposition": decision.disposition.value})
         if decision.disposition is Disposition.REPAIR:
-            validation = validator.validate(context, decision)
+            # two facts about the one proposal, each its own authority's, neither gating
+            # the other: the runtime's — are the targets permitted — and the validator's —
+            # does it work. The validator is handed the incident without its permitted
+            # paths: permission is never its question. The record carries both; the
+            # authorization's trace form waits on the trace contract (D-1).
+            authorization = authorize(context, decision)
+            validation = validator.validate(replace(context, permitted_write_paths=()),
+                                            decision)
             # the legacy placeholder is loadable from old records and never produced: a
             # validator that returns it has failed to say whether it checked anything
             if validation.state == "UNCHECKED":
@@ -149,15 +174,16 @@ def run_incident(label: str, context: IncidentContext, investigator: Investigato
             recorder.event("validation_completed", {"accepted": validation.accepted})
         termination, detail = "submitted", "the investigator committed to a disposition"
     except Terminated as ended:
-        decision = validation = None
+        decision = authorization = validation = None
         termination, detail = ended.termination, ended.detail
     except Exception as defect:  # ours, not the model's: classified and shown, never hidden
         traceback.print_exc()
-        decision = validation = None
+        decision = authorization = validation = None
         termination, detail = "infrastructure_failure", f"{type(defect).__name__}: {defect}"
     return strict(RunRecord(
         label=label, context=context, trace=recorder.trace, termination=termination,
-        detail=detail, decision=decision, validation=validation, tool_calls=recorder.tool_calls,
+        detail=detail, decision=decision, validation=validation, authorization=authorization,
+        tool_calls=recorder.tool_calls,
         # Turns are counted from the model events the provider boundary recorded — zero when
         # no model ran. Cost stays 0.0: only local endpoints run here, and a paid provider
         # waits for the receipt and the ledger (plan D-15, D-12).

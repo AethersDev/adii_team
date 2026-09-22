@@ -490,6 +490,22 @@ GUARDS = (
     Guard("D.legacy_unchecked_is_never_a_verdict", "D", "runtime/run.py",
           '            if validation.state == "UNCHECKED":\n',
           "            if False:\n"),
+    # m7 row 4: the authorization fact, the runtime's, for every REPAIR, apart from validation
+    Guard("contracts.authorization_state_space_is_closed", "contracts", "contracts/core.py",
+          "        if self.authorized != (not self.denied_paths):\n",
+          "        if False:\n"),
+    Guard("D.authorization_is_established_for_every_repair", "D", "runtime/run.py",
+          "            authorization = authorize(context, decision)\n",
+          "            authorization = None\n"),
+    Guard("D.one_denied_target_denies_the_patch_whole", "D", "runtime/run.py",
+          "    denied = tuple(path for path in checked if path not in permitted)\n",
+          "    denied = () if permitted & set(checked) else tuple(\n"
+          "        path for path in checked if path not in permitted)\n"),
+    Guard("D.validator_never_sees_permitted_paths", "D", "runtime/run.py",
+          "            validation = validator.validate(replace(context, "
+          "permitted_write_paths=()),\n"
+          "                                            decision)\n",
+          "            validation = validator.validate(context, decision)\n"),
     Guard("C.patch_names_the_permitted_transform", "C", "validation/patching.py",
           "    if set(patch) != {TRANSFORM}:\n",
           "    if False:\n"),

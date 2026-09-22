@@ -31,12 +31,19 @@ PROPOSED REPAIR
   --- transforms/stg_orders.sql
       SELECT order_id, order_date, amount_cents / 100.0 AS amount_usd FROM orders;
 
+AUTHORIZATION
+  AUTHORIZED   (the runtime's: every target is a path the incident permitted)
+  checked: transforms/stg_orders.sql
+
 INDEPENDENT VALIDATION
   REJECTED   (decided by the validator, never by the agent)
   Rebuilt the demo warehouse from frozen inputs with the candidate patch
   applied. mart_daily for 2026-01-14 reports 29700.00 against an independently
   recomputed 297.00: the patch removes both conversions, not one.
   checks: pipeline_rebuilds, row_counts_preserved, independent_recomputation
+
+ADMISSION
+  not admissible   (the repair was not accepted; nothing was executed)
 
 COST OF THIS RUN
   tool calls 3   model turns 0   nothing spent (no paid provider)   0 ms

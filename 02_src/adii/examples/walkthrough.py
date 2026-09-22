@@ -24,6 +24,7 @@ from ..contracts import (
 )
 from ..reporting import render_run
 from ..reporting.record import ARCHIVE, RunRecord, write_record
+from ..runtime.run import authorize
 
 REPO = Path(__file__).resolve().parents[3]
 FIXTURE = REPO / "01_data" / "walkthrough"
@@ -101,7 +102,11 @@ def stages(context: IncidentContext, run: InvestigationRun) -> list[tuple[str, s
          f"    InvestigationDecision(disposition={decision.disposition.value},\n"
          f"                          root_cause_id={decision.root_cause_id!r},\n"
          f"                          repair_id={decision.repair_id!r})\n"
-         f"    A REPAIR must carry a repair_id AND a patch. The contract enforces it.",
+         f"    A REPAIR must carry a repair_id AND a patch. The contract enforces it.\n"
+         f"    The runtime checks its targets against permitted_write_paths:\n"
+         f"    RepairAuthorization(authorized={authorize(context, decision).authorized})\n"
+         f"    That fact never says whether the patch works; the validator never says\n"
+         f"    whether it was allowed. Admission is derived from both, stored nowhere.",
          "investigator -> InvestigationDecision -> validation"),
         (f"The candidate repair goes to the validator — a DIFFERENT authority.\n"
          f"    patch: {list(decision.patch)}\n"
@@ -134,7 +139,8 @@ def main(argv: list[str] | None = None) -> int:
     context, run = load()
     record = RunRecord.from_run("demo-learning-001", context, run,
                                 configuration={"provider": "fixture", "model": None},
-                                origin="walkthrough")
+                                origin="walkthrough",
+                                authorization=authorize(context, run.decision))
     if args.archive:
         try:
             path = write_record(record, Path(args.archive))
