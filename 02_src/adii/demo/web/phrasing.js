@@ -112,6 +112,15 @@ const PHRASING = {
     NO_REPAIR: "The pipeline is sound. The metric moved because the business moved.",
     ESCALATE: "The available evidence cannot justify either call. The run completed.",
   },
+  /* what the decision cites (trace contract row 3): ids the tool layer minted in this run —
+   * the record refuses any other — so cited means observed, and nothing more */
+  citations: {
+    none: "No observation is cited as the ground for this decision.",
+    some: (refs) => `Rests on ${refs.length} cited observation${refs.length === 1 ? "" : "s"}, ` +
+      "each minted by the tool layer in this run.",
+    said: (d) => (d.evidence_refs && d.evidence_refs.length
+      ? PHRASING.citations.some(d.evidence_refs) : PHRASING.citations.none),
+  },
   /* what the disposition asks of the person reading it — the contract's meaning, as an
    * instruction, and nothing the record does not say */
   action: {

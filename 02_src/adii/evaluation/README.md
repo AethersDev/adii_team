@@ -98,7 +98,12 @@ same name, so there is no adapter. The key must be frozen (`freeze.py`); it must
 run's incident; a REPAIR nobody checked (`checks_run` empty — the runtime's placeholder
 until a validator exists) is refused rather than filed as a rejection; and the report
 lands once, as `evaluation_report.json` beside the record, in the archive's `evaluation`
-retention class. Each refusal is a registered guard.
+retention class. Each refusal is a registered guard. Beside the category the report carries
+`runtime_validation` (what the runtime's validator did) and `grounding` (what the decision
+cites, from `evidence_refs`; `grounded` means at least one observation the run minted is
+cited) — dimensions, never inputs to the category: a correct disposition citing nothing
+scores as its category and reads as ungrounded. Whether the cited observations are the
+decisive ones is a grounding key's question (`grounding.py`).
 
 ## How to test it
 

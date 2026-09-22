@@ -207,6 +207,16 @@ def run(
                        f"{decision.disposition.value} requires at least one observed tool result",
                        response)
                 continue
+            # a citation resolves to a successful tool result this model received, or it is
+            # not a citation (trace contract row 3): the ids are the tool layer's, never the
+            # model's, and one character off is one it never saw
+            received = {r.content.get("evidence_id") for r in state.observations if r.ok}
+            unresolved = [ref for ref in decision.evidence_refs if ref not in received]
+            if unresolved:
+                reject(turn_index, "evidence_gate",
+                       f"cites evidence this run never observed: {', '.join(unresolved)}; cite "
+                       "only the evidence_id of tool results you received", response)
+                continue
 
             record("decision_submitted", {
                 "incident_id": incident.incident_id,
@@ -216,6 +226,7 @@ def run(
                 "root_cause_summary": decision.root_cause_summary,
                 "repair_id": decision.repair_id,
                 "patch": decision.patch,
+                "evidence_refs": list(decision.evidence_refs),
             })
             return decision, tuple(trace)
 
@@ -330,6 +341,11 @@ def _parse_decision(payload: str) -> InvestigationDecision:
         raise ValueError("patch must be an object")
     if not all(isinstance(k, str) and isinstance(v, str) for k, v in patch.items()):
         raise ValueError("patch must map each path to its new contents, as text")
+    refs = submission.get("evidence_refs", [])
+    if refs is None:               # "evidence_refs": null — a decision that cites nothing
+        refs = []
+    if not isinstance(refs, list) or not all(isinstance(ref, str) for ref in refs):
+        raise ValueError("evidence_refs must be a list of evidence ids, as text")
 
     return InvestigationDecision(
         disposition=disposition,
@@ -337,4 +353,5 @@ def _parse_decision(payload: str) -> InvestigationDecision:
         root_cause_summary=root_cause_summary,
         repair_id=repair_id,
         patch=patch,
+        evidence_refs=tuple(refs),
     )

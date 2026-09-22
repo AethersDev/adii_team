@@ -134,7 +134,7 @@ One straight line, 22 September to 18 October, by unit and dependency:
    1b  m7 rows 3–4 — reason_code, NOT_CHECKABLE, the closed state space; the authorization
        fact recorded by the runtime, admission derived    (marks recorded, then the contract)
    1c  grounding — evidence_refs on the decision, resolved against minted ids where the
-       record is built; unresolved refs rejected                       (contract row 3)
+       record is built; unresolved refs rejected              (decided and built 22 Sep)
    1d  trace rows 1 and 5 — the canonical vocabulary; the class of a stop without a decision
    1e  the validator beyond one world — rebuild from an incident's own build script and
        transform, checks declared per incident, so a REPAIR on any development case can

@@ -242,6 +242,28 @@ def test_a_run_the_loop_ends_is_archived_with_the_trace_so_far():
         Terminated("gave_up", "not a classification the loop may make")
 
 
+def test_a_decision_citing_what_the_run_never_minted_is_our_defect_never_a_record(capsys):
+    """Trace contract row 3, where the record is built: the loop refuses a citation the model
+    never received, so an investigator that reaches the runtime with one is a script or a
+    defect — ours — and the run is archived as an infrastructure failure naming the id, with
+    no decision that carries the claim."""
+    context, recorded = load()
+    minted = recorded.decision.evidence_refs[0]
+    fabricated = replace(recorded.decision, evidence_refs=(minted, "ev-never-minted"))
+    _, tools, validator = replay(recorded)
+    calls = tuple(ToolCall(e.payload["call_id"], e.payload["name"], e.payload["arguments"])
+                  for e in recorded.trace if e.kind == "tool_call")
+    run = harness(context, ScriptedInvestigator(calls, fabricated), tools, validator)
+    assert run.termination == "infrastructure_failure" and run.decision is None
+    assert run.detail == "RuntimeError: the decision cites evidence this run never minted: " \
+                         "ev-never-minted"
+    assert run.trace[-1].kind == "tool_result"            # nothing recorded past the defect
+    capsys.readouterr()
+    # the same calls with the fixture's own citations are the walkthrough, archived whole
+    assert harness(context, ScriptedInvestigator(calls, recorded.decision), tools,
+                   validator).decision.evidence_refs == recorded.decision.evidence_refs
+
+
 def test_a_validator_that_returns_the_legacy_placeholder_is_our_defect(capsys):
     """Row 3: the runtime records a verdict or NOT_CHECKABLE, nothing else. A validator that
     answers with the shape of records before 22 September — not accepted, no checks, no

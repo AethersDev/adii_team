@@ -508,7 +508,9 @@ function story(r, compact = false, label = r.label, evaluation = null) {
       el("p", "adii-assertion", d.root_cause_summary),
       el("p", "adii-field__hint adii-mt-sm", PHRASING.disposition[d.disposition]),
       el("p", "adii-mt-sm", el("b", null, "Action "), PHRASING.action[d.disposition]),
-      d.root_cause_id ? meta(["Root cause id", d.root_cause_id]) : ""));
+      d.root_cause_id ? meta(["Root cause id", d.root_cause_id]) : "",
+      el("p", "adii-field__hint adii-mt-sm", PHRASING.citations.said(d),
+        ...(d.evidence_refs || []).flatMap((ref) => [" ", mono(ref)]))));
   } else {
     out.append(record("system", "Why there is no decision",
       r.termination === "infrastructure_failure" ? PHRASING.by.runtime : PHRASING.by.investigator(r),

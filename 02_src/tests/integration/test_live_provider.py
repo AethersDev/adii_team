@@ -149,6 +149,31 @@ def test_a_live_repair_on_a_world_the_validator_cannot_rebuild_is_not_checkable_
     assert r.authorization.authorized is True and r.admissible is False
 
 
+def test_a_live_decision_cites_the_ids_the_tool_layer_minted_or_is_told(tmp_path, endpoint):
+    """Trace contract row 3 on the live path: the model copies evidence_id from a result it
+    received; one character off — the archived case — is a rejection with the id named, the
+    reason in the model's next request, and the corrected decision is the one archived."""
+    tools = build_sql_tools(ReadOnlyDatabase.in_memory(ORDERS_MISSING.world))
+    minted = tools.execute(ToolCall("c0", "get_schema", {})).content["evidence_id"]
+    off_by_one = minted[:-1] + ("0" if minted[-1] != "0" else "1")
+    FakeModel.script[:] = [
+        '<TOOL_CALL>{"name": "get_schema", "arguments": {}}',
+        '<DECISION>{"disposition": "ESCALATE", "root_cause_id": null, "root_cause_summary": '
+        f'"the owner must decide", "evidence_refs": ["{off_by_one}"]}}',
+        '<DECISION>{"disposition": "ESCALATE", "root_cause_id": null, "root_cause_summary": '
+        f'"the owner must decide", "evidence_refs": ["{minted}"]}}']
+    assert cli.main(["--incident", INCIDENT, "--provider", "local", "--endpoint", endpoint,
+                     "--model", "test-model-1", "--archive", str(tmp_path), "--label", "cites",
+                     "--no-report"]) == 0
+    r = read_record(tmp_path / "cites" / "record.json")
+    assert r.termination == "submitted" and r.decision.evidence_refs == (minted,)
+    rejected = [e.payload for e in r.trace if e.kind == "decision_rejected"]
+    assert len(rejected) == 1 and rejected[0]["rejection_class"] == "evidence_gate"
+    assert off_by_one in rejected[0]["reason"]
+    told = json.loads(FakeModel.seen[-1]["messages"][-1]["content"])
+    assert told["rejected"]["class"] == "evidence_gate" and off_by_one in told["rejected"]["reason"]
+
+
 def test_a_live_repair_is_checked_by_the_real_validator(tmp_path, endpoint):
     """The real validator is wired in (build plan M6): a live REPAIR is rebuilt from the
     frozen world and actually checked, never waved through and never a crash. Runs against

@@ -81,7 +81,10 @@ def render_run(record: RunRecord) -> str:
     else:
         out += ["", "DECISION", f"  {decision.disposition.value}", "",
                 f"  root cause: {decision.root_cause_id or '(none named)'}",
-                _wrap(decision.root_cause_summary)]
+                _wrap(decision.root_cause_summary),
+                # every cited id was minted by the tool layer in this run: the record refuses
+                # any other. Cited is not warranted — that is the evaluation's question.
+                f"  cites: {', '.join(decision.evidence_refs) or 'nothing'}"]
         if decision.disposition is Disposition.REPAIR:
             out += ["", "PROPOSED REPAIR", f"  repair_id: {decision.repair_id}"]
             for path, body in decision.patch.items():

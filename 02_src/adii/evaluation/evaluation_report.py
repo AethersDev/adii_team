@@ -108,6 +108,7 @@ def build_evaluation_report(run_record: dict, answer_key: dict, judge=None) -> d
         "verdict": classified["verdict"],
         "settled_by": classified["settled_by"],
         "runtime_validation": runtime_validation,
+        "grounding": describe_grounding(decision),
     }
 
 
@@ -125,6 +126,16 @@ def describe_runtime_validation(validation: dict | None) -> dict:
     else:
         state = "checked"
     return {"state": state, "accepted": accepted, "checks_run": checks}
+
+
+def describe_grounding(decision: dict) -> dict:
+    """What the decision cites, as the record states it — a dimension beside the category,
+    never inside it: a correct disposition with nothing cited is not a grounded success.
+    `grounded` means at least one observation is cited; the record refuses a citation its
+    trace never minted, so every cited id resolves. Whether the cited observations warrant
+    the conclusion is a further question, the evaluation authority's — a grounding key's."""
+    refs = list(decision.get("evidence_refs") or [])       # absent in records before 22 Sep
+    return {"evidence_refs": refs, "grounded": bool(refs)}
 
 
 def to_json(report: dict) -> str:

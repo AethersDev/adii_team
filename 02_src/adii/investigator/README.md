@@ -18,8 +18,10 @@ network. `state.py` — `InvestigationState`, the observations accumulated so fa
 value. Endings are two exceptions carrying the trace so far, `TurnBudgetExceededError` and
 `ProviderFailureError`. The loop writes its own trace of eight kinds;
 `docs/trace_event_contract.md` records what each means and what the runtime needs from
-them. The decision policy — REPAIR and NO_REPAIR need an observation, ESCALATE does not —
-is `docs/decision_policy.md`. It runs against the tool layer's real `get_schema` and
+them. The decision policy — REPAIR and NO_REPAIR need an observation, ESCALATE does not,
+and a decision's `evidence_refs` cite only ids of successful results the model received,
+or it is rejected with the ids named — is `docs/decision_policy.md`. It runs against the
+tool layer's real `get_schema` and
 `run_sql` in `02_src/tests/integration/`.
 
 ## What to get right early

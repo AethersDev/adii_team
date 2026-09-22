@@ -49,7 +49,8 @@ def load() -> tuple[IncidentContext, InvestigationRun]:
         disposition=Disposition(raw_decision["disposition"]),
         root_cause_id=raw_decision["root_cause_id"],
         root_cause_summary=raw_decision["root_cause_summary"],
-        repair_id=raw_decision["repair_id"], patch=raw_decision["patch"])
+        repair_id=raw_decision["repair_id"], patch=raw_decision["patch"],
+        evidence_refs=tuple(raw_decision["evidence_refs"]))
 
     raw_validation = json.loads((FIXTURE / "validation.json").read_text(encoding="utf-8"))
     validation = ValidationResult(
@@ -103,6 +104,9 @@ def stages(context: IncidentContext, run: InvestigationRun) -> list[tuple[str, s
          f"                          root_cause_id={decision.root_cause_id!r},\n"
          f"                          repair_id={decision.repair_id!r})\n"
          f"    A REPAIR must carry a repair_id AND a patch. The contract enforces it.\n"
+         f"    It cites the observations it rests on, by the ids the tool layer minted:\n"
+         f"    evidence_refs={list(decision.evidence_refs)}\n"
+         f"    An id the run never minted is refused: cited means observed, not warranted.\n"
          f"    The runtime checks its targets against permitted_write_paths:\n"
          f"    RepairAuthorization(authorized={authorize(context, decision).authorized})\n"
          f"    That fact never says whether the patch works; the validator never says\n"

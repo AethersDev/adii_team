@@ -117,8 +117,15 @@ class TraceEvent:
 class InvestigationDecision:
     """INVESTIGATOR  ──▶  VALIDATION / EVALUATION
 
-    The submission. Its three invariants are enforced HERE, at the point of
-    construction, so a malformed decision cannot travel to the authority that judges it.
+    The submission. Its invariants are enforced HERE, at the point of construction, so a
+    malformed decision cannot travel to the authority that judges it.
+
+    `evidence_refs` (trace contract row 3, decided 22 September 2026) names the observations
+    the decision rests on, by the evidence ids the tool layer minted — each cited once. The
+    contract cannot see the run: that every id was minted in this run, on a successful tool
+    result the model received, is the loop's gate and the record's invariant. A citation
+    proves the evidence existed and was available; whether it warrants the conclusion is the
+    evaluation authority's question.
     """
 
     disposition: Disposition
@@ -126,10 +133,15 @@ class InvestigationDecision:
     root_cause_summary: str
     repair_id: str | None = None
     patch: dict[str, str] = field(default_factory=dict)
+    evidence_refs: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.root_cause_summary.strip():
             raise ValueError("every decision must explain itself in root_cause_summary")
+        if any(not ref.strip() for ref in self.evidence_refs):
+            raise ValueError("evidence_refs names evidence ids; an empty one names nothing")
+        if len(set(self.evidence_refs)) != len(self.evidence_refs):
+            raise ValueError("evidence_refs cites each observation once")
         if self.disposition is Disposition.REPAIR:
             if not self.repair_id or not self.patch:
                 raise ValueError("a REPAIR decision must carry a repair_id and a patch")

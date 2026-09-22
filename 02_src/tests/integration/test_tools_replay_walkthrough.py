@@ -50,7 +50,9 @@ def test_every_recorded_call_replays_with_the_recorded_status(
     assert live.status == recorded_result["status"]
     assert live.name == recorded_call["name"]
     if live.status == "OK":
-        assert live.content["evidence_id"].startswith("ev-")
+        # the fixture records the id the tool layer mints for this call on this world,
+        # so the walkthrough's decision cites what a live run over the same world would
+        assert live.content["evidence_id"] == recorded_result["content"]["evidence_id"]
 
 
 def test_the_schema_the_fixture_shows_is_the_schema_the_world_has(executor):
