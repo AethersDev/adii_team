@@ -58,6 +58,19 @@ class TestTransformOf:
         with pytest.raises(PatchRejected, match="one statement"):
             transform_of({TRANSFORM: "SELECT * FROM orders; DROP TABLE orders"})
 
+    def test_a_semicolon_in_a_comment_or_a_literal_is_not_a_second_statement(self):
+        """Models write comments; a separator inside one, or inside a string, is text."""
+        commented = ("-- cents; not dollars\n/* one; two */\nSELECT order_id, order_date, "
+                     "amount_cents / 100.0 AS amount_usd, 'a;b' AS note FROM orders; -- done;")
+        assert transform_of({TRANSFORM: commented}).startswith("-- cents; not dollars")
+        assert apply_patch({TRANSFORM: commented}).query(
+            "SELECT count(*) FROM mart_daily", max_rows=1).rows[0][0] == len(ORDERS_PER_DAY)
+
+    @pytest.mark.parametrize("contents", ["-- only a comment", "/* nothing */", "-- a;\n;"])
+    def test_a_file_that_is_only_comments_is_empty(self, contents):
+        with pytest.raises(PatchRejected, match="empty"):
+            transform_of({TRANSFORM: contents})
+
 
 class TestBuildPatchedScript:
     def test_the_script_runs_the_candidate_as_the_staging_transform_then_derives_the_mart(self):

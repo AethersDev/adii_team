@@ -37,7 +37,8 @@ def test_one_command_takes_an_incident_to_an_archived_run_and_a_report(tmp_path,
     record = read_record(tmp_path / "first" / "record.json")
     assert record.termination == "submitted" and record.provenance["origin"] == "runtime"
     assert record.configuration == {"provider": "scripted", "model": None,
-                                    "tools": ["get_schema", "run_sql"], "max_tool_calls": 30}
+                                    "tools": ["get_schema", "run_sql", "get_transform"],
+                                    "max_tool_calls": 30}
     out = capsys.readouterr().out
     assert "ADII INVESTIGATION REPORT" in out and "decided by the validator" in out
 
