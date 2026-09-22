@@ -151,7 +151,8 @@ def test_a_live_repair_is_checked_by_the_real_validator(tmp_path, endpoint):
                            '"root_cause_id": "DEMO_DOUBLE_UNIT_CONVERSION", '
                            '"root_cause_summary": "stg_orders.sql divides amount_cents by '
                            '100 twice", "repair_id": "DEMO_REMOVE_SECOND_CONVERSION", '
-                           '"patch": {"stg_orders.sql": "count * 100 / 100"}}']
+                           '"patch": {"transforms/stg_orders.sql": "SELECT order_id, '
+                           'order_date, amount_cents / 100.0 AS amount_usd FROM orders;"}}']
     assert cli.main(["--incident", "demo-learning-001", "--provider", "local", "--endpoint",
                      endpoint, "--model", "test-model-1", "--archive", str(tmp_path),
                      "--label", "repair", "--no-report"]) == 0

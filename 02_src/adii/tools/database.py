@@ -97,12 +97,27 @@ class ReadOnlyDatabase:
     # -- construction --------------------------------------------------------------------
 
     @classmethod
-    def in_memory(cls, build_script: str, **limits: int) -> ReadOnlyDatabase:
+    def in_memory(cls, build_script: str, *, max_build_ticks: int | None = None,
+                  **limits: int) -> ReadOnlyDatabase:
         """Run `build_script` once to populate an in-memory database, then lock it. The
         script may create and fill; it may not ATTACH — a world is in memory and touches no
-        file. A script SQLite refuses is a ValueError naming the reason, not a database."""
+        file. A script SQLite refuses is a ValueError naming the reason, not a database.
+        `max_build_ticks` bounds the build itself, in ticks of the progress handler: a
+        script still running past it — a candidate transform that never finishes — is
+        interrupted and refused the same way, never waited for."""
         connection = sqlite3.connect(":memory:")
         connection.set_authorizer(_no_attach)
+        if max_build_ticks is not None:
+            if isinstance(max_build_ticks, bool) or max_build_ticks <= 0:
+                raise ValueError("max_build_ticks must be a positive int")
+            ticks = 0
+
+            def over_budget() -> bool:
+                nonlocal ticks
+                ticks += 1
+                return ticks > max_build_ticks       # non-zero aborts the statement
+
+            connection.set_progress_handler(over_budget, PROGRESS_EVERY_N_INSTRUCTIONS)
         try:
             connection.executescript(build_script)
         except sqlite3.Error as bad:

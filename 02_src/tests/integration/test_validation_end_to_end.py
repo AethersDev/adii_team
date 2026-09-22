@@ -9,6 +9,12 @@ from adii.runtime.run import run_incident
 from adii.runtime.scripted import ScriptedInvestigator, ScriptedTools
 from adii.validation.validator import Validator
 
+TRANSFORM = "transforms/stg_orders.sql"
+CORRECT = {TRANSFORM: "SELECT order_id, order_date, amount_cents / 100.0 AS amount_usd "
+                      "FROM orders;"}
+STILL_BROKEN = {TRANSFORM: "SELECT order_id, order_date, amount_cents / 100.0 / 100.0 "
+                           "AS amount_usd FROM orders;"}
+
 CONTEXT = IncidentContext(
     incident_id="demo-learning-001",
     alert="daily revenue is 1/100th of what it should be",
@@ -27,7 +33,7 @@ def repair(patch: dict[str, str]) -> InvestigationDecision:
 
 
 def test_a_correct_repair_runs_through_the_real_runtime_and_is_accepted():
-    investigator = ScriptedInvestigator((), repair({"stg_orders.sql": "count * 100 / 100"}))
+    investigator = ScriptedInvestigator((), repair(CORRECT))
     tools = ScriptedTools({})
     record = run_incident("e2e-accept", CONTEXT, investigator, tools, Validator(),
                            configuration={})
@@ -43,8 +49,7 @@ def test_a_correct_repair_runs_through_the_real_runtime_and_is_accepted():
 
 
 def test_a_wrong_repair_runs_through_the_real_runtime_and_is_rejected():
-    investigator = ScriptedInvestigator(
-        (), repair({"stg_orders.sql": "count * 100 / 100 / 100"}))
+    investigator = ScriptedInvestigator((), repair(STILL_BROKEN))
     tools = ScriptedTools({})
     record = run_incident("e2e-reject", CONTEXT, investigator, tools, Validator(),
                            configuration={})
