@@ -55,11 +55,11 @@ import shutil
 from dataclasses import replace
 from datetime import UTC, datetime
 from decimal import Decimal
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from ..contracts import IncidentContext
 from ..examples.specimens import SPECIMENS
-from ..examples.walkthrough import load
+from ..examples.walkthrough import FIXTURE, load
 from ..provider import (
     PROTOCOL,
     TIMEOUT_S,
@@ -93,22 +93,44 @@ from .scripted import replay
 WALKTHROUGH_WORLD = build_script()
 
 
+def readable_or_refused(context: IncidentContext, transform_sources: dict[str, str]) -> None:
+    """The rule that keeps a repair from being written blind: every path the incident permits
+    the investigator to change is one it can read through the evidence surface —
+    `transforms/<name>.sql` is served by `get_transform("<name>")`. An incident that permits a
+    path it cannot show is refused here, before any label, never handed to a model that would
+    have to patch a file it has never seen (three paid runs asked for one and were refused)."""
+    missing = [p for p in context.permitted_write_paths
+               if PurePosixPath(p).stem not in transform_sources]
+    if missing:
+        raise ValueError(f"the incident permits writing {', '.join(missing)} but the evidence "
+                         "surface cannot show it: a repair target the investigator cannot read "
+                         "would be patched blind — add its transform source or drop the path")
+
+
 def incident(incident_id: str, max_tool_calls: int | None = None):
     """The incident's context, a fresh tool layer over its world — `max_tool_calls` is the
     executor's budget — the world's digest, the walkthrough's recorded run if this is the
-    walkthrough, and the receipt's digests of any evidence bundles (none here). None when no
-    such incident exists."""
+    walkthrough, and the receipt's digests of the evidence the tools will show. None when no
+    such incident exists; ValueError when the incident permits a path it cannot show."""
     context, recorded = load()
     if incident_id == context.incident_id:
-        return (context, build_sql_tools(open_walkthrough_world(), max_calls=max_tool_calls),
-                digest_of(WALKTHROUGH_WORLD), recorded, {})
+        sources = load_transform_sources(FIXTURE)
+        readable_or_refused(context, sources)
+        tools = build_sql_tools(open_walkthrough_world(), max_calls=max_tool_calls,
+                                transform_sources=sources or None)
+        evidence = {"transforms": digest_of(canonical_json(sources))} if sources else {}
+        return context, tools, digest_of(WALKTHROUGH_WORLD), recorded, evidence
     for specimen in SPECIMENS:
         if specimen.context.incident_id == incident_id:
+            readable_or_refused(specimen.context, specimen.transforms)
             tools = build_sql_tools(ReadOnlyDatabase.in_memory(specimen.world),
-                                    max_calls=max_tool_calls)
+                                    max_calls=max_tool_calls,
+                                    transform_sources=specimen.transforms or None)
             if specimen.extra_tool:
                 tools.register(*specimen.extra_tool)
-            return specimen.context, tools, digest_of(specimen.world), None, {}
+            evidence = ({"transforms": digest_of(canonical_json(specimen.transforms))}
+                        if specimen.transforms else {})
+            return specimen.context, tools, digest_of(specimen.world), None, evidence
     return None
 
 
@@ -144,6 +166,7 @@ def incident_from_dir(folder: Path, max_tool_calls: int | None = None):
         evidence["declared_schema_observation"] = digest_of(canonical_json({
             table: declaration.observation for table, declaration in declared_schemas.items()}))
     transform_sources = load_transform_sources(folder)
+    readable_or_refused(context, transform_sources)
     if transform_sources:
         evidence["transforms"] = digest_of(canonical_json(transform_sources))
     notice_sources = load_notice_sources(folder)
@@ -365,7 +388,11 @@ def main(argv: list[str] | None = None) -> int:
             print(f"not an incident: {bad}")
             return 2
     else:
-        found = incident(args.incident, tool_cap)
+        try:
+            found = incident(args.incident, tool_cap)
+        except ValueError as bad:                       # a path it permits but cannot show
+            print(f"not an incident: {bad}")
+            return 2
         if found is None:
             known = [load()[0].incident_id, *(s.context.incident_id for s in SPECIMENS)]
             print(f"no such incident {args.incident!r}; known: {', '.join(known)}")

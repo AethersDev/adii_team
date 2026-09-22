@@ -22,6 +22,8 @@ rejection, never a silent no-op. A patch that applies and is wrong is `checks.py
 """
 from __future__ import annotations
 
+import re
+
 from adii.tools import ReadOnlyDatabase
 from adii.tools.walkthrough_world import AMOUNT_CENTS, ORDERS_PER_DAY
 
@@ -35,6 +37,9 @@ MART = ("CREATE TABLE mart_daily AS SELECT order_date AS day, SUM(amount_usd) AS
 # layer's progress handler (10,000 SQLite instructions each). The frozen world builds in a
 # handful; a transform still running at this many is refused, never waited for.
 MAX_BUILD_TICKS = 2_000
+# What a statement separator can hide in: a line comment, a block comment, a string literal.
+# Struck out before the one-statement check, never from the SQL that runs.
+_NOT_SQL = re.compile(r"--[^\n]*|/\*.*?\*/|'(?:[^']|'')*'", re.S)
 
 
 class PatchRejected(Exception):
@@ -52,9 +57,12 @@ def transform_of(patch: dict[str, str]) -> str:
     sql = patch[TRANSFORM].strip()
     if sql.endswith(";"):
         sql = sql[:-1].rstrip()
-    if not sql:
+    bare = _NOT_SQL.sub("", sql).strip()
+    if bare.endswith(";"):
+        bare = bare[:-1].rstrip()
+    if not bare:
         raise PatchRejected(f"patch for {TRANSFORM} is empty")
-    if ";" in sql:
+    if ";" in bare:
         raise PatchRejected(f"{TRANSFORM} must be one statement: the rebuild runs it as the "
                             "staging transform and nothing else")
     return sql

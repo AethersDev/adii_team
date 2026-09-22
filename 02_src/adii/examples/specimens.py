@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import argparse
 import csv
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from ..contracts import (
@@ -62,6 +62,10 @@ class Specimen:
     world: str                       # SQL that builds the world; opened read-only
     runs: tuple[Run, ...]
     extra_tool: tuple[ToolSpec, object] | None = None   # one specimen registers a failing tool
+    # The source of every path the incident permits the investigator to change, by logical
+    # id — `transforms/<name>.sql` is served as get_transform("<name>"). A repair target the
+    # investigator cannot read would be patched blind; the runtime refuses such an incident.
+    transforms: dict[str, str] = field(default_factory=dict)
 
 
 def sql(name: str, query: str) -> ToolCall:
@@ -126,7 +130,9 @@ ORDERS_MISSING = Specimen(
              sql("c2", "SELECT order_date, COUNT(*) AS n FROM orders GROUP BY order_date ORDER "
                        "BY order_date")),
             ending=Terminated("bound_hit", "tool_calls: 2 of 2 used")),
-    ))
+    ),
+    transforms={"load_orders": "job: load_orders\nsource: vendor_feed/orders\n"
+                               "schedule: daily 05:00\non_failure: rollback_batch\nrerun: []\n"})
 
 # ── 2. recognise a legitimate change ───────────────────────────────────────────────────
 REVENUE_AFTER_DEPLOY = Specimen(
@@ -158,7 +164,12 @@ REVENUE_AFTER_DEPLOY = Specimen(
                                   "deployed the next morning touched checkout copy only. The "
                                   "pipeline "
                                   "is reporting a real decline correctly; nothing to repair.")),
-    ))
+    ),
+    transforms={"revenue_daily": "-- revenue_daily: total revenue per day, in USD, across every "
+                                 "distributor.\n-- Source amounts are already in USD; no unit "
+                                 "conversion happens here.\nSELECT order_day AS day, 'all' AS "
+                                 "distributor, SUM(amount_usd) AS revenue_usd\nFROM fct_orders\n"
+                                 "GROUP BY order_day;\n"})
 
 # ── 3. remove what is duplicated ───────────────────────────────────────────────────────
 DELIVERY_DUPLICATED = Specimen(
@@ -211,7 +222,10 @@ DELIVERY_DUPLICATED = Specimen(
             accept("Rebuilt from frozen inputs with the patch applied. 2026-03-11 reports 40 "
                    "deliveries "
                    "against 40 shipments; every other day unchanged; independently recomputed.")),
-    ))
+    ),
+    transforms={"stg_deliveries": "-- stg_deliveries: every delivery event the carrier sent, as "
+                                  "received.\nSELECT shipment_id, delivered_at, batch\n"
+                                  "FROM deliveries;\n"})
 
 # ── 4. the evidence cannot settle it ───────────────────────────────────────────────────
 SHIPMENT_COUNTS = Specimen(
@@ -330,7 +344,10 @@ REGION_MISASSIGNED = Specimen(
                                   "failed when asked, so whether the assignment changed on purpose "
                                   "cannot be established from here.")),
     ),
-    extra_tool=(REGION_HISTORY, region_history_unavailable))
+    extra_tool=(REGION_HISTORY, region_history_unavailable),
+    transforms={"dim_customer": "-- dim_customer: each customer with the region its country maps "
+                                "to.\nSELECT c.customer_id, c.country, m.region\nFROM customers c\n"
+                                "JOIN region_map m ON m.country = c.country;\n"})
 
 SPECIMENS = (ORDERS_MISSING, REVENUE_AFTER_DEPLOY, DELIVERY_DUPLICATED, SHIPMENT_COUNTS,
              SETTLEMENT_CONFLICT, REGION_MISASSIGNED)
@@ -338,7 +355,8 @@ SPECIMENS = (ORDERS_MISSING, REVENUE_AFTER_DEPLOY, DELIVERY_DUPLICATED, SHIPMENT
 
 def produce(specimen: Specimen, index: int, run: Run) -> RunRecord:
     """One run of one specimen through the real runtime over the real tool layer."""
-    tools = build_sql_tools(ReadOnlyDatabase.in_memory(specimen.world))
+    tools = build_sql_tools(ReadOnlyDatabase.in_memory(specimen.world),
+                            transform_sources=specimen.transforms or None)
     if specimen.extra_tool:
         tools.register(*specimen.extra_tool)
     investigator = (EndingInvestigator(run.calls, run.ending) if run.ending
