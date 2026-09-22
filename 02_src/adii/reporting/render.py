@@ -88,10 +88,10 @@ def render_run(record: RunRecord) -> str:
                 out.append(f"  --- {path}")
                 out += [f"      {line}" for line in body.rstrip("\n").splitlines()]
             verdict = record.validation
-            # three states the record distinguishes: accepted; rejected after checks; and
-            # not checked at all — a placeholder verdict, which is not a finding
-            state = ("ACCEPTED" if verdict.accepted else "REJECTED" if verdict.checks_run
-                     else "UNCHECKED")
+            # the contract's one derivation: accepted; rejected after checks; not checkable
+            # (no world to rebuild, said in structure); or the legacy placeholder
+            state = {"ACCEPT": "ACCEPTED", "REJECT": "REJECTED",
+                     "NOT_CHECKABLE": "NOT CHECKABLE", "UNCHECKED": "UNCHECKED"}[verdict.state]
             out += ["", "INDEPENDENT VALIDATION",
                     f"  {state}   (decided by the validator, never by the agent)",
                     _wrap(verdict.report),

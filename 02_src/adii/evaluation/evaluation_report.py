@@ -117,9 +117,14 @@ def describe_runtime_validation(validation: dict | None) -> dict:
     if validation is None:
         return {"state": "none", "accepted": None, "checks_run": []}
     checks = list(validation.get("checks_run") or [])
-    unchecked = not validation.get("accepted") and not checks
-    return {"state": "unchecked" if unchecked else "checked",
-            "accepted": bool(validation.get("accepted")), "checks_run": checks}
+    accepted = bool(validation.get("accepted"))
+    if not accepted and validation.get("reason_code"):
+        state = "not_checkable"          # the validator had no world to rebuild, in structure
+    elif not accepted and not checks:
+        state = "unchecked"              # the legacy placeholder, records before 22 Sep
+    else:
+        state = "checked"
+    return {"state": state, "accepted": accepted, "checks_run": checks}
 
 
 def to_json(report: dict) -> str:

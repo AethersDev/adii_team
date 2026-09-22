@@ -83,8 +83,9 @@ const tick = setInterval(async () => {
 def test_a_stranger_starts_watches_reads_and_answers_a_run_in_the_browser(tmp_path,
                                                                            monkeypatch):
     binary = chrome()
-    # a live REPAIR: the trace the page watches carries validation_completed (the runtime's
-    # placeholder verdict), which the live view must render without a verdict of its own
+    # a live REPAIR on a world the validator cannot rebuild: the trace the page watches
+    # carries validation_completed and the record says NOT_CHECKABLE in structure, which
+    # the live view must render without a verdict of its own
     FakeModel.script[:] = [
         '<TOOL_CALL>{"name": "get_schema", "arguments": {"table": "orders"}}',
         '<DECISION>{"disposition": "REPAIR", "root_cause_id": "LOAD_FAILED", '
@@ -127,7 +128,7 @@ def test_a_stranger_starts_watches_reads_and_answers_a_run_in_the_browser(tmp_pa
     assert "running" in flow["seen"].split(","), flow
     assert flow["unchanged"] == "true"
     text = dom[dom.index('<pre id="text">'):]
-    assert "Decided: REPAIR" in text and "not checked by a validator" in text
+    assert "Decided: REPAIR" in text and "could not be checked: no rebuildable world" in text
     assert "What it concluded" in text and "it stays a proposal" in text
     assert "The investigation, turn by turn" in text and "One investigation at a time." in text
     assert "Sam" in text and "why it stopped" in text     # shown back, verbatim

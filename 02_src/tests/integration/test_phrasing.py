@@ -11,6 +11,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from adii.contracts import ValidationResult
 
 ROOT = Path(__file__).resolve().parents[3]
 WEB = ROOT / "02_src" / "adii" / "demo" / "web"
@@ -167,6 +168,17 @@ def test_a_verdict_names_who_produced_it():
         assert phrase("validation", "said", record) == "No validator checked the repair."
         assert phrase("by", "validator", record) == \
             "Recorded by the runtime: no validator checked it"
+    # not checkable is the validator's own statement, in structure, and is attributed to it
+    not_checkable = {**computed, "validation": {
+        "accepted": False, "checks_run": [], "report": "no", "reason_code": "no_rebuildable_world"}}
+    assert phrase("headline", "submitted", not_checkable) == \
+        "Decided: REPAIR — could not be checked: no rebuildable world"
+    assert phrase("validation", "title", not_checkable) == "Validation"
+    assert phrase("validation", "said", not_checkable) == \
+        "The validator had no rebuildable world for this incident, so the repair could not " \
+        "be checked: neither accepted nor rejected."
+    assert phrase("by", "validator", not_checkable) == \
+        "Asserted by the validator, not ADII: it had no world to rebuild"
     source = (WEB / "app.js").read_text(encoding="utf-8")
     for literal in ("Asserted by the validator", "Asserted by ADII", "May write", "never saw"):
         assert literal not in source, \
@@ -256,6 +268,24 @@ def test_a_repair_nobody_checked_is_not_called_rejected():
                             "report": "No independent validator exists yet."}
     assert phrase("headline", "submitted", record) == "Decided: REPAIR — not checked by a validator"
     assert phrase("outcome", "submitted", record) == "REPAIR · not checked by a validator"
+
+
+@pytest.mark.parametrize("validation", [
+    {"accepted": True, "checks_run": ["rebuild"], "report": "r"},
+    {"accepted": False, "checks_run": ["rebuild"], "report": "r"},
+    {"accepted": False, "checks_run": [], "report": "r", "reason_code": "no_rebuildable_world"},
+    {"accepted": False, "checks_run": [], "report": "r"},
+])
+def test_the_pages_verdict_derivation_is_the_contracts(validation):
+    """phrasing.js mirrors ValidationResult.state (core.py); the two are held equal here, shape
+    by shape, so the page can never show a state the contract does not derive."""
+    expected = ValidationResult(accepted=validation["accepted"], report="r",
+                                checks_run=tuple(validation["checks_run"]),
+                                reason_code=validation.get("reason_code")).state
+    script = (f"{(WEB / 'phrasing.js').read_text(encoding='utf-8')}\n"
+              f"process.stdout.write(PHRASING.verdictOf({json.dumps(validation)}));")
+    assert subprocess.run([node(), "-e", script], capture_output=True, text=True,
+                          encoding="utf-8", check=True, timeout=30).stdout == expected
 
 
 @pytest.mark.parametrize("name", list(RECORDS))
@@ -348,6 +378,6 @@ def test_the_readme_lists_every_sentence_the_page_adds():
                 "not_evaluable", "action", "looked", "lookedAtNothing", "soFar",
                 "attempts", "nothingAnswered", "declaredPaths", "declaredNone",
                 "declaredPathsHint", "scriptedRun", "by", "verdictLabelOf", "title", "said",
-                "scriptedAccepted", "scriptedRejected", "keys"):
+                "scriptedAccepted", "scriptedRejected", "notCheckable", "keys"):
         assert key in source, f"phrasing.js lost {key}"
         assert f"`{key}`" in readme, f"README does not list the {key} sentence"

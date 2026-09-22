@@ -96,6 +96,13 @@ class TestSubmittedRuns:
                                                    "checks_run": []}
         assert rejected["runtime_validation"] == {"state": "checked", "accepted": False,
                                                   "checks_run": ["rebuild"]}
+        # m7 row 3: a verdict the validator could not establish is neither of the above
+        not_checkable = build_evaluation_report(submitted_run_record(decision, {
+            "accepted": False, "report": "Not checkable: no world", "checks_run": [],
+            "reason_code": "no_rebuildable_world"}), key)
+        assert not_checkable["category"] == "failure"
+        assert not_checkable["runtime_validation"] == {"state": "not_checkable",
+                                                       "accepted": False, "checks_run": []}
         no_repair = build_evaluation_report(submitted_run_record(
             {**decision, "disposition": "NO_REPAIR", "repair_id": None, "patch": {}}, None), key)
         assert no_repair["runtime_validation"] == {"state": "none", "accepted": None,

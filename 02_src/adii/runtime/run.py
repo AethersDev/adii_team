@@ -141,6 +141,11 @@ def run_incident(label: str, context: IncidentContext, investigator: Investigato
         recorder.event("decision_submitted", {"disposition": decision.disposition.value})
         if decision.disposition is Disposition.REPAIR:
             validation = validator.validate(context, decision)
+            # the legacy placeholder is loadable from old records and never produced: a
+            # validator that returns it has failed to say whether it checked anything
+            if validation.state == "UNCHECKED":
+                raise RuntimeError("the validator returned a legacy unchecked result — neither "
+                                   "a verdict nor NOT_CHECKABLE; the runtime never records one")
             recorder.event("validation_completed", {"accepted": validation.accepted})
         termination, detail = "submitted", "the investigator committed to a disposition"
     except Terminated as ended:

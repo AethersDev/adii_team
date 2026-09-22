@@ -48,27 +48,30 @@ class TestSatisfiesTheRuntimeProtocol:
 class TestAcceptsACorrectRepair:
     def test_the_correct_patch_is_accepted_with_checks_recorded(self):
         result = validate(CONTEXT, repair_decision(CORRECT))
-        assert result.accepted is True
-        assert len(result.checks_run) == 3
+        assert result.accepted is True and result.state == "ACCEPT"
+        # the rebuild is the first check; the three world checks follow it
+        assert result.checks_run[0] == "rebuild" and len(result.checks_run) == 4
         assert result.report
 
 
 class TestRejectsAWrongRepair:
     def test_a_patch_that_does_not_fix_the_defect_is_rejected(self):
         result = validate(CONTEXT, repair_decision(STILL_BROKEN))
-        assert result.accepted is False
-        assert result.checks_run  # rejection still names which checks ran
+        assert result.accepted is False and result.state == "REJECT"
+        assert result.checks_run[0] == "rebuild"  # rejection names which checks ran
 
-    def test_a_patch_the_world_cannot_apply_is_rejected_with_no_checks_run(self):
+    def test_a_patch_the_world_cannot_apply_is_rejected_by_the_rebuild_check(self):
+        """Row 3: a patch the world cannot apply is a REJECT by the check named `rebuild`,
+        never the legacy shape with no checks, which reads as nobody having looked."""
         result = validate(CONTEXT, repair_decision({"wrong_file.sql": "SELECT 1"}))
-        assert result.accepted is False
-        assert result.checks_run == ()
+        assert result.accepted is False and result.state == "REJECT"
+        assert result.checks_run == ("rebuild",)
         assert "rejected" in result.report
 
-    def test_a_transform_that_does_not_run_is_rejected_with_no_checks_run(self):
+    def test_a_transform_that_does_not_run_is_rejected_by_the_rebuild_check(self):
         result = validate(CONTEXT, repair_decision(
             {TRANSFORM: "SELECT * FROM orders; DROP TABLE orders"}))
-        assert result.accepted is False and result.checks_run == ()
+        assert result.accepted is False and result.checks_run == ("rebuild",)
         assert "one statement" in result.report
 
 

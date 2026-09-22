@@ -87,6 +87,10 @@ def test_a_repair_nobody_checked_is_refused_not_filed_as_rejected(archive, tmp_p
     assert main(["--run", "demo-learning-001", "--key", str(key), "--archive", str(archive)]) == 2
     assert "never checked" in capsys.readouterr().out
     assert not (archive / "demo-learning-001" / NAME).exists()
+    doc["validation"]["reason_code"] = "no_rebuildable_world"    # m7 row 3: said in structure
+    record.write_text(json.dumps(doc), encoding="utf-8")
+    assert main(["--run", "demo-learning-001", "--key", str(key), "--archive", str(archive)]) == 2
+    assert "reason_code no_rebuildable_world" in capsys.readouterr().out
     # but where the key says the right call was not a repair, the disposition alone decides
     # and no validator is consulted: an unchecked REPAIR scores as what it is
     satisfy = {**KEY["repair_must_satisfy"], "reference_repair_id": None}

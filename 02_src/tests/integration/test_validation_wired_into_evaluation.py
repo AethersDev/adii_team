@@ -40,9 +40,10 @@ def test_the_real_validator_accepts_a_correct_repair_through_get_validation_for(
         "accepted": True,
         "report": result["report"],
         "checks_run": result["checks_run"],
+        "reason_code": None,
     }
     assert result["accepted"] is True
-    assert set(result) == {"accepted", "report", "checks_run"}
+    assert set(result) == {"accepted", "report", "checks_run", "reason_code"}
 
 
 def test_the_real_validator_rejects_a_wrong_repair_through_get_validation_for():

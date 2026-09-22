@@ -197,10 +197,14 @@ CI runs each sync and fails on any diff, and a test does the same locally.
 - **Cost is two numbers.** The record carries the lower bound (proved usage at nominal
   prices). Admission uses the exact worst case (unknown rows at the reserve that admitted
   them, `Decimal`). Neither is ever called a total, and a run of unknown rows is never 0.0.
-- **The validator exists but is not wired into the live path.** `validation/validator.py`
-  rebuilds `demo-learning-001` from the walkthrough world; `runtime/live.py` still carries
-  `NoValidatorYet`. How it is wired is decided row by row in
-  `02_src/docs/m7_validation_integration.md`; do not wire ahead of that record.
+- **The validator is on the live path, by decision record.** `runtime/live.py` hands every
+  REPAIR to the real validator through `ValidatorOnLivePath`, which translates exactly one
+  exception: an incident with no rebuildable world (today, everything but
+  `demo-learning-001`) is NOT_CHECKABLE, said in structure by `reason_code`, never a lost
+  decision and never a verdict. A verdict is ACCEPT or REJECT, and a REJECT always names
+  the checks that ran; a validator returning the legacy no-checks shape is an
+  infrastructure failure. Row 4 (authorization apart from validation) is the open unit in
+  `02_src/docs/m7_validation_integration.md`; do not build ahead of that record.
 - **The trace vocabulary is a contract in progress.** `02_src/docs/trace_event_contract.md`
   lists the open rows; placeholders such as `usage` on `model_responded` move when a row
   resolves. Do not invent event kinds.

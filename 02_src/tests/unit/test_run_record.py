@@ -10,7 +10,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
-from adii.contracts import TraceEvent
+from adii.contracts import TraceEvent, ValidationResult
 from adii.examples.walkthrough import load
 from adii.reporting.record import (
     SCHEMA,
@@ -43,6 +43,19 @@ def test_the_committed_v1_fixture_loads_under_its_declared_version():
     assert json.loads(COMMITTED.read_text(encoding="utf-8"))["schema"] == SCHEMA
     committed, fresh = read_record(COMMITTED), walkthrough_record()
     assert replace(committed, provenance={}) == replace(fresh, provenance={})
+
+
+def test_a_verdict_that_could_not_be_established_round_trips_and_older_records_load():
+    """Row 3: `reason_code` travels in the record. A record written before the field existed
+    has none and loads as the legacy placeholder — loadable, and never produced anew."""
+    record = walkthrough_record()
+    not_checkable = replace(record, validation=ValidationResult(
+        accepted=False, report="Not checkable: no world", reason_code="no_rebuildable_world"))
+    back = from_json(not_checkable.to_json())
+    assert back == not_checkable and back.validation.state == "NOT_CHECKABLE"
+    doc = json.loads(record.to_json())
+    doc["validation"] = {"accepted": False, "checks_run": [], "report": "no validator yet"}
+    assert from_json(json.dumps(doc)).validation.state == "UNCHECKED"
 
 
 def test_an_unknown_schema_is_refused_not_guessed():

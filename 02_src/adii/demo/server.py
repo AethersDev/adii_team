@@ -154,11 +154,9 @@ def index(root: Path) -> list[dict]:
             "incident_id": record.context.incident_id,
             "termination": record.termination,
             "disposition": record.decision.disposition.value if record.decision else None,
-            # three states the record distinguishes: accepted; not accepted after checks;
-            # not checked at all — `checks_run` empty — which is not a finding about the repair
-            "validation": None if record.validation is None
-            else ("ACCEPT" if record.validation.accepted
-                  else "REJECT" if record.validation.checks_run else "UNCHECKED"),
+            # the contract's own derivation: ACCEPT, REJECT, NOT_CHECKABLE, or the legacy
+            # UNCHECKED of records written before 22 September
+            "validation": None if record.validation is None else record.validation.state,
             "provider": record.configuration.get("provider"),
             "model": record.configuration.get("model"),
             "api_cost_usd": record.api_cost_usd,

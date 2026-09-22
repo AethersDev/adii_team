@@ -39,11 +39,15 @@ def score(folder: Path, key_path: Path) -> dict:
         raise ValueError(f"the key is for {key['incident_id']!r}; this run investigated "
                          f"{incident!r} — a run is scored against its own incident's key only")
     verdict = record["validation"]
+    # not checked (the legacy placeholder) or not checkable (no rebuildable world, in
+    # structure): either way the validation side is not established, and where the key
+    # says REPAIR it is what decides between success and rejection
     unchecked = verdict is not None and not verdict["accepted"] and not verdict["checks_run"]
     if unchecked and key["correct_disposition"] == "REPAIR":
-        raise ValueError("the repair was never checked (checks_run is empty) and the key "
-                         "says REPAIR: a placeholder verdict is not a rejection, so this run "
-                         "is not scored until a validator has run")
+        raise ValueError("the repair was never checked (checks_run is empty" +
+                         (f"; reason_code {verdict['reason_code']}" if verdict.get("reason_code")
+                          else "") + ") and the key says REPAIR: an unestablished verdict is "
+                         "not a rejection, so this run is not scored until a validator has run")
     return build_evaluation_report(record, key)
 
 
