@@ -31,6 +31,14 @@ evaluation authority.
 - Task A never fabricates a `ValidationResult`.
 - Task A never claims that a proposed repair was accepted.
 
+## Invalid submissions
+
+- A reply that is none of the three message forms, a decision that fails the contract, or
+  one the evidence gate refuses is an invalid submission: recorded as `decision_rejected`
+  with a class and a bounded reason, the reason returned to the model once, the loop
+  continuing under its bounds. No form is special-cased and nothing is reinterpreted as a
+  decision — the closed grammar stays closed.
+
 ## Evidence grounding
 
 The current `InvestigationDecision` contract has no `evidence_ids` field, and this policy

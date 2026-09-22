@@ -1,7 +1,7 @@
 {
   "schema": "adii.archive_manifest/v1",
-  "written_at": "2026-09-22T11:06:38+00:00",
-  "source_revision": "b663b668fa6d8d73f1cfe2aff151939d1e2f565d",
+  "written_at": "2026-09-22T12:59:48+00:00",
+  "source_revision": "69b7e0ddccdcbaaaa5f166fd9fbff3c12d111961",
   "entries": [
     {
       "path": "customer-region-misassigned-20260916T092358-161Z/receipt.json",

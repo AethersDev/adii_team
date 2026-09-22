@@ -346,13 +346,19 @@ class ChatProvider:
             "max_output_tokens": self._max_tokens, "estimator": estimator(self._price)}
 
     def respond(self, *, observation: ToolResult | None = None,
-                observations: tuple[ToolResult, ...] = ()) -> str:
+                observations: tuple[ToolResult, ...] = (),
+                rejection: dict[str, str] | None = None) -> str:
         """One model turn. The request and the response are recorded here, at the boundary,
-        before A parses the reply — never reconstructed later from what A made of it."""
+        before A parses the reply — never reconstructed later from what A made of it.
+        `rejection` is the loop's word on the previous reply — its class and reason — sent
+        back as the next message, once; the durable fact of it is the loop's event."""
         if observation is not None:
             self._messages.append({"role": "user", "content": json.dumps({
                 "tool": observation.name, "status": observation.status,
                 "content": observation.content})})
+        if rejection is not None:
+            self._messages.append({"role": "user", "content": json.dumps({
+                "rejected": rejection})})
         remaining, reserve, reserved = self._admit()
         self._turn += 1
         self._recorder.event("model_requested", {

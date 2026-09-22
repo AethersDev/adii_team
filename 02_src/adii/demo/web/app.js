@@ -675,6 +675,7 @@ function turnCard(turn, i, validation, scripted = false) {
   const by = (kind) => turn.events.find((e) => e.kind === kind);
   const call = by("tool_call"), result = by("tool_result"), said = by("model_responded");
   const decided = by("decision_submitted"), validated = by("validation_completed");
+  const rejected = by("decision_rejected");
   const body = el("div", "turn__body");
   if (call) {
     body.append(el("p", "turn__what", PHRASING.turn.asked(call.payload.name, call.payload.arguments)));
@@ -690,7 +691,8 @@ function turnCard(turn, i, validation, scripted = false) {
   }
   if (decided) body.append(el("p", "turn__what", PHRASING.turn.decided(decided.payload.disposition)));
   if (validated && validation) body.append(el("p", "turn__what", PHRASING.turn.validated(validation, scripted)));
-  if (!call && !decided && !validated) {
+  if (rejected) body.append(el("p", "turn__what", PHRASING.turn.rejected(rejected.payload)));
+  if (!call && !decided && !validated && !rejected) {
     body.append(said
       ? el("div", null, el("p", "turn__what", PHRASING.turn.wrote), el("blockquote", "turn__quote", said.payload.content))
       : el("p", "turn__what", turn.events.map((e) => e.kind).join(", ")));

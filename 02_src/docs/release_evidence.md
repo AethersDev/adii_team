@@ -107,49 +107,63 @@ One word, five meanings, kept apart. The state is the state on the date above.
 - Three records of 16 September carry `model_failure` for a connection refusal to the
   local endpoint — misfiled by the code of that day, preserved because labels are.
 
-## 6. The gates, in order
+## 6. The line to the submission — revised 22 September (evening)
 
-Nothing evaluated runs against an architecture that is still changing, and nothing about
-presentation changes before the evidence it describes is preserved.
+The prototype has served its purpose: it told us what to build. From here the project
+closes the product rather than hardening the prototype. Sacred: frozen evaluation
+evidence stays historically true, archived runs are never rewritten, a scored protocol is
+never changed silently. Not sacred: the current page, the specimen layout, the demo
+narrative, development fixtures — all replaceable by the final system. Run 2 is no longer
+a milestone; a development run is a development run. The milestone is:
 
 ```text
-0A  PRESERVE THE EVIDENCE      done 21 Sep — archive available to another reviewer; manifest
-                               re-attested and verified; historical runs immutable; the three
-                               misfiled records annotated beside the record, never rewritten
-0B  DEMO TRUTHFULNESS          done 21 Sep — scripted, model and computed verdicts visibly
-                               distinguished;
-                               "may write" labelled as declared, not enforced; the key
-                               labelled a team-authored development key; refusals counted;
-                               no page implies validator authority where none existed
-1   M7 VALIDATION INTEGRATION  the validator on the live path (m7_validation_integration.md,
-                               four rows marked, eight items); evidence gate on answered
-                               requests only; the first archived model-generated REPAIR
-                               with a computed ACCEPT, REJECT or NOT_CHECKABLE
-2   D-1 AND AUTHORIZATION      the canonical trace representation decided; authorization
-                               recorded as its own fact, admission derived — before another
-                               generation of records that cannot express permission
-3   GROUNDING / CITATIONS      evidence_refs on the decision, resolved against minted ids
-                               where the record is built; grounding predicates for the keys
-4   CANONICAL WORLD            configuration A first — source → transform → mart, readable
-                               through the package surface, rebuildable with a candidate
-                               patch substituted — then B and C on the same schema and alert
-                               with the same permitted paths; development keys for all three
-5   DECISIVE PROTOCOL FROZEN   DECISIVE_TESTS_v0.md: model, prompt, tools, bounds, worlds,
-                               keys, repeats, code — one identity, in every receipt
-6   DECISIVE TESTS             D1–D5 on the local model as rehearsal, then --check,
-                               --check --spend, and the pack once on the paid model; the
-                               pack is the event, the paid run only the model it runs on
-7   B0                         protocol frozen, then always-escalate · alert-only · full ADII,
-                               same cases × repeats; failure taxonomy from its records
-8   P1                         grounded NO_REPAIR/ESCALATE semantics (v2, ratified); the
-                               write-path decision; re-run on the EXACT B0 protocol; must
-                               reduce false REPAIR and unnecessary escalation without
-                               reducing correct ESCALATE
-9   M9 FREEZE                  model-facing surface digest in every receipt; scorer and
-                               validator frozen; reserve commitment before any declassified
-                               incident
-10  M10 UNSEEN                 custodian ≠ runner; commit before exposure; one shot; three arms
-11  HIGHER RELEASE LEVEL       EVALUATED or UNSEEN-EVALUATED, with the scorecard — or HOLD
+FINAL ADII → FROZEN → FRESH CONTROLLED EVALUATION → FINAL RESULTS
+           → FINAL PRODUCT → PRESENTATION + FILM
+```
+
+One straight line, 22 September to 18 October, by unit and dependency:
+
+```text
+1  FINISH ADII                         no cosmetic work except what operating the system needs
+   1a  row 6 — an invalid submission (any form that is not <TOOL_CALL>, <DECISION>, <STOP>)
+       is a durable decision_rejected event with a class and a bounded reason, the reason
+       returned to the model once, no special case for any tag; the investigator emits
+       into the runtime's recorder as it runs — one history, no second trace translated
+       or discarded                                                     (decided; build)
+   1b  m7 rows 3–4 — reason_code, NOT_CHECKABLE, the closed state space; the authorization
+       fact recorded by the runtime, admission derived    (marks recorded, then the contract)
+   1c  grounding — evidence_refs on the decision, resolved against minted ids where the
+       record is built; unresolved refs rejected                       (contract row 3)
+   1d  trace rows 1 and 5 — the canonical vocabulary; the class of a stop without a decision
+   1e  the validator beyond one world — rebuild from an incident's own build script and
+       transform, checks declared per incident, so a REPAIR on any development case can
+       be ACCEPT or REJECT, not only NOT_CHECKABLE
+   1f  CI cost — Ubuntu and Windows on pull requests, macOS and the guard pass on main
+2  THE FINAL DEVELOPMENT SET          the six geometries, expressed under the final contracts:
+       world with transform bundles, incident.json, a development key per case in the
+       final key schema (missing-evidence and grounding fields included), authored by the
+       evaluation authority; the walkthrough stays the teaching fixture
+3  CONTROL AND EVALUATION MACHINERY   always-escalate · alert-only · full ADII on the same
+       cases, model, bounds, scorer, repeats; semantics v2 (grounded NO_REPAIR and ESCALATE,
+       unsafe certainty, false refusal); the grid runner materialising every repeat; the
+       report generator reading records only
+4  FREEZE                              one code SHA, one protocol, one tool surface, one
+       validator, one scorer, one catalogue, one price table, one bounds configuration —
+       digests in every receipt; any engineering change after this is a new version
+5  THE FRESH BENCHMARK                 the frozen system against its controls with the new
+       key, rehearsed on the local model first; whatever it says is the result
+6  THE EVALUATION REPORT               from those records only: protocol, denominators,
+       repeats, per-disposition results, control comparison, failure taxonomy, grounding,
+       validation, cost, latency, limitations — the page and the report read the same records
+7  THE FINAL PRODUCT SURFACE           designed around what step 5 proved; the benchmark a
+       first-class view; the prototype page kept only where its code saves time
+8  PRESENTATION                        problem → ordinary agent failure → authority separation
+       → live incident → proposal ≠ acceptance → controlled benchmark → failures and limits
+       → what was earned
+9  FILM                                last: the finished interface, the final numbers, the
+       final language, one canonical run
+10 SUBMISSION QUALIFICATION            clean clone, Windows install and run, exact
+       requirements, final manifest and preserved archive, no secrets, tagged commit
 ```
 
 Two kinds of key, never called by one name:
@@ -159,13 +173,9 @@ DEVELOPMENT KEYS   evaluation-authority authored · frozen before the evaluated 
 UNSEEN KEYS        custody-controlled · inaccessible before the run · different custodian
 ```
 
-Demo and frontend work may progress around gates 1–4, provided nothing changes a frozen
-protocol after it is registered. The first paid run is not a smoke: the paid path has
-been exercised by five runs, three refusals, fault injection and the guard pass; the
-new key is scarce evidence and is spent on the decisive pack
-([DECISIVE_TESTS_v0.md](DECISIVE_TESTS_v0.md)) against the world we intend to present.
-The capstone (18 October 2026) ships at DEMO, limited, with gate 1 if it has landed; M10
-is not needed for that.
+The capstone ships whatever step 5 says. The predecessor's 18/18, the 48-run census, the
+scripted verdicts and the prototype's screenshots are engineering history, cited as such
+if asked, never on the stage.
 
 ## 7. The falsification condition
 

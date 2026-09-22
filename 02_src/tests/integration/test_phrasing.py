@@ -103,6 +103,9 @@ def test_a_turn_says_what_was_asked_and_what_came_back_quoting_only_the_payload(
     refused = next(r for r in results if r["status"] == "DENIED")
     assert turn_text("turn", "answered", refused).startswith("refused: unknown tool")
     assert turn_text("turn", "decided", "REPAIR") == "Committed to REPAIR"
+    assert turn_text("turn", "rejected", {"rejection_class": "invalid_envelope",
+                                          "reason": "not one of the three message forms"}) == \
+        "The submission was rejected (invalid_envelope): not one of the three message forms"
     checked = {"accepted": False, "report": "no", "checks_run": ["rebuild"]}
     assert turn_text("turn", "validated", {**checked, "accepted": True}) == \
         "The validator accepted the repair"
@@ -339,7 +342,8 @@ def test_the_readme_lists_every_sentence_the_page_adds():
     source = (WEB / "phrasing.js").read_text(encoding="utf-8")
     for key in ("submitted", "bound_hit", "model_failure", "infrastructure_failure",
                 "notInvoked", "asked", "answered", "wrote", "decided", "validated",
-                "unanswered", "scripted", "cost", "runtime", "success", "correct_abstention",
+                "unanswered", "rejected", "scripted", "cost", "runtime", "success",
+                "correct_abstention",
                 "unnecessary_escalation", "false_repair", "repair_rejection", "failure",
                 "not_evaluable", "action", "looked", "lookedAtNothing", "soFar",
                 "attempts", "nothingAnswered", "declaredPaths", "declaredNone",

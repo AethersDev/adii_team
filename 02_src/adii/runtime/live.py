@@ -3,10 +3,12 @@
     SPIKE — see adii/provider. Not merged to main until the D-1 rows resolve.
 
 The runtime calls `investigate(context, tools)`; this class calls A's `run()` with a
-`ChatProvider` and the tools the runtime is already watching, so tool calls and results
-land in the runtime's trace on the way through, model requests and responses land there
-from the provider boundary, and A's own returned trace is not used: one history, recorded
-where each thing happened, never two merged afterwards.
+`ChatProvider`, the tools the runtime is already watching, and the runtime's recorder as
+the loop's sink: tool calls and results land in the runtime's trace on the way through,
+model requests and responses from the provider boundary, a rejected submission from the
+loop the moment it rejects it (trace contract row 6). One history, recorded where each
+thing happened. The trace `run()` returns is the loop's local account and agrees with the
+record on every durable fact; nothing in it is translated into the record afterwards.
 
 Endings translate, they are not interpreted: A's two exception types map to two
 termination classes by type, never by message. A stop with no decision has no class yet
@@ -75,7 +77,8 @@ class LoopInvestigator:
                                 served_as=self._served_as, max_model_requests=self._max_requests,
                                 max_wall_clock_s=self._wall_clock, **self._paid)
         try:
-            decision, _ = run(context, provider, tools, max_turns=self._max_turns)
+            decision, _ = run(context, provider, tools, max_turns=self._max_turns,
+                              sink=self._recorder)
         except TurnBudgetExceededError as bound:
             provider.close()
             raise Terminated("bound_hit",
