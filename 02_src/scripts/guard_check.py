@@ -62,6 +62,11 @@ GUARDS = (
     Guard("A.patch_maps_path_to_text", "A", "investigator/loop.py",
           "    if not all(isinstance(k, str) and isinstance(v, str) for k, v in patch.items()):\n",
           "    if False:\n"),
+    Guard("contracts.validation_state_space_is_closed", "contracts", "contracts/core.py",
+          "        if self.reason_code is not None:\n"
+          "            if self.reason_code not in REASON_CODES:\n",
+          "        if False:\n"
+          "            if self.reason_code not in REASON_CODES:\n"),
     # ── B: the tool layer ───────────────────────────────────────────────────────────
     Guard("B.unknown_tool_denied", "B", "tools/executor.py",
           "        if tool is None:\n            return self._result(call, \"DENIED\", {\n",
@@ -479,6 +484,12 @@ GUARDS = (
           "    missing = [p for p in context.permitted_write_paths\n",
           "    missing = [p for p in ()\n"),
     # ── C: validation — the patch is applied from frozen inputs or refused, never guessed ──
+    Guard("C.failed_rebuild_is_reject_not_unchecked", "C", "validation/validator.py",
+          '                                 checks_run=("rebuild",))\n',
+          '                                 checks_run=())\n'),
+    Guard("D.legacy_unchecked_is_never_a_verdict", "D", "runtime/run.py",
+          '            if validation.state == "UNCHECKED":\n',
+          "            if False:\n"),
     Guard("C.patch_names_the_permitted_transform", "C", "validation/patching.py",
           "    if set(patch) != {TRANSFORM}:\n",
           "    if False:\n"),

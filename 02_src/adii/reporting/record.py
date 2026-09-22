@@ -119,7 +119,8 @@ class RunRecord:
                 "repair_id": decision.repair_id, "patch": decision.patch},
             "validation": None if validation is None else {
                 "accepted": validation.accepted, "report": validation.report,
-                "checks_run": list(validation.checks_run)},
+                "checks_run": list(validation.checks_run),
+                "reason_code": validation.reason_code},
             "counters": {"tool_calls": self.tool_calls, "model_turns": self.model_turns,
                          "api_cost_usd": self.api_cost_usd, "latency_ms": self.latency_ms},
             "configuration": self.configuration,
@@ -163,7 +164,8 @@ def from_json(text: str) -> RunRecord:
                 root_cause_summary=d["root_cause_summary"], repair_id=d["repair_id"],
                 patch=_patch(d["patch"])),
             validation=None if v is None else ValidationResult(
-                accepted=v["accepted"], report=v["report"], checks_run=tuple(v["checks_run"])),
+                accepted=v["accepted"], report=v["report"], checks_run=tuple(v["checks_run"]),
+                reason_code=v.get("reason_code")),      # absent in records before 22 Sep
             tool_calls=n["tool_calls"], model_turns=n["model_turns"],
             api_cost_usd=n["api_cost_usd"], latency_ms=n["latency_ms"],
             configuration=doc["configuration"], provenance=doc["provenance"])

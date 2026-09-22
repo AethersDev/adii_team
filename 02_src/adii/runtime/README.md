@@ -124,10 +124,12 @@ request counted as unknown.
 
 ## What it does not do yet
 
-- **Validate.** The independent validator exists (build plan M6, `validation/validator.py`)
-  but is not wired here: `live.py` still supplies `NoValidatorYet`, so a live REPAIR
-  carries the one truthful verdict — not checked, therefore not accepted. Wiring it, with
-  authorization (is the target permitted) kept a separate question, is M7's next box.
+- **Check a repair on any world but the walkthrough's.** The independent validator is
+  wired here (`live.py`, `ValidatorOnLivePath`, M7 rows 1–3) and rebuilds
+  `demo-learning-001` only; a REPAIR on any other incident is archived NOT_CHECKABLE —
+  `reason_code: no_rebuildable_world`, not accepted, no checks — which is the validator's
+  statement that it had no world, not a finding about the repair. Authorization (is the
+  target permitted) kept apart from validation is M7 row 4, the next box.
 
 ## How to test it
 

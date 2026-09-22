@@ -137,24 +137,58 @@ class InvestigationDecision:
             raise ValueError("only a REPAIR decision may carry a repair_id or a patch")
 
 
+# The one reason a verdict can carry today: the validator has no world to rebuild for the
+# incident. A closed set — a code outside it is an invalid result, refused at construction.
+REASON_CODES = ("no_rebuildable_world",)
+
+
 @dataclass(frozen=True)
 class ValidationResult:
     """INDEPENDENT VALIDATION  ──▶  TELEMETRY
 
-    ACCEPT/REJECT of a candidate repair, decided by rebuilding from the frozen inputs.
+    ACCEPT/REJECT of a candidate repair, decided by rebuilding from the frozen inputs — or
+    NOT_CHECKABLE, when there was no world to rebuild, said in structure by `reason_code`.
 
     THE AUTHORITY BOUNDARY. The investigator has its own rehearsal tool and it will
     happily tell itself the patch works. That is a hypothesis, not a verdict. Only this
     result decides, and the investigator never sees how it was reached.
+
+    The state space is closed (decided 22 September 2026, m7_validation_integration.md):
+
+        ACCEPT           accepted=True   reason_code=None   checks_run any
+        REJECT           accepted=False  reason_code=None   checks_run non-empty
+        NOT_CHECKABLE    accepted=False  reason_code set    checks_run=()
+        UNCHECKED        accepted=False  reason_code=None   checks_run=()   legacy: loadable
+                         from archived records, never produced by the runtime
+
+    Any other combination is refused here. `state` is the one derivation every reader uses.
     """
 
     accepted: bool
     report: str
     checks_run: tuple[str, ...] = ()
+    reason_code: str | None = None
 
     def __post_init__(self) -> None:
         if not self.report.strip():
             raise ValueError("a validation result must explain itself in report")
+        if self.reason_code is not None:
+            if self.reason_code not in REASON_CODES:
+                raise ValueError(f"unknown reason_code {self.reason_code!r}; the closed set is "
+                                 f"{REASON_CODES}")
+            if self.accepted:
+                raise ValueError("a verdict that could not be established cannot be accepted")
+            if self.checks_run:
+                raise ValueError("a verdict that could not be established names no checks")
+
+    @property
+    def state(self) -> str:
+        """ACCEPT, REJECT, NOT_CHECKABLE, or the legacy UNCHECKED — derived once, here."""
+        if self.accepted:
+            return "ACCEPT"
+        if self.reason_code is not None:
+            return "NOT_CHECKABLE"
+        return "REJECT" if self.checks_run else "UNCHECKED"
 
 
 @dataclass(frozen=True)

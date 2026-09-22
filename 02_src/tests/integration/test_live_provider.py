@@ -122,12 +122,13 @@ def test_the_model_is_shown_the_incident_the_tools_and_each_observation(endpoint
     assert fed["content"]["columns"] == ["order_id", "order_date", "amount_cents"]
 
 
-def test_a_live_repair_on_a_world_the_validator_cannot_rebuild_is_not_checked_not_lost(
+def test_a_live_repair_on_a_world_the_validator_cannot_rebuild_is_not_checkable_not_lost(
         tmp_path, endpoint):
     """The validator has a world for demo-learning-001 only. A REPAIR on any other incident
     is not an infrastructure failure that loses the decision: the validator's UnknownIncident
-    is translated, once, into the placeholder verdict — not checked, not accepted, no
-    finding — and the run is archived as submitted with its decision."""
+    is translated, once, into NOT_CHECKABLE said in structure (m7 row 3) — a reason code
+    from the closed set, not accepted, no checks, no finding — and the run is archived as
+    submitted with its decision. The legacy placeholder is never produced."""
     FakeModel.script[:] = ['<TOOL_CALL>{"name": "get_schema", "arguments": {}}',
                            '<DECISION>{"disposition": "REPAIR", "root_cause_id": "X", '
                            '"root_cause_summary": "a fault", "repair_id": "R1", '
@@ -137,17 +138,21 @@ def test_a_live_repair_on_a_world_the_validator_cannot_rebuild_is_not_checked_no
                      "--no-report"]) == 0
     r = read_record(tmp_path / "repair" / "record.json")
     assert r.termination == "submitted" and r.decision.disposition.value == "REPAIR"
-    assert r.validation.accepted is False and r.validation.checks_run == ()
-    assert "not checked" in r.validation.report and "not a finding" in r.validation.report
+    v = r.validation
+    assert (v.state, v.reason_code, v.checks_run) == ("NOT_CHECKABLE", "no_rebuildable_world", ())
+    assert v.accepted is False
+    assert "Not checkable" in v.report and "not a finding" in v.report
     assert [e.kind for e in r.trace][-2:] == ["decision_submitted", "validation_completed"]
+    # the trace event keeps its contract payload; the state is the record's to derive
+    assert r.trace[-1].payload == {"accepted": False}
 
 
 def test_a_live_repair_is_checked_by_the_real_validator(tmp_path, endpoint):
     """The real validator is wired in (build plan M6): a live REPAIR is rebuilt from the
     frozen world and actually checked, never waved through and never a crash. Runs against
     demo-learning-001, the only incident validation has a frozen world for — orders-missing-day
-    (this file's INCIDENT) has none, so a REPAIR against it is an infrastructure_failure, not
-    a verdict; that gap is validation's coverage to close, not this test's to paper over."""
+    (this file's INCIDENT) has none, so a REPAIR against it is NOT_CHECKABLE, not a verdict;
+    that gap is validation's coverage to close, not this test's to paper over."""
     FakeModel.script[:] = ['<TOOL_CALL>{"name": "get_schema", "arguments": {}}',
                            '<DECISION>{"disposition": "REPAIR", '
                            '"root_cause_id": "DEMO_DOUBLE_UNIT_CONVERSION", '

@@ -7,7 +7,13 @@ import math
 from dataclasses import replace
 
 import pytest
-from adii.contracts import Disposition, InvestigationDecision, ToolCall, ToolResult
+from adii.contracts import (
+    Disposition,
+    InvestigationDecision,
+    ToolCall,
+    ToolResult,
+    ValidationResult,
+)
 from adii.examples.walkthrough import load
 from adii.reporting import read_record, write_record
 from adii.runtime import __main__ as cli
@@ -234,6 +240,21 @@ def test_a_run_the_loop_ends_is_archived_with_the_trace_so_far():
     assert ended.tool_calls == 2
     with pytest.raises(ValueError, match="termination must be one of"):
         Terminated("gave_up", "not a classification the loop may make")
+
+
+def test_a_validator_that_returns_the_legacy_placeholder_is_our_defect(capsys):
+    """Row 3: the runtime records a verdict or NOT_CHECKABLE, nothing else. A validator that
+    answers with the shape of records before 22 September — not accepted, no checks, no
+    reason — has not said whether it checked anything; that is our defect, archived as an
+    infrastructure failure, never a record that reads as nobody having looked."""
+    context, recorded = load()
+    investigator, tools, _ = replay(recorded)
+    legacy = ScriptedValidator(ValidationResult(accepted=False, report="no validator yet"))
+    run = harness(context, investigator, tools, legacy)
+    assert run.termination == "infrastructure_failure" and run.validation is None
+    assert "legacy unchecked result" in run.detail
+    assert run.trace[-1].kind == "decision_submitted"      # nothing recorded past the defect
+    assert "legacy unchecked result" in capsys.readouterr().err
 
 
 def test_a_defect_of_ours_is_an_archived_infrastructure_failure_not_a_lost_run(capsys):

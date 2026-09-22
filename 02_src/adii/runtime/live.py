@@ -24,39 +24,25 @@ from ..validation.validator import UnknownIncident, Validator
 from .run import Recorder, Terminated, Tools
 
 
-class NoValidatorYet:
-    """The placeholder verdict for a world the validator cannot rebuild. A live REPAIR must
-    carry a verdict — the contract says so — and the only truthful one is: nothing checked
-    this, so nothing accepted it. `accepted` is False and the report says why; no check is
-    claimed. Produced only through `ValidatorOnLivePath` below, for incidents outside the
-    validator's registry, until NOT_CHECKABLE exists (m7_validation_integration.md, row 3)."""
-
-    def validate(self, context: IncidentContext,
-                 decision: InvestigationDecision) -> ValidationResult:
-        return ValidationResult(
-            accepted=False,
-            report="The validator has no rebuildable world for this incident, so the candidate "
-                   "repair was not checked and nothing accepted it. This is not a finding about "
-                   "the repair.",
-            checks_run=())
-
-
 class ValidatorOnLivePath:
     """The runtime adapter in `run_incident`'s validator slot (m7_validation_integration.md,
-    rows 1 and 2, interim form): the real validator, asked by attempt, and exactly one
-    translation — `UnknownIncident`, the validator's own statement that it has no world to
-    rebuild, becomes the placeholder verdict above rather than an infrastructure failure
-    that would lose the decision. Every other exception is the runtime's to classify."""
+    rows 1–3): the real validator, asked by attempt, and exactly one translation —
+    `UnknownIncident`, the validator's own statement that it has no world to rebuild, becomes
+    NOT_CHECKABLE in structure (`reason_code`), neither a verdict nor an infrastructure
+    failure that would lose the decision. Every other exception is the runtime's to classify."""
 
     def __init__(self) -> None:
-        self._validator, self._placeholder = Validator(), NoValidatorYet()
+        self._validator = Validator()
 
     def validate(self, context: IncidentContext,
                  decision: InvestigationDecision) -> ValidationResult:
         try:
             return self._validator.validate(context, decision)
-        except UnknownIncident:
-            return self._placeholder.validate(context, decision)
+        except UnknownIncident as why:
+            return ValidationResult(
+                accepted=False, checks_run=(), reason_code="no_rebuildable_world",
+                report=f"Not checkable: {why}. The candidate repair was neither accepted nor "
+                       "rejected; this is not a finding about the repair.")
 
 
 class LoopInvestigator:

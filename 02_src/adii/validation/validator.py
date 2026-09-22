@@ -44,16 +44,19 @@ def validate(context: IncidentContext, decision: InvestigationDecision) -> Valid
             f"validation has no frozen world for incident_id={context.incident_id!r}")
     frozen = _WORLD_BUILDERS[context.incident_id]()
 
+    # the rebuild is the first check: a patch the world cannot apply is a rejection by the
+    # check named `rebuild`, never the legacy "nothing checked" shape
     try:
         rebuilt = apply_patch(decision.patch)
     except PatchRejected as problem:
-        return ValidationResult(accepted=False, report=f"patch rejected: {problem}",
-                                 checks_run=())
+        return ValidationResult(accepted=False, report=f"rebuild: patch rejected: {problem}",
+                                 checks_run=("rebuild",))
 
     outcomes = [check(frozen, rebuilt) for check in ALL_CHECKS]
     accepted = all(outcome.passed for outcome in outcomes)
-    report = "; ".join(outcome.detail for outcome in outcomes)
-    checks_run = tuple(outcome.name for outcome in outcomes)
+    report = "rebuild: the world rebuilt with the patch applied; " + \
+        "; ".join(outcome.detail for outcome in outcomes)
+    checks_run = ("rebuild", *(outcome.name for outcome in outcomes))
     return ValidationResult(accepted=accepted, report=report, checks_run=checks_run)
 
 
@@ -91,5 +94,5 @@ def as_dict_validator(context: IncidentContext):
         )
         result = validate(context, real_decision)
         return {"accepted": result.accepted, "report": result.report,
-                "checks_run": list(result.checks_run)}
+                "checks_run": list(result.checks_run), "reason_code": result.reason_code}
     return provider

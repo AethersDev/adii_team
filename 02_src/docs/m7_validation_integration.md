@@ -1,6 +1,6 @@
 # Proposal: integrating independent validation without pretending every incident is rebuildable (M7)
 
-**Status: proposed 20 September 2026, revised on the advisor's review 20–21 September. Not agreed — C marks the four rows. No wiring lands before they are.**
+**Status: proposed 20 September 2026, revised on the advisor's review 20–21 September. Decided 22 September 2026: all four rows APPROVED (table below). Rows 1 and 2 are on the live path in interim form since 21 September; rows 3 and 4 are built as two consecutive bounded units, in that order.**
 The validator exists (M6, `02_src/adii/validation/`) and rebuilds one world. The live
 runtime still hands every REPAIR to `NoValidatorYet`. Between the two sits a decision the
 code must not make on its own: what a REPAIR's verdict *is* when the world it patches
@@ -261,7 +261,56 @@ history is proposal, then review, then decision, then implementation.
 
 | # | Decision | What must be fixed before code | Touches `contracts/` | Decided | By |
 |---|---|---|---|---|---|
-| 1 | Where validation is invoked | in `run_incident`'s existing slot, through a runtime adapter that translates `UnknownIncident` and nothing else; `NoValidatorYet` deleted | no | open | |
-| 2 | Supported vs unsupported worlds | the validator's registry, asked by attempt; `UnknownIncident` is the answer; no second query | no | open | |
-| 3 | ACCEPT / REJECT / NOT_CHECKABLE | the table above; NOT_CHECKABLE is neither REJECT nor admissible; a failed rebuild is REJECT; additive `reason_code`; one canonical derivation over a closed set of four shapes, the legacy one loadable and never produced | **yes**, additive | open | |
-| 4 | Authorization apart from validation | runtime-owned, its own structured fact, evaluated for every REPAIR independently of validation; admission derived, nothing executed; the fact's trace representation deferred to D-1 | no | open | |
+| 1 | Where validation is invoked | in `run_incident`'s existing slot, through a runtime adapter that translates `UnknownIncident` and nothing else; `NoValidatorYet` deleted | no | **decided** | APPROVED — C implementation + D runtime adapter, 21 Sep 2026 |
+| 2 | Supported vs unsupported worlds | the validator's registry, asked by attempt; `UnknownIncident` is the answer; no second query | no | **decided** | APPROVED — C implementation + D runtime adapter, 21 Sep 2026 |
+| 3 | ACCEPT / REJECT / NOT_CHECKABLE | the table above; NOT_CHECKABLE is neither REJECT nor admissible; a failed rebuild is REJECT; additive `reason_code`; one canonical derivation over a closed set of four shapes, the legacy one loadable and never produced | **yes**, additive | **decided** | APPROVED — project owner, 22 Sep 2026, after advisor review |
+| 4 | Authorization apart from validation | runtime-owned, its own structured fact, evaluated for every REPAIR independently of validation; admission derived, nothing executed; the fact's trace representation deferred to D-1 | no | **decided** | APPROVED — project owner, 22 Sep 2026, after advisor review |
+
+## Decided 22 September — what the two remaining units build
+
+**Row 3, the state algebra, frozen before code.** Anything contradictory is an invalid
+`ValidationResult`, refused where it is built; at the runtime's boundary an invalid or
+legacy result from a validator is an infrastructure failure, never a verdict.
+
+```text
+ACCEPT            accepted=true    reason_code=null                    checks_run any        computed verdict
+REJECT            accepted=false   reason_code=null                    checks_run nonempty   computed verdict
+NOT_CHECKABLE     accepted=false   reason_code=no_rebuildable_world    checks_run=()
+LEGACY UNCHECKED  accepted=false   reason_code=null                    checks_run=()         load-only; the runtime may never create it
+```
+
+`UnknownIncident` stops meaning the temporary "not checked" placeholder and becomes the
+explicit, structured `NOT_CHECKABLE`. A failed rebuild is REJECT, the failing check named
+`rebuild`. One canonical derivation of the four states, on the contract, is what every
+renderer and the evaluator read.
+
+**Row 4, authorization apart from validation.** For every REPAIR:
+
+```text
+                ┌→ authorization check      (the runtime's: patch keys ⊆ permitted_write_paths)
+MODEL PROPOSAL ─┤
+                └→ independent validation   (the validator's: does the repair work)
+
+authorization does not gate whether validation runs
+validation does not decide authorization
+
+ADMISSIBLE = authorized AND validation == ACCEPT      derived, never stored as a third fact
+
+the validator NEVER receives permitted_write_paths and NEVER decides permission
+authorization NEVER decides whether the patch works
+```
+
+| authorization | validation | meaning |
+|---|---|---|
+| permitted | ACCEPT | admissible |
+| permitted | REJECT | permitted but invalid |
+| denied | ACCEPT | works, but not allowed |
+| denied | REJECT | neither allowed nor valid |
+
+Orthogonal to the table: `validation = NOT_CHECKABLE` — the validation side of admission
+cannot be established. Nothing executes in any cell.
+
+**Sequencing.** M7's completion does not spend the paid key: run 2 is development
+evidence, used only to debug or qualify something cheaply before the freeze. The line is
+row 3 → row 4 → the remaining final-system seams → the final architecture → freeze → the
+fresh benchmark.

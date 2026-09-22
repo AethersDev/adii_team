@@ -94,7 +94,8 @@ One word, five meanings, kept apart. The state is the state on the date above.
 ## 5. Evidence missing
 
 - A model-generated REPAIR receiving a computed verdict through the live runtime path in
-  an archived run. The live path wires `NoValidatorYet`.
+  an archived run. The live path wires the real validator (M7 rows 1–3, 21–22 September);
+  no model-generated REPAIR has reached it yet.
 - Any key authored by the evaluation authority; any frozen ESCALATE key.
 - Any control arm (always-escalate; alert-only: same model, same protocol, zero tools).
 - Any repeat; any frozen protocol digest; any unseen material.

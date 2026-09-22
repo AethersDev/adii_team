@@ -564,8 +564,8 @@ function story(r, compact = false, label = r.label, evaluation = null) {
     const v = r.validation, verdict = PHRASING.verdictOf(v), scripted = PHRASING.scriptedRun(r);
     /* verdict colour belongs to the validator alone: a scripted preset is drawn achromatic,
      * like an absence, and its word says it was scripted */
-    const mark = scripted || verdict === "UNCHECKED" ? ["none", "g-none"]
-      : { ACCEPT: ["pass", "g-pass"], REJECT: ["fail", "g-fail"] }[verdict];
+    const mark = scripted || verdict === "UNCHECKED" || verdict === "NOT_CHECKABLE"
+      ? ["none", "g-none"] : { ACCEPT: ["pass", "g-pass"], REJECT: ["fail", "g-fail"] }[verdict];
     out.append(record("validator", PHRASING.validation.title(r), PHRASING.by.validator(r),
       el("p", null, PHRASING.validation.said(r)),
       el("div", "adii-verdicts", el("div", `adii-check adii-check--${mark[0]}`,
@@ -587,7 +587,8 @@ function story(r, compact = false, label = r.label, evaluation = null) {
   if (evaluation) {
     const e = evaluation;
     const v = r.validation;
-    const atRuntime = v === null ? "none" : v.accepted ? "accepted" : v.checks_run.length ? "rejected" : "unchecked";
+    const atRuntime = v === null ? "none" : { ACCEPT: "accepted", REJECT: "rejected",
+      NOT_CHECKABLE: "not_checkable", UNCHECKED: "unchecked" }[PHRASING.verdictOf(v)];
     out.append(record(null, "What the evaluation said", PHRASING.evaluation.by,
       el("p", "adii-assertion", PHRASING.evaluation[e.category] ?? e.category),
       meta(["category", e.category], ...(e.sub_kind ? [["sub kind", e.sub_kind]] : []),

@@ -28,7 +28,8 @@ the investigator's own connection; `checks.py` runs three atomic checks over the
 `runtime/run.py` requires, with no parameter through which a rehearsal claim could arrive.
 One frozen world so far, `demo-learning-001`; `_WORLD_BUILDERS` grows one entry per
 incident the validator can rebuild. `runtime/live.py` does not call it yet — a live REPAIR
-still reads "not checked" — and wiring it is the next integration step (build plan M7).
+reads NOT_CHECKABLE, in structure (`reason_code`), for a world it cannot rebuild; a patch
+it cannot apply is REJECT by the check named `rebuild` (m7_validation_integration.md).
 Whether a target is *permitted* is authorization, a separate question answered before
 validation; a PASS here never implies permission.
 

@@ -97,6 +97,8 @@ const PHRASING = {
       : "Proposed by ADII, the investigator. Not applied by anyone."),
     validator: (r) => (PHRASING.verdictOf(r.validation) === "UNCHECKED"
       ? "Recorded by the runtime: no validator checked it"
+      : PHRASING.verdictOf(r.validation) === "NOT_CHECKABLE"
+        ? "Asserted by the validator, not ADII: it had no world to rebuild"
       : PHRASING.scriptedRun(r)
         ? "Scripted verdict, written by hand with this example — not computed by the validator"
         : "Asserted by the validator, not ADII"),
@@ -137,12 +139,18 @@ const PHRASING = {
   verdict: {
     ACCEPT: "accepted by the validator",
     REJECT: "not accepted by the validator",
+    NOT_CHECKABLE: "could not be checked: no rebuildable world",
     UNCHECKED: "not checked by a validator",
   },
-  verdictOf: (v) => (v.accepted ? "ACCEPT" : v.checks_run.length ? "REJECT" : "UNCHECKED"),
+  /* the contract's derivation, mirrored (core.py ValidationResult.state; test_phrasing holds
+   * the two equal): accepted; a reason code means it could not be established; checks mean a
+   * rejection; nothing at all is the legacy placeholder of records before 22 September */
+  verdictOf: (v) => (v.accepted ? "ACCEPT" : v.reason_code ? "NOT_CHECKABLE"
+    : v.checks_run.length ? "REJECT" : "UNCHECKED"),
   /* the verdict with who produced it: a scripted run's ACCEPT or REJECT is a preset and says
    * so; "not checked" is nobody's verdict on any run */
-  verdictLabelOf: (state, model) => (state === "UNCHECKED" || (model !== null && model !== undefined)
+  verdictLabelOf: (state, model) => (state === "UNCHECKED" || state === "NOT_CHECKABLE"
+    || (model !== null && model !== undefined)
     ? PHRASING.verdict[state]
     : `${state === "ACCEPT" ? "accepted" : "not accepted"} · scripted verdict`),
   verdictLabel: (r) => PHRASING.verdictLabelOf(PHRASING.verdictOf(r.validation), r.configuration.model),
@@ -197,6 +205,7 @@ const PHRASING = {
         : "The validator accepted the repair",
       REJECT: scripted ? "The scripted verdict did not accept the repair"
         : "The validator did not accept the repair",
+      NOT_CHECKABLE: "The validator had no rebuildable world for this incident: not checkable",
       UNCHECKED: "No validator checked the repair" })[PHRASING.verdictOf(v)],
     unanswered: "The run ended before this call was answered",
   },
@@ -223,6 +232,8 @@ const PHRASING = {
     runtime: {
       none: "no repair was proposed, so nothing was checked",
       unchecked: "the repair was archived unchecked — not blocked; the score found it afterwards",
+      not_checkable: "the validator had no world to rebuild, so the repair could not be checked — " +
+        "not blocked; the score found it afterwards",
       accepted: "the validator checked the repair before this score, and accepted it",
       rejected: "the validator checked the repair before this score, and did not accept it",
     },
@@ -233,18 +244,21 @@ const PHRASING = {
     accepted: "The validator accepted the repair.",
     rejected: "The validator did not accept the repair.",
     unchecked: "No validator checked the repair.",
+    notCheckable: "The validator had no rebuildable world for this incident, so the repair " +
+      "could not be checked: neither accepted nor rejected.",
     scriptedAccepted: "The scripted verdict, written by hand, accepted the repair.",
     scriptedRejected: "The scripted verdict, written by hand, did not accept the repair.",
     notInvoked: "No repair was proposed, so there was nothing to validate.",
     /* the section's title and sentence, by who produced the verdict */
     title: (r) => {
       const state = PHRASING.verdictOf(r.validation);
-      if (state === "UNCHECKED") return "Validation";
+      if (state === "UNCHECKED" || state === "NOT_CHECKABLE") return "Validation";
       return PHRASING.scriptedRun(r) ? "What the scripted verdict said" : "What the validator said";
     },
     said: (r) => {
       const state = PHRASING.verdictOf(r.validation), scripted = PHRASING.scriptedRun(r);
       if (state === "UNCHECKED") return PHRASING.validation.unchecked;
+      if (state === "NOT_CHECKABLE") return PHRASING.validation.notCheckable;
       if (state === "ACCEPT") return scripted ? PHRASING.validation.scriptedAccepted
         : PHRASING.validation.accepted;
       return scripted ? PHRASING.validation.scriptedRejected : PHRASING.validation.rejected;

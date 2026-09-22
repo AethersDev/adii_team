@@ -57,6 +57,27 @@ def test_a_repair_run_must_carry_independent_validation():
                          validation=ValidationResult(accepted=True, report="r"))
 
 
+def test_a_validation_result_is_one_of_four_states_and_says_which():
+    """m7_validation_integration.md row 3: the state space is closed. Accepted; rejected after
+    named checks; not checkable, said in structure by a reason code from the closed set; or
+    the legacy placeholder of records before 22 September, loadable and never produced.
+    A result that cannot be one of the four is refused at construction."""
+    assert ValidationResult(accepted=True, report="r", checks_run=("rebuild",)).state == "ACCEPT"
+    assert ValidationResult(accepted=False, report="r", checks_run=("rebuild",)).state == "REJECT"
+    assert ValidationResult(accepted=False, report="r",
+                            reason_code="no_rebuildable_world").state == "NOT_CHECKABLE"
+    assert ValidationResult(accepted=False, report="r").state == "UNCHECKED"
+    with pytest.raises(ValueError, match="unknown reason_code"):
+        ValidationResult(accepted=False, report="r", reason_code="the_dog_ate_it")
+    with pytest.raises(ValueError, match="cannot be accepted"):
+        ValidationResult(accepted=True, report="r", reason_code="no_rebuildable_world")
+    with pytest.raises(ValueError, match="names no checks"):
+        ValidationResult(accepted=False, report="r", checks_run=("rebuild",),
+                         reason_code="no_rebuildable_world")
+    with pytest.raises(ValueError, match="explain itself"):
+        ValidationResult(accepted=False, report="  ", reason_code="no_rebuildable_world")
+
+
 def test_tool_result_status_is_a_closed_set():
     """A refusal must be distinguishable from an answer, or the investigator cannot retry."""
     assert ToolResult(call_id="c1", name="run_sql", status="OK").ok
