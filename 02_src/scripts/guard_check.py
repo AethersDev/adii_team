@@ -469,6 +469,22 @@ GUARDS = (
     Guard("C.exposure_write_once", "C", "evaluation/exposure.py",
           'args.out.open("x",',
           'args.out.open("w",'),
+    # ── C: validation — the patch is applied from frozen inputs or refused, never guessed ──
+    Guard("C.patch_names_the_permitted_transform", "C", "validation/patching.py",
+          "    if set(patch) != {TRANSFORM}:\n",
+          "    if False:\n"),
+    Guard("C.patch_is_one_statement", "C", "validation/patching.py",
+          '    if ";" in sql:\n',
+          "    if False:\n"),
+    Guard("C.unknown_world_raises_never_guesses", "C", "validation/validator.py",
+          "    if context.incident_id not in _WORLD_BUILDERS:\n",
+          "    if False:\n"),
+    Guard("C.accept_only_when_every_check_passes", "C", "validation/validator.py",
+          "    accepted = all(outcome.passed for outcome in outcomes)\n",
+          "    accepted = True\n"),
+    Guard("B.build_budget_bounds_a_candidate_transform", "B", "tools/database.py",
+          "        if max_build_ticks is not None:\n",
+          "        if False:\n"),
     # C's own guards (the key loaders, the scorer's refusals) join here from C's tests.
 )
 

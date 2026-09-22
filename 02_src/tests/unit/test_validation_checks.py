@@ -15,8 +15,11 @@ from adii.validation.checks import (
 )
 from adii.validation.patching import apply_patch
 
-CORRECT_PATCH = {"stg_orders.sql": "count * 100 / 100"}
-STILL_BROKEN_PATCH = {"stg_orders.sql": "count * 100 / 100 / 100"}
+TRANSFORM = "transforms/stg_orders.sql"
+CORRECT_PATCH = {TRANSFORM: "SELECT order_id, order_date, amount_cents / 100.0 AS amount_usd "
+                           "FROM orders;"}
+STILL_BROKEN_PATCH = {TRANSFORM: "SELECT order_id, order_date, amount_cents / 100.0 / 100.0 "
+                                "AS amount_usd FROM orders;"}
 
 # A rebuild that drops a day but happens to land on a matching total row
 # count elsewhere is simulated directly against a hand-built world, since

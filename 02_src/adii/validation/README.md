@@ -19,7 +19,10 @@ itself and we would have measured nothing.
 
 ## What is built (M6, merged 20 September)
 
-`patching.py` rebuilds a brand-new `ReadOnlyDatabase` from the patched SQL text — never
+`patching.py` rebuilds a brand-new `ReadOnlyDatabase` with the candidate transform run as
+the staging step and the mart derived from it, under a build budget — the patch is the
+permitted path mapped to the file's new contents, exactly as the protocol has a model send
+it, so the walkthrough's own committed repair is the accepted case — never
 the investigator's own connection; `checks.py` runs three atomic checks over the rebuild;
 `validator.py` gives `Validator.validate(context, decision) -> ValidationResult`, the shape
 `runtime/run.py` requires, with no parameter through which a rehearsal claim could arrive.

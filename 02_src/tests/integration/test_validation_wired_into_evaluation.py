@@ -9,6 +9,12 @@ from adii.contracts import IncidentContext
 from adii.evaluation.validation_wiring import get_validation_for
 from adii.validation.validator import as_dict_validator
 
+TRANSFORM = "transforms/stg_orders.sql"
+CORRECT = {TRANSFORM: "SELECT order_id, order_date, amount_cents / 100.0 AS amount_usd "
+                      "FROM orders;"}
+STILL_BROKEN = {TRANSFORM: "SELECT order_id, order_date, amount_cents / 100.0 / 100.0 "
+                           "AS amount_usd FROM orders;"}
+
 CONTEXT = IncidentContext(
     incident_id="demo-learning-001",
     alert="daily revenue is 1/100th of what it should be",
@@ -28,7 +34,7 @@ def repair_decision(patch: dict[str, str]) -> dict:
 
 def test_the_real_validator_accepts_a_correct_repair_through_get_validation_for():
     validator = as_dict_validator(CONTEXT)
-    decision = repair_decision({"stg_orders.sql": "count * 100 / 100"})
+    decision = repair_decision(CORRECT)
     result = get_validation_for(decision, validator)
     assert result == {
         "accepted": True,
@@ -41,7 +47,7 @@ def test_the_real_validator_accepts_a_correct_repair_through_get_validation_for(
 
 def test_the_real_validator_rejects_a_wrong_repair_through_get_validation_for():
     validator = as_dict_validator(CONTEXT)
-    decision = repair_decision({"stg_orders.sql": "count * 100 / 100 / 100"})
+    decision = repair_decision(STILL_BROKEN)
     result = get_validation_for(decision, validator)
     assert result["accepted"] is False
 
