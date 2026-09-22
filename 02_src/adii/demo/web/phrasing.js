@@ -188,6 +188,9 @@ const PHRASING = {
       ERROR: `failed${describeError(p.content)} — a defect of ours`,
     })[p.status] || `returned ${p.status}`,
     wrote: "The model wrote, instead of acting:",
+    /* the loop's own word on a submission that was not one of the three forms, or a decision
+     * that failed the contract or the evidence gate: its class and its reason, as recorded */
+    rejected: (p) => `The submission was rejected (${p.rejection_class}): ${p.reason}`,
     decided: (disposition) => `Committed to ${disposition}`,
     validated: (v, scripted = false) => ({
       ACCEPT: scripted ? "The scripted verdict accepted the repair"

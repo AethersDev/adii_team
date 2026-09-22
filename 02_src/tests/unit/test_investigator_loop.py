@@ -1,3 +1,4 @@
+import hashlib
 import json
 from dataclasses import FrozenInstanceError
 
@@ -11,6 +12,8 @@ from adii.contracts import (
 )
 from adii.investigator.loop import (
     DECISION_PREFIX,
+    INVALID_ENVELOPE,
+    REJECTION_REASON_CHARS,
     STOP_SIGNAL,
     TOOL_CALL_PREFIX,
     ProviderFailureError,
@@ -69,8 +72,14 @@ def test_explicit_stop_emits_one_ordered_event_per_provider_call():
     assert decision is None
     assert len(trace) == 3
     assert [event.sequence for event in trace] == [0, 1, 2]
-    assert [event.kind for event in trace] == ["model_turn", "model_turn", "loop_stopped"]
-    assert [event.payload.get("response") for event in trace[:-1]] == ["first", "second"]
+    # plain prose is none of the three forms: an invalid submission, recorded by class and
+    # digest — the text itself is the provider boundary's to record
+    assert [event.kind for event in trace] == ["decision_rejected", "decision_rejected",
+                                               "loop_stopped"]
+    assert [event.payload["rejection_class"] for event in trace[:-1]] == \
+        ["invalid_envelope", "invalid_envelope"]
+    assert [event.payload["submission_sha256"] for event in trace[:-1]] == \
+        [hashlib.sha256(t.encode("utf-8")).hexdigest() for t in ("first", "second")]
     assert trace[-1].payload["reason"] == "explicit_stop"
 
 
@@ -120,7 +129,7 @@ def test_budget_allows_normal_completion():
     )
 
     assert decision is None
-    assert [event.kind for event in trace] == ["model_turn", "loop_stopped"]
+    assert [event.kind for event in trace] == ["decision_rejected", "loop_stopped"]
 
 
 def test_stop_on_exact_budget_boundary_succeeds():
@@ -268,7 +277,7 @@ def test_tool_result_is_delivered_once_then_cleared_after_ordinary_turn():
     assert [event.kind for event in trace] == [
         "tool_call",
         "tool_result",
-        "model_turn",
+        "decision_rejected",
         "loop_stopped",
     ]
     assert [observation is None for observation in provider.received_observations] == [
@@ -770,11 +779,12 @@ def test_structurally_invalid_decision_is_rejected_and_loop_continues(
         "loop_stopped",
     ]
     assert [event.sequence for event in trace] == [0, 1]
-    assert trace[0].payload == {
+    assert {k: trace[0].payload[k] for k in ("incident_id", "turn_index", "reason")} == {
         "incident_id": "incident-phase-2",
         "turn_index": 0,
         "reason": reason,
     }
+    assert trace[0].payload["rejection_class"] == "invalid_decision"
 
 
 @pytest.mark.parametrize(
@@ -843,7 +853,7 @@ def test_decision_on_final_permitted_turn_succeeds():
     )
 
     assert decision is not None
-    assert [event.kind for event in trace] == ["model_turn", "decision_submitted"]
+    assert [event.kind for event in trace] == ["decision_rejected", "decision_submitted"]
     assert [event.payload["turn_index"] for event in trace] == [0, 1]
 
 
@@ -949,11 +959,12 @@ def test_evidence_required_decision_without_observations_is_rejected_and_continu
     ]
     assert [event.sequence for event in trace] == [0, 1]
     assert [event.payload["turn_index"] for event in trace] == [0, 1]
-    assert trace[0].payload == {
+    assert {k: trace[0].payload[k] for k in ("incident_id", "turn_index", "reason")} == {
         "incident_id": "incident-phase-2",
         "turn_index": 0,
         "reason": f"{disposition} requires at least one observed tool result",
     }
+    assert trace[0].payload["rejection_class"] == "evidence_gate"
 
 
 def test_evidence_gate_rejection_does_not_change_state_before_retry():
@@ -1240,7 +1251,7 @@ def test_executor_exception_becomes_one_error_result_and_loop_continues():
     assert [event.kind for event in trace] == [
         "tool_call",
         "tool_result",
-        "model_turn",
+        "decision_rejected",
         "loop_stopped",
     ]
     assert [event.sequence for event in trace] == [0, 1, 2, 3]
@@ -1361,3 +1372,75 @@ def test_repeated_continuable_parse_failures_end_at_existing_turn_budget():
         1,
         2,
     ]
+
+
+# ── row 6: every invalid submission is one durable event, its reason returned once ──────
+
+REJECTIONS = [
+    '<ESCALATE>{"disposition": "ESCALATE", "root_cause_summary": "x", "repair_id": null}',
+    "<DECIDE>{}",
+    "",
+    "I think the pipeline is broken.",
+    "<TOOL_CALL",                                     # the tag, unfinished
+]
+
+
+@pytest.mark.parametrize("response", REJECTIONS)
+def test_anything_but_the_three_forms_is_an_invalid_envelope_no_form_special_cased(response):
+    provider = ScriptedProvider([response, STOP_SIGNAL])
+    decision, trace = run(incident(), provider, FakeToolExecutor(), max_turns=2)
+    assert decision is None
+    assert [e.kind for e in trace] == ["decision_rejected", "loop_stopped"]
+    rejected = trace[0].payload
+    assert rejected["rejection_class"] == "invalid_envelope"
+    assert rejected["reason"] == INVALID_ENVELOPE
+    assert rejected["submission_sha256"] == hashlib.sha256(response.encode("utf-8")).hexdigest()
+    assert rejected["submission_chars"] == len(response)
+    # the reason went back to the model with the next request, once, and never before
+    assert provider.received_rejections == (
+        None, {"class": "invalid_envelope", "reason": INVALID_ENVELOPE})
+
+
+def test_the_reason_is_returned_once_and_a_repeat_is_rejected_again():
+    bad = '<ESCALATE>{"disposition": "ESCALATE"}'
+    provider = ScriptedProvider([bad, bad, decision_response(disposition="ESCALATE")])
+    decision, trace = run(incident(), provider, FakeToolExecutor(), max_turns=3)
+    assert decision is not None and decision.disposition is Disposition.ESCALATE
+    assert [e.kind for e in trace] == ["decision_rejected", "decision_rejected",
+                                       "decision_submitted"]
+    assert [r and r["class"] for r in provider.received_rejections] == \
+        [None, "invalid_envelope", "invalid_envelope"]
+
+
+def test_every_rejection_class_carries_the_submissions_digest():
+    cases = {
+        "invalid_decision": decision_response(root_cause_summary=""),
+        "evidence_gate": decision_response(disposition="NO_REPAIR"),
+        "invalid_envelope": "<ESCALATE>{}",
+    }
+    for expected, response in cases.items():
+        provider = ScriptedProvider([response, STOP_SIGNAL])
+        _, trace = run(incident(), provider, FakeToolExecutor(), max_turns=2)
+        assert trace[0].payload["rejection_class"] == expected, expected
+        assert trace[0].payload["submission_sha256"] == \
+            hashlib.sha256(response.encode("utf-8")).hexdigest()
+        assert len(trace[0].payload["reason"]) <= REJECTION_REASON_CHARS
+
+
+def test_a_sink_receives_every_rejection_as_it_happens_and_nothing_else():
+    """The runtime's recorder is the one history: the loop emits the durable events only it
+    can know into it, the moment they happen; tool calls, observations and the submission
+    are the runtime's own boundaries' to record."""
+    class Sink:
+        def __init__(self):
+            self.events = []
+
+        def event(self, kind, payload):
+            self.events.append((kind, payload))
+
+    sink = Sink()
+    provider = ScriptedProvider(["prose", tool_call_response(), decision_response()])
+    decision, trace = run(incident(), provider, FakeToolExecutor(), max_turns=3, sink=sink)
+    assert decision is not None
+    assert [k for k, _ in sink.events] == ["decision_rejected"]
+    assert sink.events[0][1] == next(e.payload for e in trace if e.kind == "decision_rejected")

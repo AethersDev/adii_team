@@ -66,6 +66,9 @@ def render_run(record: RunRecord) -> str:
         elif event.kind == "tool_result":
             marker = "   " if payload["status"] == "OK" else " ! "
             out.append(f"  <-{marker}[{payload['status']}] {_summary(payload['content'])}")
+        elif event.kind == "decision_rejected":
+            out.append(f"  !! submission rejected ({payload.get('rejection_class', 'rejected')}): "
+                       f"{payload.get('reason', '')}")
     if not any(event.kind == "tool_call" for event in trace):
         out.append("  (none — the investigator decided without looking)" if decision
                    else "  (none — the run ended before any call)")

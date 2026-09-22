@@ -53,6 +53,12 @@ GUARDS = (
           "    if isinstance(max_turns, bool) or not isinstance(max_turns, int) "
           "or max_turns < 0:\n",
           "    if False:\n"),
+    Guard("A.rejection_is_recorded_where_it_happens", "A", "investigator/loop.py",
+          "        if sink is not None and durable:\n",
+          "        if False:\n"),
+    Guard("A.rejection_reason_returned_to_the_model", "A", "investigator/loop.py",
+          '        kwargs = {"rejection": pending_rejection} if pending_rejection else {}\n',
+          "        kwargs = {}\n"),
     Guard("A.patch_maps_path_to_text", "A", "investigator/loop.py",
           "    if not all(isinstance(k, str) and isinstance(v, str) for k, v in patch.items()):\n",
           "    if False:\n"),

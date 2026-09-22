@@ -24,12 +24,12 @@ and a test fails the build when it is stale. Milestone marks come from
 
 ```text
     contracts          154 lines
-    investigator       354 lines
+    investigator       340 lines
     tools             1230 lines
     validation         216 lines
     evaluation        1335 lines
-    reporting          586 lines
-    runtime            714 lines
+    reporting          589 lines
+    runtime            717 lines
     examples           586 lines
     demo               441 lines
 ```

@@ -56,7 +56,9 @@ def test_a_live_run_leaves_one_record_with_one_trace(tmp_path, endpoint):
     assert kinds == ["incident_received",
                      "model_requested", "model_responded", "tool_call", "tool_result",
                      "model_requested", "model_responded", "tool_call", "tool_result",
-                     "model_requested", "model_responded",              # the plain-text turn
+                     # the plain-text turn: none of the three forms, so an invalid submission,
+                     # durable in the record from the loop's own hand (row 6)
+                     "model_requested", "model_responded", "decision_rejected",
                      "model_requested", "model_responded", "decision_submitted"]
     assert r.decision.disposition.value == "ESCALATE" and r.validation is None
     assert r.model_turns == 4 and r.tool_calls == 2 and r.api_cost_usd == 0.0
@@ -160,6 +162,46 @@ def test_a_live_repair_is_checked_by_the_real_validator(tmp_path, endpoint):
     assert r.termination == "submitted" and r.decision.disposition.value == "REPAIR"
     assert r.validation.accepted is True and r.validation.checks_run
     assert [e.kind for e in r.trace][-2:] == ["decision_submitted", "validation_completed"]
+
+
+def test_an_invalid_submission_is_recorded_told_once_and_the_run_goes_on(tmp_path, endpoint):
+    """Row 6, end to end: a reply that is none of the three forms lands in the record as a
+    durable decision_rejected event with its class and digest — from the loop, through the
+    runtime's recorder, as it happens — the reason goes back to the model as the next
+    message, once, and a valid decision after it is submitted."""
+    bad = '<ESCALATE>{"disposition": "ESCALATE", "root_cause_id": null, "root_cause_summary": '
+    bad += '"cannot read the transform", "repair_id": null, "patch": {}}'
+    good = bad.replace("<ESCALATE>", "<DECISION>")
+    FakeModel.script[:] = [bad, good]
+    assert cli.main(["--incident", INCIDENT, "--provider", "local", "--endpoint", endpoint,
+                     "--model", "test-model-1", "--archive", str(tmp_path), "--label", "told",
+                     "--no-report"]) == 0
+    r = read_record(tmp_path / "told" / "record.json")
+    assert r.termination == "submitted" and r.decision.disposition.value == "ESCALATE"
+    kinds = [e.kind for e in r.trace]
+    assert kinds == ["incident_received", "model_requested", "model_responded",
+                     "decision_rejected", "model_requested", "model_responded",
+                     "decision_submitted"]
+    rejected = next(e.payload for e in r.trace if e.kind == "decision_rejected")
+    assert rejected["rejection_class"] == "invalid_envelope"
+    assert rejected["submission_sha256"] == hashlib.sha256(bad.encode("utf-8")).hexdigest()
+    # the model's second request carried the reason as its last message, and nothing else new
+    fed = json.loads(FakeModel.seen[-1]["messages"][-1]["content"])
+    assert fed == {"rejected": {"class": "invalid_envelope", "reason": rejected["reason"]}}
+    assert len(FakeModel.seen[-1]["messages"]) == len(FakeModel.seen[-2]["messages"]) + 2
+
+
+def test_a_model_that_repeats_an_invalid_form_leaves_one_rejection_per_turn(tmp_path, endpoint):
+    bad = '<ESCALATE>{"disposition": "ESCALATE"}'
+    FakeModel.script[:] = [bad, bad, bad]
+    assert cli.main(["--incident", INCIDENT, "--provider", "local", "--endpoint", endpoint,
+                     "--model", "test-model-1", "--archive", str(tmp_path), "--label", "loop",
+                     "--max-turns", "3", "--no-report"]) == 3
+    r = read_record(tmp_path / "loop" / "record.json")
+    assert r.termination == "bound_hit"
+    assert sum(1 for e in r.trace if e.kind == "decision_rejected") == 3
+    assert all(json.loads(m["messages"][-1]["content"]).get("rejected")
+               for m in FakeModel.seen[-2:])
 
 
 def test_endings_translate_by_type_never_by_message(tmp_path, endpoint):

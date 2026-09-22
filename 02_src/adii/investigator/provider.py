@@ -19,6 +19,7 @@ class ScriptedProvider:
         self._cursor = 0
         self._received_observations: list[ToolResult | None] = []
         self._received_context: list[tuple[ToolResult, ...]] = []
+        self._received_rejections: list[dict[str, str] | None] = []
 
     @property
     def received_observations(self) -> tuple[ToolResult | None, ...]:
@@ -30,15 +31,22 @@ class ScriptedProvider:
         """Accumulated observation tuples supplied to each invocation."""
         return tuple(self._received_context)
 
+    @property
+    def received_rejections(self) -> tuple[dict[str, str] | None, ...]:
+        """The rejection returned to the model with each invocation, or None."""
+        return tuple(self._received_rejections)
+
     def respond(
         self,
         *,
         observation: ToolResult | None = None,
         observations: tuple[ToolResult, ...] = (),
+        rejection: dict[str, str] | None = None,
     ) -> str:
         """Return the next response, or fail clearly when the script is exhausted."""
         self._received_observations.append(observation)
         self._received_context.append(tuple(observations))
+        self._received_rejections.append(rejection)
         if self._cursor >= len(self._responses):
             raise ScriptExhaustedError("scripted provider has no responses remaining")
 

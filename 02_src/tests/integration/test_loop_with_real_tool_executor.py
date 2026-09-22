@@ -95,7 +95,7 @@ def test_investigator_observes_real_denial_once_and_continues(
     assert [event.kind for event in trace] == [
         "tool_call",
         "tool_result",
-        "model_turn",
+        "decision_rejected",      # prose: none of the three forms (row 6)
         "loop_stopped",
     ]
     assert [event.sequence for event in trace] == [0, 1, 2, 3]
@@ -141,7 +141,7 @@ def test_investigator_accumulates_real_rejection_and_preserves_prior_result(
         "tool_result",
         "tool_call",
         "tool_result",
-        "model_turn",
+        "decision_rejected",      # prose: none of the three forms (row 6)
         "loop_stopped",
     ]
     assert [event.sequence for event in trace] == list(range(6))
