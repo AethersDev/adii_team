@@ -76,6 +76,10 @@ class TestAmbiguousJudgeReplies:
         assert parse_judge_reply("incorrect: wrong direction entirely") == (
             "incorrect", "wrong direction entirely"
         )
+        # gpt-4.1-mini's reply in the paid rehearsal, pilot-paid-v1
+        assert parse_judge_reply("correct; the repair satisfies every condition.") == (
+            "correct", "the repair satisfies every condition."
+        )
 
     def test_bare_verdict_with_no_reasoning_parses_to_empty_string(self):
         assert parse_judge_reply("correct") == ("correct", "")

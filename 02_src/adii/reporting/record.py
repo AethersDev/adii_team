@@ -30,7 +30,10 @@ from ..contracts import (
     ValidationResult,
 )
 
-SCHEMA = "adii.run_record/v1"
+SCHEMA = "adii.run_record/v2"
+# v1, written before 22 Sep: no evidence_refs, no validation reason_code, no authorization.
+# Read as it declares itself, those fields absent; a v2 record without one is malformed.
+V1 = "adii.run_record/v1"
 REPO = Path(__file__).resolve().parents[3]
 ARCHIVE = REPO / "01_data" / "runs"
 # A label names the run's directory in the archive and its URL in the inspector, so it is
@@ -192,11 +195,13 @@ def from_json(text: str) -> RunRecord:
     it does not know is how an archive drifts from its source without anyone noticing."""
     doc = json.loads(text, parse_constant=_not_json)
     schema = doc.get("schema") if isinstance(doc, dict) else None
-    if schema != SCHEMA:
-        raise ValueError(f"unknown record schema {schema!r}: this reader understands {SCHEMA}")
+    if schema not in (SCHEMA, V1):
+        raise ValueError(f"unknown record schema {schema!r}: this reader understands {SCHEMA} "
+                         f"and {V1}")
+    v1 = schema == V1
     try:
         c, d, v, n = doc["context"], doc["decision"], doc["validation"], doc["counters"]
-        a = doc.get("authorization")            # absent in records before 22 Sep
+        a = doc.get("authorization") if v1 else doc["authorization"]
         return RunRecord(
             label=doc["label"],
             context=IncidentContext(
@@ -209,10 +214,10 @@ def from_json(text: str) -> RunRecord:
                 disposition=Disposition(d["disposition"]), root_cause_id=d["root_cause_id"],
                 root_cause_summary=d["root_cause_summary"], repair_id=d["repair_id"],
                 patch=_patch(d["patch"]),
-                evidence_refs=tuple(d.get("evidence_refs", ()))),   # absent before 22 Sep
+                evidence_refs=tuple(d.get("evidence_refs", ()) if v1 else d["evidence_refs"])),
             validation=None if v is None else ValidationResult(
                 accepted=v["accepted"], report=v["report"], checks_run=tuple(v["checks_run"]),
-                reason_code=v.get("reason_code")),      # absent in records before 22 Sep
+                reason_code=v.get("reason_code") if v1 else v["reason_code"]),
             authorization=None if a is None else RepairAuthorization(
                 authorized=a["authorized"], checked_paths=tuple(a["checked_paths"]),
                 denied_paths=tuple(a["denied_paths"]), reason_code=a["reason_code"]),

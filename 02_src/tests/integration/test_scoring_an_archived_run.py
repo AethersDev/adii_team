@@ -85,6 +85,7 @@ def test_a_repair_nobody_checked_is_refused_not_filed_as_rejected(archive, tmp_p
     doc = json.loads(record.read_text(encoding="utf-8"))
     doc["validation"] = {"accepted": False, "checks_run": [],
                          "report": "No independent validator exists yet."}
+    doc["schema"] = "adii.run_record/v1"          # the placeholder predates reason_code
     record.write_text(json.dumps(doc), encoding="utf-8")
     key = key_file(tmp_path)
     freeze_answer_key(key)

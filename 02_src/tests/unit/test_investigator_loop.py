@@ -722,6 +722,7 @@ def test_a_citation_to_an_id_the_model_never_received_is_refused_and_told_once(c
     rejected = trace[2].payload
     assert rejected["rejection_class"] == "evidence_gate"
     assert rejected["reason"].startswith(f"cites evidence this run never observed: {cited};")
+    assert rejected["reason"].endswith(f"you received: {MINTED}")
     assert provider.received_rejections == (None, None, {"class": "evidence_gate",
                                                           "reason": rejected["reason"]})
 
@@ -737,6 +738,9 @@ def test_a_refused_tool_result_minted_nothing_a_decision_can_cite():
     assert [e.kind for e in trace] == ["tool_call", "tool_result", "decision_rejected",
                                        "decision_submitted"]
     assert trace[2].payload["rejection_class"] == "evidence_gate"
+    # the paid rehearsal's alert-only run: told only "cite what you received", with nothing
+    # received, the model cited the refusal seven times; the reason names what it may cite
+    assert trace[2].payload["reason"].endswith("none were received, so evidence_refs is []")
 
 
 @pytest.mark.parametrize(("refs", "reason"), [

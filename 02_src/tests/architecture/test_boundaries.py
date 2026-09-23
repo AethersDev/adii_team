@@ -111,6 +111,10 @@ def test_the_investigator_and_contracts_do_no_file_io(path: Path):
         return
     assert not calls_builtin_open(path), (
         f"{relative(path)} calls open(). The agent loop has no filesystem — that is the point.")
+    # open() is one route; Path.read_text, os and io are the others (the audit of 23 Sep)
+    reaching = imported_modules(path) & {"pathlib", "os", "io", "shutil", "glob", "tempfile"}
+    assert not reaching, (
+        f"{relative(path)} imports {sorted(reaching)}. The agent loop has no filesystem.")
 
 
 @pytest.mark.parametrize("path", source_files(), ids=relative)

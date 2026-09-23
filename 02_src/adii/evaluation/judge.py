@@ -168,17 +168,18 @@ def parse_judge_reply(reply: str) -> tuple[str, str]:
     # "Correctish" or "Incorrectly-worded, actually correct" silently
     # parses as a clean verdict instead of failing loudly.
     if lowered == "correct" or lowered.startswith(
-        ("correct ", "correct,", "correct.", "correct:", "correct-", "correct—")
+        ("correct ", "correct,", "correct.", "correct:", "correct;", "correct-", "correct—")
     ):
         verdict = "correct"
     elif lowered == "incorrect" or lowered.startswith(
-        ("incorrect ", "incorrect,", "incorrect.", "incorrect:", "incorrect-", "incorrect—")
+        ("incorrect ", "incorrect,", "incorrect.", "incorrect:", "incorrect;", "incorrect-",
+         "incorrect—")
     ):
         verdict = "incorrect"
     else:
         raise ValueError(f"judge reply did not start with a clean verdict: {text!r}")
 
-    reasoning = text[len(verdict):].lstrip(" ,.:-—").strip()
+    reasoning = text[len(verdict):].lstrip(" ,.:;-—").strip()
     return verdict, reasoning
 
 

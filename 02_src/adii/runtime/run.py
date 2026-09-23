@@ -100,7 +100,7 @@ class Recorder:
         self._events.append(event)
         if self._sink:
             self._sink.write(json.dumps({"sequence": event.sequence, "kind": kind,
-                                         "payload": payload}, default=str) + "\n")
+                                         "payload": payload}, allow_nan=False) + "\n")
             self._sink.flush()
 
     @property

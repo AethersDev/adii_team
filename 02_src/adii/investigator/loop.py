@@ -209,7 +209,9 @@ def run(
             if unresolved:
                 reject(turn_index, "evidence_gate",
                        f"cites evidence this run never observed: {', '.join(unresolved)}; cite "
-                       "only the evidence_id of tool results you received", response)
+                       "only the evidence_id of tool results you received: "
+                       + (", ".join(sorted(received - {None}))
+                          or "none were received, so evidence_refs is []"), response)
                 continue
 
             record("decision_submitted", {

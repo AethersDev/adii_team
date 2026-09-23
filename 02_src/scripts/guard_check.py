@@ -176,7 +176,7 @@ GUARDS = (
           "    doc = json.loads(text, parse_constant=_not_json)\n",
           "    doc = json.loads(text)\n"),
     Guard("D.unknown_schema_refused", "D", "reporting/record.py",
-          "    if schema != SCHEMA:\n",
+          "    if schema not in (SCHEMA, V1):\n",
           "    if False:\n"),
     Guard("D.label_is_one_segment", "D", "reporting/record.py",
           "    if not LABEL.fullmatch(label):\n",
@@ -531,6 +531,17 @@ GUARDS = (
     Guard("D.judge_question_within_its_bound", "D", "provider/judge.py",
           "        if reserve > MAX_COST_USD:\n",
           "        if False:\n"),
+    # the audit of 23 Sep: strict live trace, a versioned record shape, no unscored run hidden
+    Guard("D.live_trace_is_strict_json", "D", "runtime/run.py",
+          '"payload": payload}, allow_nan=False) + "\\n")',
+          '"payload": payload}, default=str) + "\\n")'),
+    Guard("D.v2_record_carries_authorization", "D", "reporting/record.py",
+          '        a = doc.get("authorization") if v1 else doc["authorization"]\n',
+          '        a = doc.get("authorization")\n'),
+    Guard("C.unscored_run_is_named", "C", "evaluation/grid.py",
+          '"category": scored["category"] if scored else "unscored" if record else "missing",',
+          '"category": scored["category"] if scored else record.termination if record '
+          'else "missing",'),
     # a reply cut off at the completion bound is named as cut, never left to read as malformed
     Guard("D.cut_reply_is_named", "D", "provider/openai_compatible.py",
           '        self._cut = finish == "length"\n',

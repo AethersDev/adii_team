@@ -86,7 +86,8 @@ def report(pack: dict, archive: Path) -> dict:
             "termination": record.termination if record else "missing",
             "disposition": record.decision.disposition.value if record and record.decision
             else None,
-            "category": scored["category"] if scored else None,
+            # a run with no evaluation report is unscored, never filed as how it ended
+            "category": scored["category"] if scored else "unscored" if record else "missing",
             "decisive": (scored.get("grounding") or {}).get("decisive", {}).get("observed")
             if scored else None,
             "validation": record.validation.state if record and record.validation else None,
@@ -106,15 +107,18 @@ def report(pack: dict, archive: Path) -> dict:
             "right_by_tier": {t: f"{sum(r['category'] in right for r in mine if r['tier'] == t)}"
                                  f"/{sum(r['tier'] == t for r in mine)}"
                               for t in ("explicit", "implicit")},
-            "categories": dict(Counter(r["category"] or r["termination"] for r in mine)),
+            "categories": dict(Counter(r["category"] for r in mine)),
             "decisive_observed": sum(bool(r["decisive"]) for r in mine),
-            "false_repairs_admitted": sum(bool(r["admissible"]) and r["truth"] != "REPAIR"
-                                          for r in mine),
+            # admitted (authorized and accepted) where the key says no repair was right; a
+            # wrong repair admitted on a REPAIR incident is in the categories, not here
+            "admitted_where_no_repair_was_right": sum(bool(r["admissible"])
+                                                      and r["truth"] != "REPAIR" for r in mine),
             "cost_usd_lower_bound": round(sum(r["cost_usd"] for r in mine), 4)}
     split = defaultdict(set)
     for r in runs:
         split[(r["incident"], r["arm"])].add(r["disposition"])
     return {"schema": "adii.benchmark_report/v1", "pack": pack["pack"], "arms": arms,
+            "unscored": [r["label"] for r in runs if r["category"] in ("unscored", "missing")],
             "repeat_disagreements": sorted(f"{i} {a}: {sorted(map(str, d))}"
                                            for (i, a), d in split.items() if len(d) > 1),
             "runs": runs}
@@ -123,15 +127,17 @@ def report(pack: dict, archive: Path) -> dict:
 def markdown(result: dict) -> str:
     lines = [f"# Benchmark {result['pack']}", "",
              "| arm | right | REPAIR | NO_REPAIR | ESCALATE | explicit | implicit | decisive "
-             "evidence seen | false repairs admitted | cost, lower bound |",
+             "evidence seen | admitted where no repair was right | cost, lower bound |",
              "|---|---|---|---|---|---|---|---|---|---|"]
     for arm, a in result["arms"].items():
         t, tier = a["right_by_truth"], a["right_by_tier"]
         lines.append(f"| {arm} | {a['right']}/{a['runs']} | {t['REPAIR']} | {t['NO_REPAIR']} | "
                      f"{t['ESCALATE']} | {tier['explicit']} | {tier['implicit']} | "
-                     f"{a['decisive_observed']}/{a['runs']} | {a['false_repairs_admitted']} | "
+                     f"{a['decisive_observed']}/{a['runs']} | "
+                     f"{a['admitted_where_no_repair_was_right']} | "
                      f"${a['cost_usd_lower_bound']} |")
-    lines += ["", "Repeats that disagreed: "
+    lines += ["", "Runs not scored: " + (", ".join(result["unscored"]) or "none"),
+              "", "Repeats that disagreed: "
               + (", ".join(result["repeat_disagreements"]) or "none"), ""]
     return "\n".join(lines)
 
