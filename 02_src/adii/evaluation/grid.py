@@ -31,7 +31,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 
-from ..examples.canonical_world import FAMILIES, STATES, incident_id
+from ..examples.canonical_world import cases, incident_id
 from ..provider import REASONING_EFFORTS
 from ..provider.judge import MAX_COST_USD as JUDGE_MAX_COST_USD
 from ..provider.judge import Judge
@@ -43,11 +43,13 @@ from .freeze import load_frozen_answer_key
 
 CATALOGUE = Path(__file__).resolve().parent / "catalogue"
 PACKS = REPO / "01_data" / "packs"
-TIER = {incident_id(f, s): ("explicit" if f.explicit else "implicit") for f in FAMILIES
-        for s in STATES}
+TIER = {incident_id(f, s): ("explicit" if f.explicit else "implicit") for f, s in cases()}
 # incidents found invalid as measurements: kept, frozen, never in a pack unless named
 BURNED = frozenset(json.loads((CATALOGUE / "burned.json").read_text(encoding="utf-8"))
                    ["incidents"])
+# the live cases, registered before any final run: which a pack runs, by name (decision E)
+PARTITION = {k: v for k, v in json.loads((CATALOGUE / "partition.json").read_text(
+    encoding="utf-8")).items() if isinstance(v, list)}
 
 
 def cells(pack: dict) -> list[tuple[str, str, str, int]]:
@@ -160,10 +162,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--arms", nargs="+", default=list(runtime.ARMS),
                         choices=list(runtime.ARMS))
     parser.add_argument("--repeats", type=int, default=3)
+    parser.add_argument("--partition", choices=sorted(PARTITION), default="benchmark",
+                        help="the registered set a pack runs (catalogue/partition.json)")
     parser.add_argument("--incidents", nargs="+",
-                        default=sorted(p.name.removesuffix(".answer.json")
-                                       for p in CATALOGUE.glob("*.answer.json")
-                                       if p.name.removesuffix(".answer.json") not in BURNED))
+                        help="named incidents instead of a partition: a rehearsal's, never a "
+                             "final pack's")
     parser.add_argument("--max-turns", type=int, default=20)
     parser.add_argument("--max-cost-usd", type=float, default=0.50)
     parser.add_argument("--max-tokens", type=int, default=1024,
@@ -177,6 +180,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--archive", default=str(ARCHIVE))
     parser.add_argument("--packs", default=str(PACKS))
     args = parser.parse_args(argv)
+    args.incidents = args.incidents or PARTITION[args.partition]
     if not LABEL.fullmatch(args.pack):
         print(f"--pack {args.pack!r} must be one label segment")
         return 2

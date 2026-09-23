@@ -87,6 +87,10 @@ FAMILIES = (
            ("Wick", .25)), ("Lumen", "Pyre"), "release v5.1.4: wishlist sharing", False),
 )
 STATES = ("load-stopped", "business-changed", "cannot-decide", "transform-defect")
+# a seventh company, generated after the burn, for the stage: the three live states only
+DEMO = Family("aug", date(2026, 8, 18), 110, (("Juniper", .30), ("Kiln", .20), ("Larch", .25),
+              ("Mistral", .25)), ("Juniper", "Kiln"), "release v6.0.1: saved carts", True)
+DEMO_STATES = ("business-changed", "cannot-decide", "transform-defect")
 
 STG = """-- stg_orders: the orders each nightly load committed, one row per order.
 -- A batch is staged up to the line the loader acknowledged.
@@ -285,9 +289,14 @@ def package(family: Family, state: str) -> dict[str, str]:
     }
 
 
+def cases() -> list[tuple[Family, str]]:
+    """Every (family, state) this module writes."""
+    return [(f, s) for f in FAMILIES for s in STATES] + [(DEMO, s) for s in DEMO_STATES]
+
+
 def packages() -> dict[str, dict[str, str]]:
     """Every package, by incident id, in id order — which says nothing about the states."""
-    return dict(sorted((incident_id(f, s), package(f, s)) for f in FAMILIES for s in STATES))
+    return dict(sorted((incident_id(f, s), package(f, s)) for f, s in cases()))
 
 
 def main(argv: list[str] | None = None) -> int:

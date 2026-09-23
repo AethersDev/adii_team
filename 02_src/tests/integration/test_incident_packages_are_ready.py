@@ -29,13 +29,15 @@ import pytest
 from adii.contracts import Disposition, InvestigationDecision, ToolCall
 from adii.evaluation.evaluation_report import build_evaluation_report
 from adii.evaluation.freeze import load_frozen_answer_key
-from adii.evaluation.grid import BURNED
+from adii.evaluation.grid import BURNED, PACKS, PARTITION, TIER
 from adii.evaluation.grounding import load_grounding_key
 from adii.evaluation.scale import REPAIR_STATE, Ideal, ideal, measure, scale_to_the_total
 from adii.examples.canonical_world import (
+    DEMO,
     FAMILIES,
     INCIDENTS,
     STATES,
+    cases,
     incident_id,
     packages,
     staging,
@@ -133,7 +135,7 @@ def repair(state: str, patch: dict[str, str], family=FIRST):
                         Validator(), configuration={"provider": "scripted", "model": None})
 
 
-@pytest.mark.parametrize("family", FAMILIES, ids=lambda f: f.name)
+@pytest.mark.parametrize("family", [*FAMILIES, DEMO], ids=lambda f: f.name)
 def test_the_repair_validity_rule_holds_on_every_repair_case(family):
     """The permitted transform is the cause: restoring it alone is accepted and admissible;
     the chart-only fake and the defect resubmitted are rejected."""
@@ -188,8 +190,7 @@ def test_the_bait_is_in_every_world_and_the_evidence_is_not():
 CATALOGUE = Path(__file__).resolve().parents[2] / "adii" / "evaluation" / "catalogue"
 
 
-@pytest.mark.parametrize("family", FAMILIES, ids=lambda f: f.name)
-@pytest.mark.parametrize("state", STATES)
+@pytest.mark.parametrize(("family", "state"), cases(), ids=lambda c: getattr(c, "name", c))
 def test_every_case_is_solvable_and_its_labels_agree_with_its_world(family, state):
     case = incident_id(family, state)
     key_path = CATALOGUE / f"{case}.answer.json"
@@ -228,3 +229,23 @@ def test_the_same_decisions_when_the_world_is_twenty_times_larger():
     assert grown[REPAIR_STATE]["validation"] == "ACCEPT"
     assert grown[REPAIR_STATE]["fake_repair"] == "REJECT"
     assert all(r["decisive"] for r in grown.values())
+
+
+
+def test_the_partition_is_registered_whole_and_nothing_held_out_has_been_run():
+    """Decision E: every labelled case is in exactly one of benchmark, held-out, demo or
+    burned; benchmark holds two per truth and tier and held-out one; and no held-out or demo
+    case is in any pack receipt in the repository — the final pack is their first run."""
+    keys = {p.name.removesuffix(".answer.json"): load_frozen_answer_key(p)["correct_disposition"]
+            for p in CATALOGUE.glob("*.answer.json")}
+    named = [*BURNED, *(i for part in PARTITION.values() for i in part)]
+    assert sorted(named) == sorted(keys)
+    for part, each in (("benchmark", 2), ("held_out", 1)):
+        strata = [(keys[i], TIER[i]) for i in PARTITION[part]]
+        assert all(strata.count(s) == each for s in strata) and len(set(strata)) == 6, part
+    assert PARTITION["demo"] == sorted(incident_id(DEMO, s) for f, s in cases() if f is DEMO)
+    unseen = set(PARTITION["held_out"]) | set(PARTITION["demo"])
+    for receipt in PACKS.glob("*.json"):
+        if not receipt.name.endswith(".report.json"):
+            ran = set(json.loads(receipt.read_text(encoding="utf-8"))["incidents"])
+            assert not ran & unseen, f"{receipt.name} ran a held-out or demo case"
