@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import json
 
+from .grounding import check_grounding
 from .outcome_classification import classify_outcome
 
 SCHEMA = "adii.evaluation_report/v1"
@@ -39,7 +40,8 @@ SCHEMA = "adii.evaluation_report/v1"
 NON_SUBMITTED_CATEGORY = "not_evaluable"
 
 
-def build_evaluation_report(run_record: dict, answer_key: dict, judge=None) -> dict:
+def build_evaluation_report(run_record: dict, answer_key: dict, judge=None,
+                            grounding_key: dict | None = None) -> dict:
     """Build one adii.evaluation_report/v1 document from a RunRecord's own
     JSON shape (as produced by RunRecord.to_json() / read back by
     from_json()) and an answer key.
@@ -108,7 +110,7 @@ def build_evaluation_report(run_record: dict, answer_key: dict, judge=None) -> d
         "verdict": classified["verdict"],
         "settled_by": classified["settled_by"],
         "runtime_validation": runtime_validation,
-        "grounding": describe_grounding(decision),
+        "grounding": describe_grounding(decision, run_record.get("trace", []), grounding_key),
     }
 
 
@@ -128,14 +130,18 @@ def describe_runtime_validation(validation: dict | None) -> dict:
     return {"state": state, "accepted": accepted, "checks_run": checks}
 
 
-def describe_grounding(decision: dict) -> dict:
+def describe_grounding(decision: dict, trace: list[dict] | None = None,
+                       grounding_key: dict | None = None) -> dict:
     """What the decision cites, as the record states it — a dimension beside the category,
     never inside it: a correct disposition with nothing cited is not a grounded success.
     `grounded` means at least one observation is cited; the record refuses a citation its
     trace never minted, so every cited id resolves. Whether the cited observations warrant
     the conclusion is a further question, the evaluation authority's — a grounding key's."""
     refs = list(decision.get("evidence_refs") or [])       # absent in records before 22 Sep
-    return {"evidence_refs": refs, "grounded": bool(refs)}
+    grounding = {"evidence_refs": refs, "grounded": bool(refs)}
+    if grounding_key is not None:        # the decisive observations, read from the trace
+        grounding["decisive"] = check_grounding(trace or [], grounding_key, refs)
+    return grounding
 
 
 def to_json(report: dict) -> str:

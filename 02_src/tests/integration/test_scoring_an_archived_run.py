@@ -9,6 +9,7 @@ import json
 import pytest
 from adii.evaluation.__main__ import NAME, main
 from adii.evaluation.freeze import freeze_answer_key
+from adii.evaluation.grounding import build_grounding_key
 from adii.examples.walkthrough import main as walkthrough
 from adii.reporting.manifest import RETENTION, verify, write_manifest
 
@@ -110,3 +111,39 @@ def test_an_unknown_run_or_schema_is_refused_before_any_key_is_read(archive, tmp
         '{"schema": "adii.run_record/v9"}', encoding="utf-8")
     assert main(["--run", "demo-learning-001", "--key", str(key), "--archive", str(archive)]) == 2
     assert "unknown record schema" in capsys.readouterr().out
+
+
+def grounding_file(key, *predicates):
+    path = key.with_name(key.name.replace(".answer.json", ".grounding.json"))
+    path.write_text(json.dumps(build_grounding_key(key, [
+        {"tool": tool, "argument_contains": needle} for tool, needle in predicates])),
+        encoding="utf-8")
+    return path
+
+
+def test_a_correct_disposition_without_the_decisive_observation_reads_as_both(archive, tmp_path):
+    """DECISIVE_TESTS D5b: disposition scoring says success; the grounding key says the
+    decisive observation was never made; the report carries both and folds neither."""
+    key = key_file(tmp_path)
+    freeze_answer_key(key)
+    grounding = grounding_file(key, ("run_sql", "mart_daily"), ("get_transform", "stg_orders"))
+    args = ["--run", "demo-learning-001", "--key", str(key), "--archive", str(archive)]
+    assert main([*args, "--grounding-key", str(grounding)]) == 0
+    report = json.loads((archive / "demo-learning-001" / NAME).read_text(encoding="utf-8"))
+    assert report["category"] == "success"
+    assert report["grounding"]["grounded"] is True
+    assert report["grounding"]["decisive"] == {
+        "observed": False, "cited": False,
+        "missing": [{"tool": "get_transform", "argument_contains": "stg_orders"}]}
+
+
+def test_a_grounding_key_bound_to_another_answer_key_is_refused(archive, tmp_path, capsys):
+    key = key_file(tmp_path)
+    other = key_file(tmp_path, incident_id="another-incident")
+    freeze_answer_key(key)
+    freeze_answer_key(other)
+    grounding = grounding_file(other, ("run_sql", "orders"))
+    assert main(["--run", "demo-learning-001", "--key", str(key), "--archive", str(archive),
+                 "--grounding-key", str(grounding)]) == 2
+    assert "grounded against its own key" in capsys.readouterr().out
+    assert not (archive / "demo-learning-001" / NAME).exists()

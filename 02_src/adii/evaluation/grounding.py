@@ -17,12 +17,13 @@ grounding key re-verifies that digest against the answer key's current
 frozen digest — if they disagree, the pairing is refused, not guessed at.
 
 What "decisive evidence" means, concretely, here: a list of required tool
-calls, each a (tool name, a substring the arguments must contain) pair —
-not an observation_id or evidence_ref, because that vocabulary is still
-open in trace_event_contract.md (decision row 3, not yet decided). A
-predicate over tool name and arguments is checkable against a real trace
-today without waiting for that vocabulary to settle, and translating to
-whatever citation format is eventually agreed is a separate, later step.
+calls, each a (tool name, a substring one of its text arguments must contain) pair.
+It is checked against the trace the runtime archived, as the record holds it: a
+predicate is observed only when a matching call was answered OK, so a refused or
+failed call observes nothing, and its evidence is the evidence_id the tool layer
+minted on that result. Whether the decision cited it is read from the decision's
+evidence_refs (trace contract row 3). Observed and cited are dimensions beside the
+category, never inside it.
 """
 from __future__ import annotations
 
@@ -138,24 +139,33 @@ def load_grounding_key(grounding_key_path: Path, answer_key_dir: Path | None = N
     return data
 
 
-def check_grounding(trace_tool_calls: list[dict], grounding_key: dict) -> dict:
-    """Check a decision's trace against a grounding key's required tool calls.
+def check_grounding(trace: list[dict], grounding_key: dict,
+                    evidence_refs: list[str] | tuple[str, ...] = ()) -> dict:
+    """The grounding key's predicates read against a run's archived trace.
 
-    trace_tool_calls: a list of {"tool": str, "arguments": object} — the
-    tool_requested events a real trace produced, in the shape the
-    investigator's trace already carries (see trace_event_contract.md).
+    trace: the record's `trace`, events of {"kind", "payload"} exactly as archived. A
+    predicate is satisfied by a `tool_call` naming its tool, with a text argument that
+    contains `argument_contains` (compared case-insensitively, since SQL is), whose result
+    was OK; the evidence ids are those results'. A call that was refused or failed
+    observed nothing, whatever it asked for.
 
-    Returns {"grounded": bool, "missing": list[dict]} — missing lists the
-    predicates from required_tool_calls that no trace entry satisfied.
+    Returns {"observed": every predicate satisfied, "cited": every predicate has one of
+    its evidence ids among `evidence_refs`, "missing": the predicates never observed}.
     """
-    missing = []
+    answered = {e["payload"].get("call_id"): e["payload"] for e in trace
+                if e.get("kind") == "tool_result" and e["payload"].get("status") == "OK"}
+    calls = [e["payload"] for e in trace if e.get("kind") == "tool_call"]
+    cited_refs = set(evidence_refs)
+    missing, uncited = [], []
     for predicate in grounding_key["required_tool_calls"]:
-        satisfied = any(
-            call["tool"] == predicate["tool"]
-            and predicate["argument_contains"] in json.dumps(call.get("arguments", {}))
-            for call in trace_tool_calls
-        )
-        if not satisfied:
+        needle = predicate["argument_contains"].casefold()
+        ids = {(answered[call["call_id"]].get("content") or {}).get("evidence_id")
+               for call in calls
+               if call.get("name") == predicate["tool"] and call.get("call_id") in answered
+               and any(isinstance(value, str) and needle in value.casefold()
+                       for value in (call.get("arguments") or {}).values())}
+        if not ids:
             missing.append(predicate)
-
-    return {"grounded": not missing, "missing": missing}
+        if not ids & cited_refs:
+            uncited.append(predicate)
+    return {"observed": not missing, "cited": not uncited, "missing": missing}

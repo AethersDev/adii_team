@@ -104,6 +104,11 @@ cites, from `evidence_refs`; `grounded` means at least one observation the run m
 cited) — dimensions, never inputs to the category: a correct disposition citing nothing
 scores as its category and reads as ungrounded. Whether the cited observations are the
 decisive ones is a grounding key's question (`grounding.py`).
+With `--grounding-key PATH`, a key bound by digest to the very answer key given, the
+report's `grounding` also carries `decisive`: `observed` (every required call was made and
+answered OK; a refused call observes nothing), `cited` (the decision names one of each
+required call's evidence ids) and `missing`, read from the archived trace, beside the
+category and never inside it.
 
 ## How to test it
 
