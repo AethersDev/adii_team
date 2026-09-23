@@ -15,7 +15,10 @@ from adii.examples.specimens import SPECIMENS
 from adii.examples.walkthrough import FIXTURE, load
 from adii.runtime import __main__ as cli
 from adii.runtime.__main__ import incident, readable_or_refused
-from adii.validation.patching import TRANSFORM, apply_patch
+from adii.validation.patching import apply_patch, path_of
+from adii.validation.validator import ORACLES, Validator, load_oracle
+
+TRANSFORM = path_of("stg_orders")
 
 INCIDENTS = [load()[0].incident_id, *(s.context.incident_id for s in SPECIMENS)]
 
@@ -47,7 +50,9 @@ def test_the_walkthroughs_served_transform_is_the_defect_and_the_committed_patch
     context, tools, _, _, _ = incident("demo-learning-001")
     source = served(tools, TRANSFORM)["source"]
     assert "/ 100.0 / 100.0" in source
-    broken = apply_patch({TRANSFORM: source})
+    pipeline, _ = load_oracle(ORACLES / "demo-learning-001.json")
+    world, transforms = Validator().frozen_inputs("demo-learning-001")
+    broken = apply_patch(world, pipeline, transforms, {TRANSFORM: source})
     day, revenue = broken.query("SELECT day, revenue_usd FROM mart_daily ORDER BY day",
                                 max_rows=1).rows[0]
     orders = broken.query("SELECT count(*) FROM orders WHERE order_date = ?", max_rows=1,

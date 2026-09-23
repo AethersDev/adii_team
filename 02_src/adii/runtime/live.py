@@ -30,8 +30,8 @@ class ValidatorOnLivePath:
     NOT_CHECKABLE in structure (`reason_code`), neither a verdict nor an infrastructure
     failure that would lose the decision. Every other exception is the runtime's to classify."""
 
-    def __init__(self) -> None:
-        self._validator = Validator()
+    def __init__(self, validator: Validator | None = None) -> None:
+        self._validator = validator or Validator()
 
     def validate(self, context: IncidentContext,
                  decision: InvestigationDecision) -> ValidationResult:

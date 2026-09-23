@@ -1,89 +1,119 @@
 """The independent authority: satisfies `runtime.run.Validator`.
 
-CONFORMANCE C1. The investigator hands over a `REPAIR` decision and this is
-the only place that decides whether it holds. It rebuilds the world from
-frozen inputs (`patching.apply_patch`), runs every check (`checks.ALL_CHECKS`)
-against the rebuild, and returns `ACCEPT` only if every one passes.
+CONFORMANCE C1. The investigator hands over a `REPAIR` decision and this is the only place
+that decides whether it holds. It rebuilds the incident's world from frozen inputs with the
+patch applied (`patching.apply_patch`), puts the rebuild through the incident's invariants
+(`checks.check`), and returns `ACCEPT` only if every one agrees.
 
-`validate()`'s signature is `(context, decision) -> ValidationResult` — the
-shape `runtime/run.py`'s `Validator` protocol requires, and the shape
-`ScriptedValidator` already stands in for. Nothing here reads `decision`'s
-prose (`root_cause_summary`) or any rehearsal the investigator might have run
-in its own sandbox: only `decision.patch` reaches `patching.apply_patch`, and
-that function has no parameter through which a rehearsal claim could arrive.
+What it knows of an incident is one file beside it, `oracles/<incident_id>.json`, the
+validator's own authority: the pipeline the world is derived by, and the invariants a valid
+repaired world satisfies — never a patch, a repair id or a disposition. An incident with no
+oracle has no world this validator can rebuild, and it says so (`UnknownIncident`) rather
+than guessing. The frozen inputs are the incident's own: its world and its transform bundle,
+the ones the investigator's tools were built over.
+
+`validate()`'s signature is `(context, decision) -> ValidationResult`, and nothing here reads
+`decision`'s prose or any rehearsal the investigator ran: only `decision.patch` reaches the
+rebuild, which has no parameter a rehearsal claim could arrive through.
 """
 from __future__ import annotations
 
+import json
+import re
+from pathlib import Path
+
 from adii.contracts import Disposition, IncidentContext, InvestigationDecision, ValidationResult
-from adii.tools import open_walkthrough_world
+from adii.reporting.record import REPO
+from adii.tools import ReadOnlyDatabase, load_transform_sources
+from adii.tools.walkthrough_world import build_script as walkthrough_world
 
-from .checks import ALL_CHECKS
-from .patching import PatchRejected, apply_patch
+from .checks import Invariant, check
+from .patching import PatchRejected, Step, apply_patch
 
-# The frozen world each known incident rebuilds from. Keyed by incident_id, not
-# by anything the investigator supplies — the investigator's IncidentContext
-# only carries incident_id, alert and as_of, never a path into this table.
-_WORLD_BUILDERS = {
-    "demo-learning-001": open_walkthrough_world,
-}
+ORACLES = Path(__file__).resolve().parent / "oracles"
+INCIDENTS = REPO / "01_data" / "incidents"
+WALKTHROUGH = ("demo-learning-001", REPO / "01_data" / "walkthrough")   # its world is code
+SCHEMA = "adii.validation_oracle/v1"
+_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 
 
 class UnknownIncident(Exception):
-    """Validation has no frozen world to rebuild for this incident_id. This is
-    an infrastructure gap, not a verdict — the run_incident() runtime records
-    it as an infrastructure_failure rather than a REJECT with reasons."""
+    """This validator has no oracle for the incident, so no world to rebuild. Not a verdict:
+    the runtime says NOT_CHECKABLE, in structure, and keeps the decision."""
 
 
-def validate(context: IncidentContext, decision: InvestigationDecision) -> ValidationResult:
-    """Rebuild `context.incident_id`'s frozen world with `decision.patch`
-    applied, run every check, and return the verdict. Raises `UnknownIncident`
-    if this validator has no frozen world for the incident — never silently
-    accepts or rejects an incident it cannot rebuild."""
-    if context.incident_id not in _WORLD_BUILDERS:
-        raise UnknownIncident(
-            f"validation has no frozen world for incident_id={context.incident_id!r}")
-    frozen = _WORLD_BUILDERS[context.incident_id]()
-
-    # the rebuild is the first check: a patch the world cannot apply is a rejection by the
-    # check named `rebuild`, never the legacy "nothing checked" shape
-    try:
-        rebuilt = apply_patch(decision.patch)
-    except PatchRejected as problem:
-        return ValidationResult(accepted=False, report=f"rebuild: patch rejected: {problem}",
-                                 checks_run=("rebuild",))
-
-    outcomes = [check(frozen, rebuilt) for check in ALL_CHECKS]
-    accepted = all(outcome.passed for outcome in outcomes)
-    report = "rebuild: the world rebuilt with the patch applied; " + \
-        "; ".join(outcome.detail for outcome in outcomes)
-    checks_run = ("rebuild", *(outcome.name for outcome in outcomes))
-    return ValidationResult(accepted=accepted, report=report, checks_run=checks_run)
+def load_oracle(path: Path) -> tuple[tuple[Step, ...], tuple[Invariant, ...]]:
+    """An oracle as the validator reads it: a closed shape, so nothing but a pipeline and
+    invariants can be written in one — no patch, no repair id, no disposition."""
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(doc, dict) or set(doc) != {"schema", "incident_id", "pipeline",
+                                                 "invariants"} or doc["schema"] != SCHEMA:
+        raise ValueError(f"{path.name} is not an {SCHEMA} document: schema, incident_id, "
+                         "pipeline and invariants, and nothing else")
+    if doc["incident_id"] != path.stem:
+        raise ValueError(f"{path.name} is the oracle of {doc['incident_id']!r}")
+    pipeline = []
+    for step in doc["pipeline"]:
+        if set(step) not in ({"table", "transform"}, {"table", "sql"}):
+            raise ValueError(f"{path.name}: a pipeline step is a table and either the "
+                             f"transform it is derived by or its own SQL; got {sorted(step)}")
+        pipeline.append(Step(**step))
+    invariants = [Invariant(**inv) for inv in doc["invariants"]]
+    names = [inv.name for inv in invariants]
+    if not invariants or len(set(names)) != len(names) or "rebuild" in names:
+        raise ValueError(f"{path.name}: one or more invariants, each named once, and none "
+                         "named rebuild — that is the rebuild's own check")
+    return tuple(pipeline), tuple(invariants)
 
 
 class Validator:
-    """The object shape `run_incident()` calls: `validator.validate(context,
-    decision)`. A thin wrapper around the module-level function above, so
-    `runtime/__main__.py` can hand in `Validator()` the same way it hands in
-    `ScriptedValidator(...)`."""
+    """The object shape `run_incident()` calls. `oracles` and `incidents` say where the
+    validator's authority and the incidents' frozen inputs are; tests point them elsewhere."""
+
+    def __init__(self, oracles: Path = ORACLES, incidents: Path = INCIDENTS) -> None:
+        self._oracles, self._incidents = oracles, incidents
+
+    def frozen_inputs(self, incident_id: str) -> tuple[str, dict[str, str]]:
+        """The incident's world build script and its transform bundle."""
+        if incident_id == WALKTHROUGH[0]:
+            return walkthrough_world(), load_transform_sources(WALKTHROUGH[1])
+        folder = self._incidents / incident_id
+        return (folder / "world.sql").read_text(encoding="utf-8"), load_transform_sources(folder)
 
     def validate(self, context: IncidentContext,
                  decision: InvestigationDecision) -> ValidationResult:
-        return validate(context, decision)
+        path = self._oracles / f"{context.incident_id}.json"
+        if not (_ID.fullmatch(context.incident_id) and path.is_file()):
+            raise UnknownIncident(
+                f"validation has no oracle for incident_id={context.incident_id!r}")
+        pipeline, invariants = load_oracle(path)
+        world, transforms = self.frozen_inputs(context.incident_id)
+        frozen = ReadOnlyDatabase.in_memory(world)
+        # the rebuild is the first check: a patch the world cannot apply is a rejection by the
+        # check named `rebuild`, never the legacy "nothing checked" shape
+        try:
+            rebuilt = apply_patch(world, pipeline, transforms, decision.patch)
+        except PatchRejected as problem:
+            return ValidationResult(accepted=False, report=f"rebuild: patch rejected: {problem}",
+                                    checks_run=("rebuild",))
+        outcomes = [check(invariant, frozen, rebuilt) for invariant in invariants]
+        accepted = all(outcome.passed for outcome in outcomes)
+        report = "rebuild: the world rebuilt with the patch applied; " + "; ".join(
+            f"{o.name}: {'holds' if o.passed else 'fails'} — {o.detail}" for o in outcomes)
+        return ValidationResult(accepted=accepted, report=report,
+                                checks_run=("rebuild", *(o.name for o in outcomes)))
+
+
+def validate(context: IncidentContext, decision: InvestigationDecision) -> ValidationResult:
+    """The default validator's verdict: the oracles beside this module, the incidents'
+    frozen inputs where the repository keeps them."""
+    return Validator().validate(context, decision)
 
 
 def as_dict_validator(context: IncidentContext):
-    """Adapt `validate()` to `evaluation/validation_wiring.py`'s
-    `ValidatorProvider` shape (`decision: dict -> {"accepted", "report",
-    "checks_run"}`), for callers working with decisions as dicts — offline
-    scoring scripts, fixtures — rather than with a live `IncidentContext`.
-
-    `context` is fixed at adaptation time because `ValidatorProvider` only
-    takes a decision, not a context; the runtime path (`Validator` above)
-    should be preferred wherever a real `IncidentContext` is already at hand.
-    Swapping this in for
-    `validation_wiring.fake_validator_accepts_everything_structurally_sound`
-    is the one-line change that module's own docstring promises.
-    """
+    """Adapt `validate()` to `evaluation/validation_wiring.py`'s `ValidatorProvider` shape
+    (`decision: dict -> {"accepted", "report", "checks_run", "reason_code"}`), for offline
+    scoring over decisions held as dicts; the runtime path uses `Validator` directly."""
     def provider(decision: dict) -> dict:
         real_decision = InvestigationDecision(
             disposition=Disposition(decision["disposition"]),

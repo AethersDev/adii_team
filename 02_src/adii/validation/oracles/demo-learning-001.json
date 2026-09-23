@@ -1,0 +1,19 @@
+{
+  "schema": "adii.validation_oracle/v1",
+  "incident_id": "demo-learning-001",
+  "pipeline": [
+    {"table": "stg_orders", "transform": "stg_orders"},
+    {"table": "mart_daily", "sql": "SELECT order_date AS day, SUM(amount_usd) AS revenue_usd FROM stg_orders GROUP BY order_date"}
+  ],
+  "invariants": [
+    {"name": "every_order_is_staged_once",
+     "rebuilt": "SELECT order_id FROM stg_orders ORDER BY order_id",
+     "frozen": "SELECT order_id FROM orders ORDER BY order_id"},
+    {"name": "the_mart_has_one_row_per_order_day",
+     "rebuilt": "SELECT day FROM mart_daily ORDER BY day",
+     "frozen": "SELECT DISTINCT order_date FROM orders ORDER BY order_date"},
+    {"name": "daily_revenue_is_the_orders_in_dollars",
+     "rebuilt": "SELECT day, ROUND(revenue_usd, 2) FROM mart_daily ORDER BY day",
+     "frozen": "SELECT order_date, ROUND(SUM(amount_cents) / 100.0, 2) FROM orders GROUP BY order_date ORDER BY order_date"}
+  ]
+}
