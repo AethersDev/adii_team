@@ -45,6 +45,9 @@ CATALOGUE = Path(__file__).resolve().parent / "catalogue"
 PACKS = REPO / "01_data" / "packs"
 TIER = {incident_id(f, s): ("explicit" if f.explicit else "implicit") for f in FAMILIES
         for s in STATES}
+# incidents found invalid as measurements: kept, frozen, never in a pack unless named
+BURNED = frozenset(json.loads((CATALOGUE / "burned.json").read_text(encoding="utf-8"))
+                   ["incidents"])
 
 
 def cells(pack: dict) -> list[tuple[str, str, str, int]]:
@@ -159,7 +162,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--incidents", nargs="+",
                         default=sorted(p.name.removesuffix(".answer.json")
-                                       for p in CATALOGUE.glob("*.answer.json")))
+                                       for p in CATALOGUE.glob("*.answer.json")
+                                       if p.name.removesuffix(".answer.json") not in BURNED))
     parser.add_argument("--max-turns", type=int, default=20)
     parser.add_argument("--max-cost-usd", type=float, default=0.50)
     parser.add_argument("--max-tokens", type=int, default=1024,

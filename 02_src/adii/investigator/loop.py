@@ -41,6 +41,11 @@ INVALID_ENVELOPE = ("not one of the two message forms — <TOOL_CALL>{...} or <D
                     "it was recorded as rejected and nothing acted on it; send exactly one form, "
                     "starting at the first character")
 REJECTION_CLASSES = ("invalid_envelope", "invalid_decision", "evidence_gate")
+INVALID_TOOL_CALL = ("invalid tool-call envelope: send one JSON object, "
+                     '{"name": "<tool>", "arguments": {...}}')
+TOOL_CALL_THEN_TEXT = ("invalid tool-call envelope: the call's JSON object is followed by more "
+                       "text; send the call alone and wait — its result comes from the tool "
+                       "layer, never from you")
 
 
 class EventSink(Protocol):
@@ -228,9 +233,14 @@ def run(
 
         if response.startswith(TOOL_CALL_PREFIX):
             call_id = f"tool-call-{turn_index}"
+            why = INVALID_TOOL_CALL
             try:
                 intent = json.loads(_body(response, TOOL_CALL_PREFIX))
-            except (json.JSONDecodeError, RecursionError):
+            except json.JSONDecodeError as bad:
+                intent = None
+                if bad.msg == "Extra data":     # a call, then more text after it
+                    why = TOOL_CALL_THEN_TEXT
+            except RecursionError:
                 intent = None
 
             name = intent.get("name") if isinstance(intent, dict) else None
@@ -247,13 +257,15 @@ def run(
                 name=name if isinstance(name, str) and name.strip() else "<invalid>",
                 arguments=arguments if isinstance(arguments, dict) else {},
             )
+            # a call the executor never sees is recorded here, into the runtime's history too:
+            # its tool boundary records only what reaches it
             record("tool_call", {
                 "incident_id": incident.incident_id,
                 "turn_index": turn_index,
                 "call_id": call.call_id,
                 "name": call.name,
                 "arguments": call.arguments,
-            })
+            }, durable=not valid_envelope)
 
             if valid_envelope:
                 try:
@@ -286,7 +298,7 @@ def run(
                     call_id=call.call_id,
                     name=call.name,
                     status="REJECTED",
-                    content={"error": "invalid tool-call envelope"},
+                    content={"error": why},
                 )
             record("tool_result", {
                 "incident_id": incident.incident_id,
@@ -295,7 +307,7 @@ def run(
                 "name": result.name,
                 "status": result.status,
                 "content": result.content,
-            })
+            }, durable=not valid_envelope)
             state = InvestigationState(observations=(*state.observations, result))
             observation = result
             continue

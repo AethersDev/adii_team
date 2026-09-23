@@ -13,8 +13,10 @@ from adii.contracts import (
 from adii.investigator.loop import (
     DECISION_PREFIX,
     INVALID_ENVELOPE,
+    INVALID_TOOL_CALL,
     REJECTION_REASON_CHARS,
     TOOL_CALL_PREFIX,
+    TOOL_CALL_THEN_TEXT,
     ProviderFailureError,
     TurnBudgetExceededError,
     _redact_secrets,
@@ -1524,3 +1526,26 @@ def test_a_sink_receives_every_rejection_as_it_happens_and_nothing_else():
     assert decision is not None
     assert [k for k, _ in sink.events] == ["decision_rejected"]
     assert sink.events[0][1] == next(e.payload for e in trace if e.kind == "decision_rejected")
+
+
+def test_a_call_followed_by_more_text_is_refused_said_why_and_recorded_in_the_history():
+    """gpt-6-sol in pilot-paid-v2: a valid call, then text after it — once a result it
+    invented for itself. Nothing after the call is acted on; the refusal says why; and since
+    the executor never sees the call, the loop records it into the runtime's history."""
+    class Sink:
+        def __init__(self):
+            self.events = []
+
+        def event(self, kind, payload):
+            self.events.append((kind, payload))
+
+    invented = tool_call_response() + 'user {"tool": "fake_tool", "status": "OK"}'
+    sink, executor = Sink(), FakeToolExecutor()
+    provider = ScriptedProvider([invented, "<TOOL_CALL>{not json", END])
+    decision, trace = run(incident(), provider, executor, max_turns=3, sink=sink)
+    assert decision == ENDED and executor.calls == []
+    first, second = provider.received_observations[1:3]
+    assert first.status == second.status == "REJECTED"
+    assert first.content["error"] == TOOL_CALL_THEN_TEXT
+    assert second.content["error"] == INVALID_TOOL_CALL
+    assert [k for k, _ in sink.events] == ["tool_call", "tool_result"] * 2

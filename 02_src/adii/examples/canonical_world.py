@@ -4,14 +4,20 @@
     python -m adii.examples.canonical_world --into DIR
 
 "Daily revenue fell overnight." Six families — six companies, each with its own day,
-volume, distributors and decoy release — and in each, three incident packages sharing one
-alert, one schema, one set of tools and evidence ids and one permitted path; only what the
-evidence says differs (DATA_WORLD_v0.md, "The canonical demo world"):
+volume, distributors and decoy release — and in each, incident packages sharing one alert,
+one schema, one set of tools and evidence ids and one permitted path; only what the evidence
+says differs (DATA_WORLD_v0.md, "The canonical demo world"):
 
-    the load stopped part-way  —  the source delivered every order; the loader committed 55
-    the business changed       —  two distributors' contracts ended; the orders really stopped
-    the evidence cannot decide —  the manifest claims 100, a known fault makes its counts
-                                  unreliable, 55 arrived, and the vendor's receipt is missing
+    the staging change is wrong —  every order arrived and loaded; that morning's change to
+                                   the permitted transform leaves live distributors out
+    the business changed        —  two distributors' contracts ended; the orders really stopped
+    the evidence cannot decide  —  the manifest claims 100, a known fault makes its counts
+                                   unreliable, 55 arrived, and the vendor's receipt is missing
+    the load stopped part-way   —  BURNED, 23 Sep 2026: the loader committed 55 of 100, and
+                                   the permitted transform stages up to the acknowledged line
+                                   by design (DATA-88), so the repair is a replay the permitted
+                                   path cannot make. Still written, so the packages the paid
+                                   rehearsals ran stay reproducible; never in a result
 
 This module writes worlds, never answers. No package states or encodes a disposition, a
 root cause or a repair; its incident id is opaque, derived from a digest; what each package
@@ -80,7 +86,7 @@ FAMILIES = (
     Family("dec", date(2026, 12, 1), 150, (("Lumen", .30), ("Pyre", .20), ("Vesta", .25),
            ("Wick", .25)), ("Lumen", "Pyre"), "release v5.1.4: wishlist sharing", False),
 )
-STATES = ("load-stopped", "business-changed", "cannot-decide")
+STATES = ("load-stopped", "business-changed", "cannot-decide", "transform-defect")
 
 STG = """-- stg_orders: the orders each nightly load committed, one row per order.
 -- A batch is staged up to the line the loader acknowledged.
@@ -89,6 +95,29 @@ FROM raw_orders o
 JOIN load_log l ON l.batch_id = o.batch_id
 WHERE o.line_no <= l.rows_loaded;
 """
+
+
+def staging(family: Family, state: str) -> str:
+    """The staging transform in force. Where the staging change is wrong, a clause dated
+    from the day, meant for sandbox test orders, names the family's live distributors."""
+    if state != "transform-defect":
+        return STG
+    named = ", ".join(f"'{n}'" for n in family.leaving)
+    return (STG.replace("-- A batch is staged up to the line the loader acknowledged.\n",
+                        "-- A batch is staged up to the line the loader acknowledged.\n"
+                        f"-- DATA-97: from {family.day}, leave the vendor's sandbox test orders "
+                        "out of staging.\n")
+            .replace("WHERE o.line_no <= l.rows_loaded;",
+                     "WHERE o.line_no <= l.rows_loaded\n"
+                     f"  AND NOT (o.order_date >= '{family.day}' AND o.distributor IN ({named}));"))
+
+
+def body(sql: str) -> str:
+    """A transform's statement, without its comment lines or its closing semicolon."""
+    return "\n".join(line for line in sql.splitlines()
+                     if not line.startswith("--")).strip().rstrip(";")
+
+
 MART = """-- mart_daily_revenue: orders and revenue per day, from the staged orders.
 SELECT order_date AS day, COUNT(*) AS orders, SUM(amount_usd) AS revenue_usd
 FROM stg_orders
@@ -150,6 +179,9 @@ def say(family: Family, state: str) -> dict[str, str]:
         return {**QUIET, "note": ""}
     leaving = " and ".join(family.leaving)
     return {
+        "transform-defect": {"bulletin": "No changes to distributor agreements this month.",
+                             "platform": "All ingestion services operated normally this month.",
+                             "note": ""},
         "load-stopped": {"bulletin": "No changes to distributor agreements this month.",
                          "platform": "All ingestion services operated normally this month.",
                          "note": f"connection reset at line {family.kept}; batch partially "
@@ -197,9 +229,8 @@ def world(family: Family, state: str) -> str:
         "declared_rows INTEGER);",
         "INSERT INTO delivery_manifest VALUES\n" + ",\n".join(manifest) + ";",
         # the derived tables as the pipeline built them, from the transforms below
-        "CREATE TABLE stg_orders AS " + STG.split("\n", 2)[2].rstrip().rstrip(";") + ";",
-        "CREATE TABLE mart_daily_revenue AS " + MART.split("\n", 1)[1].rstrip().rstrip(";")
-        + ";",
+        "CREATE TABLE stg_orders AS " + body(staging(family, state)) + ";",
+        "CREATE TABLE mart_daily_revenue AS " + body(MART) + ";",
     ]) + "\n"
 
 
@@ -213,10 +244,12 @@ def receipts(family: Family, state: str) -> str:
     return "\n".join(lines) + "\n"
 
 
-def changes(family: Family) -> str:
+def changes(family: Family, state: str) -> str:
+    staged = (f"| {family.day} | transforms/stg_orders.sql | DATA-97 | leave the vendor's "
+              "sandbox test orders out of staging |\n") if state == "transform-defect" else ""
     return ("# Pipeline and release changes\n\n| date | file | ticket | change |\n"
             "| --- | --- | --- | --- |\n"
-            f"| {family.day} | web/release.json | REL-231 | {family.release} |\n"
+            f"| {family.day} | web/release.json | REL-231 | {family.release} |\n" + staged +
             "| 2026-02-20 | transforms/stg_orders.sql | DATA-88 | stage a batch up to the "
             "loader's acked line |\n"
             "| 2026-01-14 | transforms/mart_daily_revenue.sql | DATA-71 | daily revenue from "
@@ -236,7 +269,7 @@ def package(family: Family, state: str) -> dict[str, str]:
         "world.sql": world(family, state),
         "transform_map.json": as_json({"stg_orders": "stg_orders.sql",
                                        "mart_daily_revenue": "mart_daily_revenue.sql"}),
-        "transform_sources/stg_orders.sql": STG,
+        "transform_sources/stg_orders.sql": staging(family, state),
         "transform_sources/mart_daily_revenue.sql": MART,
         "notice_map.json": as_json({"commercial-bulletin": "commercial_bulletin.md",
                                     "platform-status": "platform_status.md"}),
@@ -244,7 +277,7 @@ def package(family: Family, state: str) -> dict[str, str]:
                                                  f"{notices['bulletin']}\n",
         "notice_sources/platform_status.md": f"# Platform status\n\n{notices['platform']}\n",
         "change_history_map.json": as_json({"pipeline-changes": "CHANGE_HISTORY.md"}),
-        "change_history_sources/CHANGE_HISTORY.md": changes(family),
+        "change_history_sources/CHANGE_HISTORY.md": changes(family, state),
         "reconciliation_map.json": as_json({"vendor-receipts": "vendor_receipts.log"}),
         "reconciliation_sources/vendor_receipts.log": receipts(family, state),
         "declared_schema_map.json": as_json({"raw_orders": "raw_orders.json"}),
