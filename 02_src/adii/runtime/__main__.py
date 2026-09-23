@@ -77,6 +77,7 @@ from ..reporting.record import ARCHIVE, LABEL, reserve
 from ..tools import (
     EVIDENCE_BUNDLES,
     ReadOnlyDatabase,
+    ToolExecutor,
     build_sql_tools,
     canonical_json,
     change_history_observation,
@@ -89,7 +90,17 @@ from ..tools import (
 )
 from ..tools.walkthrough_world import build_script
 from .run import Recorder, run_incident
-from .scripted import replay
+from .scripted import AlwaysEscalate, replay
+
+# The three arms of the controls (inherited CONTROLS.md): what the full investigator adds is
+# measured against the same model with no tools and against no model at all.
+ARMS = ("full", "alert-only", "always-escalate")
+
+
+def armed(arm: str, tools, max_tool_calls: int):
+    """The tool surface an arm investigates with: the incident's own, or — alert-only — none,
+    so every call is refused as an unknown tool and the model decides from the alert."""
+    return ToolExecutor(max_calls=max_tool_calls) if arm == "alert-only" else tools
 
 WALKTHROUGH_WORLD = build_script()
 
@@ -246,11 +257,15 @@ def configure(args, tool_names) -> tuple[dict[str, object], str, dict[str, objec
     """The configuration the receipt and the record carry, the reason the receipt states, and
     what a paid provider needs — from arguments every refusal has already passed."""
     tools = list(tool_names)
+    if args.provider == "none":
+        return ({"provider": "none", "model": None, "arm": args.arm, "tools": tools},
+                "a control arm, always-escalate: no model, no tools, nothing is spent", {})
     if args.provider == "scripted":
         return ({"provider": "scripted", "model": None, "tools": tools,
                  "max_tool_calls": args.max_tool_calls},
                 "scripted replay of a recorded run: no model, nothing is spent", {})
-    bounds = {"max_turns": args.max_turns, "max_tool_calls": args.max_tool_calls,
+    bounds = {"arm": args.arm, "max_turns": args.max_turns,
+              "max_tool_calls": args.max_tool_calls,
               "max_model_requests": args.max_model_requests,
               "max_wall_clock_seconds": args.max_wall_clock_seconds, "timeout_s": TIMEOUT_S}
     if args.provider == "local":
@@ -334,7 +349,12 @@ def main(argv: list[str] | None = None) -> int:
     what.add_argument("--incident-dir", metavar="DIR",
                       help="a folder holding incident.json and world.sql — an operator's own "
                            "incident over their own data; both are kept beside the record")
-    parser.add_argument("--provider", required=True, choices=["scripted", "local", "openai"],
+    parser.add_argument("--arm", default="full", choices=list(ARMS),
+                        help="full: the investigator with the tool surface; alert-only: the same "
+                             "model and protocol with no tool, so it decides from the alert; "
+                             "always-escalate: no model, ESCALATE every time (--provider none)")
+    parser.add_argument("--provider", required=True,
+                        choices=["scripted", "local", "openai", "none"],
                         help="scripted: a scripted investigator and validator over the real "
                              "tool layer — no model, no cost. local: A's loop with a model "
                              "behind a local OpenAI-compatible endpoint (SPIKE). openai: the "
@@ -403,6 +423,11 @@ def main(argv: list[str] | None = None) -> int:
             print(f"no such incident {args.incident!r}; known: {', '.join(known)}")
             return 2
     context, tools, world_digest, recorded, evidence = found
+    if (args.provider == "none") != (args.arm == "always-escalate"):
+        print("--arm always-escalate runs with --provider none, and --provider none only with it: "
+              "the floor of the controls asks no model")
+        return 2
+    tools = armed(args.arm, tools, tool_cap)
     if args.endpoint is None:
         args.endpoint = ("https://api.openai.com/v1" if args.provider == "openai"
                          else "http://127.0.0.1:11434/v1")
@@ -451,6 +476,7 @@ def main(argv: list[str] | None = None) -> int:
             # read of one package, whatever happens to the operator's folder from here on.
             keep_incident(source, folder)
             context, tools, world_digest, _, evidence = incident_from_dir(folder, tool_cap)
+            tools = armed(args.arm, tools, tool_cap)
         configuration, reason, paid = configure(args, tools.names)
         # The receipt, before anything is spent: written and flushed, kept on every path.
         write_receipt(folder, label=label, artefacts=artefacts(context, world_digest, evidence),
@@ -464,7 +490,9 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     if paid:
         paid["receipt"] = folder / RECEIPT     # the provider refuses to exist without it
-    if args.provider == "scripted":
+    if args.provider == "none":
+        investigator, validator = AlwaysEscalate(), None     # it never proposes a repair
+    elif args.provider == "scripted":
         investigator, _, validator = replay(recorded)
     else:
         from .live import LoopInvestigator, ValidatorOnLivePath  # the spike

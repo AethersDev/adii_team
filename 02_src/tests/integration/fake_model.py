@@ -34,6 +34,7 @@ class FakeModel(BaseHTTPRequestHandler):
     refuse_completion: tuple[int, dict] | None = None
     usage: dict | None = None
     authorization: list[str | None] = []
+    finish: str | None = None       # the reply's finish_reason, when a test sets one
 
     def do_GET(self):  # noqa: N802
         """The model list, as a paid endpoint answers it — with the credential checked."""
@@ -77,7 +78,8 @@ class FakeModel(BaseHTTPRequestHandler):
             self.end_headers()
             return
         text = None if content == NO_TEXT else content
-        reply = {"choices": [{"message": {"role": "assistant", "content": text}}],
+        reply = {"choices": [{"message": {"role": "assistant", "content": text},
+                              **({"finish_reason": FakeModel.finish} if FakeModel.finish else {})}],
                  "usage": FakeModel.usage or {"prompt_tokens": 100, "completion_tokens": 20},
                  "system_fingerprint": "fp_fake"}
         payload = json.dumps(reply).encode("utf-8")

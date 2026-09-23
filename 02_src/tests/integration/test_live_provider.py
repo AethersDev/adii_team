@@ -954,3 +954,23 @@ def test_a_package_that_cannot_be_kept_releases_the_label(tmp_path, endpoint, ca
     assert "not archived: transform_map.json must be a regular file" in capsys.readouterr().out
     assert list(archive.iterdir()) == []       # the label is free again
     assert FakeModel.seen == []                # nothing was spoken to
+
+
+def test_a_reply_cut_off_at_the_completion_limit_is_said_so_once(tmp_path, endpoint):
+    """A decision cut off mid-string is invalid JSON, and the model would only hear that. The
+    endpoint's finish_reason is recorded, and a cut reply is named as cut, once, next turn."""
+    FakeModel.script[:] = ['<DECISION>{"disposition": "ESCALATE", "root_cause_summary": "the',
+                           TURNS[-1]]
+    FakeModel.finish = "length"
+    try:
+        assert cli.main(["--incident", INCIDENT, "--provider", "local", "--endpoint", endpoint,
+                         "--model", "test-model-1", "--archive", str(tmp_path), "--label", "cut",
+                         "--no-report"]) == 0
+    finally:
+        FakeModel.finish = None
+    r = read_record(tmp_path / "cut" / "record.json")
+    assert [e.payload["finish_reason"] for e in r.trace if e.kind == "model_responded"] == \
+        ["length", "length"]
+    told = [json.loads(m["content"]) for m in FakeModel.seen[1]["messages"][-2:]]
+    assert "rejected" in told[0] and "cut off" in told[1]["cut_off"]
+    assert sum("cut_off" in m["content"] for m in FakeModel.seen[1]["messages"]) == 1

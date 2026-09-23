@@ -313,6 +313,7 @@ class ChatProvider:
         self._started = time.monotonic()
         self._deadline = None if max_wall_clock_s is None else self._started + max_wall_clock_s
         self._turn = 0
+        self._cut = False       # the previous reply was cut off at the completion bound
         self._worker: RequestWorker | None = None
         self._messages = initial_messages(context, tools)
         self._recorded = 0      # how many of those messages a request has already recorded
@@ -363,6 +364,11 @@ class ChatProvider:
         if rejection is not None:
             self._messages.append({"role": "user", "content": json.dumps({
                 "rejected": rejection})})
+        if self._cut:                 # told once: the reply was incomplete, not malformed
+            self._messages.append({"role": "user", "content": json.dumps({"cut_off": (
+                "your previous reply reached the completion limit and was cut off, so it was "
+                "incomplete; send a shorter one")})})
+            self._cut = False
         remaining, reserve, reserved = self._admit()
         self._turn += 1
         # what the model is told, in the record (trace contract row 1): every message added
@@ -406,9 +412,14 @@ class ChatProvider:
         # whatever the content turns out to be, so a bill is never lost to a null or to a
         # body whose shape is wrong.
         content = _content_of(reply)
+        choices = reply.get("choices")
+        first = choices[0] if isinstance(choices, list) and choices else {}
+        finish = first.get("finish_reason") if isinstance(first, dict) else None
         self._recorder.event("model_responded", {
             "turn": self._turn, "content": content if isinstance(content, str) else None,
-            "usage": reply.get("usage"), "fingerprint": reply.get("system_fingerprint")})
+            "usage": reply.get("usage"), "fingerprint": reply.get("system_fingerprint"),
+            "finish_reason": finish if isinstance(finish, str) else None})
+        self._cut = finish == "length"
         if reserve is not None:
             billed = priced(reply.get("usage"), self._price)
             if billed is not None and billed > reserve:
