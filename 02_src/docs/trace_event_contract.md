@@ -271,3 +271,12 @@ one part of that history worth keeping.
 | 5 | A stop without a decision | A's `<STOP>` ends the loop with no decision. The record allows no decision; it lacks a truthful termination class for this ending. Candidates: `intentional_stop_no_decision`, `invalid_stop`, `incomplete` — which is right depends on whether the stop is a legitimate outcome or only permission to stop trying. The adapter must not choose | no | **decided 23 Sep** — there is no stop without a decision on any path: `<STOP>` leaves the grammar, a reply `<STOP>` is an invalid envelope like any other reply that is none of the forms, and a run ends with a decision, a bound, or a failure. "I cannot decide" is ESCALATE, which requires its reason | project owner, 23 Sep 2026 ([final_plan.md](final_plan.md), R5) |
 | 6 | Rejection: event or outcome | `decision_rejected` as its own durable event, or an outcome attached to a submission event | no | **decided 22 Sep** — its own durable event: `{incident_id, turn_index, rejection_class ∈ invalid_envelope · invalid_decision · evidence_gate, reason (bounded), submission_sha256, submission_chars}`; any reply that is none of the three forms is one, no form special-cased, nothing reinterpreted as a decision; the loop emits it into the runtime's recorder as it happens — the runtime owns the one execution record, the loop returns no second history that is translated or discarded; the reason is returned to the model once with the next request, under the existing bounds | D, on the advisor's review; the loop's owner to object |
 | 7 | The authorization fact's event | m7 row 4 (built 22 Sep) records `RepairAuthorization` in the record for every REPAIR; whether the fact is also an event — `repair_authorization` was the candidate — is this contract's to name | no | open | |
+
+**Implementation clarification, 23 September 2026, row 1** (appended; the decision above
+stands as written): `sent` means every conversation message newly added since the preceding
+model request, including the preceding assistant response once it becomes part of the next
+request. So every provider request reconstructs directly from the `model_requested` events
+alone — request N is the `sent` lists of requests 1 to N, joined in order — and a test holds
+that equal to what the endpoint received. Response text may therefore appear twice: as the
+provider's response on `model_responded`, and later as context on `sent`. They are different
+facts even where the bytes agree.

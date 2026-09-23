@@ -25,7 +25,7 @@ BUILD_OUTPUT = (ROOT / "build", ROOT / "dist")       # a wheel build copies sour
 
 # The public-index packages this project has chosen, each pinned in requirements.txt.
 # Adding a name here is a review decision, never a side effect of an import.
-CHOSEN = {"pytest", "ruff", "pytest-timeout", "openai"}
+CHOSEN = {"pytest", "ruff", "pytest-timeout"}
 
 # eval_authority's own modules import each other by bare name (from judge import ...),
 # not as a package — see 02_src/tests/eval_authority/conftest.py. Internal code, not a
