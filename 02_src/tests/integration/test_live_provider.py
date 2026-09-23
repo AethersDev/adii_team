@@ -57,7 +57,7 @@ def test_a_live_run_leaves_one_record_with_one_trace(tmp_path, endpoint):
     assert kinds == ["incident_received",
                      "model_requested", "model_responded", "tool_call", "tool_result",
                      "model_requested", "model_responded", "tool_call", "tool_result",
-                     # the plain-text turn: none of the three forms, so an invalid submission,
+                     # the plain-text turn: none of the two forms, so an invalid submission,
                      # durable in the record from the loop's own hand (row 6)
                      "model_requested", "model_responded", "decision_rejected",
                      "model_requested", "model_responded", "decision_submitted"]
@@ -71,6 +71,28 @@ def test_a_live_run_leaves_one_record_with_one_trace(tmp_path, endpoint):
     responded = [e.payload for e in r.trace if e.kind == "model_responded"]
     assert responded[0]["content"] == TURNS[0]                     # recorded before A parsed it
     assert responded[0]["usage"] == {"prompt_tokens": 100, "completion_tokens": 20}
+
+
+def test_the_record_holds_exactly_what_the_model_was_sent(tmp_path, endpoint):
+    """Trace contract row 1: the whole prompt of every turn is the trace's `sent` lists,
+    joined in order — byte for byte what the endpoint received — and the protocol the
+    receipt binds by digest is the system message the model was actually given."""
+    assert cli.main(["--incident", INCIDENT, "--provider", "local", "--endpoint", endpoint,
+                     "--model", "test-model-1", "--archive", str(tmp_path), "--label", "told",
+                     "--no-report"]) == 0
+    r = read_record(tmp_path / "told" / "record.json")
+    requests = [e.payload for e in r.trace if e.kind == "model_requested"]
+    assert len(requests) == len(FakeModel.seen) == 4
+    prompt: list[dict] = []
+    for request, received in zip(requests, FakeModel.seen, strict=True):
+        prompt += request["sent"]
+        assert prompt == received["messages"]                   # reconstructed, not inferred
+        assert request["messages"] == len(prompt)               # the count, as archived before
+    system = requests[0]["sent"][0]
+    assert system["role"] == "system"
+    receipt = read_receipt(tmp_path / "told" / RECEIPT)
+    assert receipt["artefacts"]["protocol"] == \
+        "sha256:" + hashlib.sha256(system["content"].encode("utf-8")).hexdigest()
 
 
 def test_the_receipt_is_on_disk_when_the_first_model_request_arrives(tmp_path, endpoint):
