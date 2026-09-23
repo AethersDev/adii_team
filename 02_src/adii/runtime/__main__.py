@@ -63,6 +63,7 @@ from ..examples.specimens import SPECIMENS
 from ..examples.walkthrough import FIXTURE, load
 from ..provider import (
     PROTOCOL,
+    REASONING_EFFORTS,
     TIMEOUT_S,
     endpoint_may_carry_a_credential,
     initial_messages,
@@ -277,7 +278,9 @@ def configure(args, tool_names) -> tuple[dict[str, object], str, dict[str, objec
     price = PRICES[args.model]
     configuration = {"provider": "openai", "model": args.model, "endpoint": args.endpoint,
                      **bounds, "max_tokens": args.max_tokens,
-                     "max_cost_usd": args.max_cost_usd, "temperature": 0,
+                     "max_cost_usd": args.max_cost_usd,
+                     **({"temperature": 0} if args.reasoning_effort is None
+                        else {"reasoning_effort": args.reasoning_effort}),
                      "credential": "OPENAI_API_KEY (environment)",
                      "price_table": price.table, "tools": tools,
                      "execution_mode": "live",
@@ -286,7 +289,8 @@ def configure(args, tool_names) -> tuple[dict[str, object], str, dict[str, objec
                      "cap_basis": ("hard by admission: a request is sent only if the exact "
                                    "worst case spent so far plus its own reserve — every byte "
                                    "of the messages as a token at the input rate, max_tokens at "
-                                   "the output rate — stays within max_cost_usd; premise: the "
+                                   "the output rate, sent as max_completion_tokens — stays "
+                                   "within max_cost_usd; premise: the "
                                    f"endpoint honours max_tokens and bills by "
                                    f"{price.tokenizer}, a byte-level BPE; a bill above its "
                                    "reserve ends the run as the provider's failure")}
@@ -295,7 +299,8 @@ def configure(args, tool_names) -> tuple[dict[str, object], str, dict[str, objec
               f"request is sent whose worst case would cross it; requested from "
               f"{args.requested_from}; permitted by the operator running this process")
     paid = {"credential": os.environ["OPENAI_API_KEY"], "max_tokens": args.max_tokens,
-            "price": price, "max_cost_usd": args.max_cost_usd}
+            "price": price, "max_cost_usd": args.max_cost_usd,
+            "reasoning_effort": args.reasoning_effort}
     return configuration, reason, paid
 
 
@@ -369,6 +374,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-tokens", type=int, default=512,
                         help="openai only: the completion bound per request (default 512); "
                              "priced in full in every request's reserve")
+    parser.add_argument("--reasoning-effort", choices=REASONING_EFFORTS,
+                        help="openai only, a reasoning model: sent as given in place of "
+                             "temperature; its reasoning tokens count inside --max-tokens")
     parser.add_argument("--served-as", metavar="NAME",
                         help="local only: the name the endpoint wants in requests when it differs "
                              "from --model (mlx-lm's server: default_model)")
@@ -438,6 +446,9 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     if args.provider == "local" and not args.model:
         print("--provider local needs --model <id the endpoint serves>")
+        return 2
+    if args.reasoning_effort and args.provider != "openai":
+        print("--reasoning-effort is a paid reasoning model's setting: --provider openai only")
         return 2
     if args.provider == "openai":
         try:

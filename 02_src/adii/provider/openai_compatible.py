@@ -56,6 +56,8 @@ from ..runtime.run import Recorder
 
 LOCAL_HOSTS = ("127.0.0.1", "localhost", "::1")
 TIMEOUT_S = 120.0     # the endpoint's own patience: one connect, one read
+# a reasoning model's effort, as OpenAI names the levels (gpt-6-sol, 22 Sep 2026)
+REASONING_EFFORTS = ("none", "low", "medium", "high", "xhigh", "max")
 
 # The chat format's own tokens — role markers, separators, the reply's priming — counted as
 # constants well above their real number (about 3 per message and 3 per request), so that the
@@ -273,14 +275,17 @@ class ChatProvider:
                  receipt: Path | None = None, max_tokens: int | None = None,
                  price: Price | None = None, max_cost_usd: float | None = None,
                  max_model_requests: int | None = None,
-                 max_wall_clock_s: float | None = None):
+                 max_wall_clock_s: float | None = None, reasoning_effort: str | None = None):
         """`model` is the identity the record keeps. `served_as` is what the endpoint wants
         on the wire when that differs — mlx-lm's server, for one, loads whatever name a
         request carries unless it is `default_model`. A `credential` makes this a paid
         provider: then `receipt` must already be on disk, and `price`, `max_cost_usd` and
         `max_tokens` bound what it may spend. `max_model_requests` and `max_wall_clock_s`
         bound any provider; the wall clock starts now. `timeout_s` is the endpoint's own
-        patience per socket operation — the deadline is enforced apart from it."""
+        patience per socket operation — the deadline is enforced apart from it.
+        `reasoning_effort`, for a reasoning model, is sent as given and replaces
+        `temperature`, which such a model refuses beside it; its reasoning tokens are
+        completion tokens, inside `max_tokens` and inside every reserve."""
         paid = credential is not None
         if not paid and not endpoint_is_local(endpoint):
             raise ValueError(f"{endpoint} is not a local endpoint; a paid provider needs a "
@@ -307,6 +312,7 @@ class ChatProvider:
         self._model, self._recorder, self._timeout = model, recorder, timeout_s
         self._served_as = served_as or model
         self._credential, self._max_tokens = credential, max_tokens
+        self._effort = reasoning_effort
         self._price = price
         self._cap = None if max_cost_usd is None else Decimal(repr(max_cost_usd))
         self._max_requests, self._wall_clock = max_model_requests, max_wall_clock_s
@@ -380,10 +386,13 @@ class ChatProvider:
         self._recorder.event("model_requested", {
             "turn": self._turn, "model": self._model, "messages": len(self._messages),
             "sent": sent, **reserved})
-        body: dict[str, object] = {"model": self._served_as, "messages": self._messages,
-                                   "temperature": 0}
-        if self._max_tokens is not None:
-            body["max_tokens"] = self._max_tokens
+        body: dict[str, object] = {"model": self._served_as, "messages": self._messages}
+        if self._effort is None:
+            body["temperature"] = 0
+        else:
+            body["reasoning_effort"] = self._effort
+        if self._max_tokens is not None:     # the name every OpenAI model takes, reasoning or not
+            body["max_completion_tokens"] = self._max_tokens
         headers = {"Content-Type": "application/json"}
         if self._credential is not None:
             headers["Authorization"] = f"Bearer {self._credential}"
