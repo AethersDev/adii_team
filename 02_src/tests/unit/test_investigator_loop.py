@@ -14,7 +14,6 @@ from adii.investigator.loop import (
     DECISION_PREFIX,
     INVALID_ENVELOPE,
     REJECTION_REASON_CHARS,
-    STOP_SIGNAL,
     TOOL_CALL_PREFIX,
     ProviderFailureError,
     TurnBudgetExceededError,
@@ -25,6 +24,8 @@ from adii.investigator.provider import ScriptedProvider, ScriptExhaustedError
 from adii.investigator.state import InvestigationState
 
 from .fakes import (
+    END,
+    ENDED,
     FakeToolExecutor,
     NonStringProvider,
     NonToolResultExecutor,
@@ -64,34 +65,34 @@ def decision_response(**overrides: object) -> str:
     return DECISION_PREFIX + json.dumps(submission, sort_keys=True)
 
 
-def test_explicit_stop_emits_one_ordered_event_per_provider_call():
-    provider = ScriptedProvider(["first", "second", STOP_SIGNAL])
+def test_one_ordered_event_per_provider_call_until_the_decision():
+    provider = ScriptedProvider(["first", "second", END])
 
     decision, trace = run(incident(), provider, FakeToolExecutor(), max_turns=3)
 
-    assert decision is None
+    assert decision == ENDED
     assert len(trace) == 3
     assert [event.sequence for event in trace] == [0, 1, 2]
     # plain prose is none of the three forms: an invalid submission, recorded by class and
     # digest — the text itself is the provider boundary's to record
     assert [event.kind for event in trace] == ["decision_rejected", "decision_rejected",
-                                               "loop_stopped"]
+                                               "decision_submitted"]
     assert [event.payload["rejection_class"] for event in trace[:-1]] == \
         ["invalid_envelope", "invalid_envelope"]
     assert [event.payload["submission_sha256"] for event in trace[:-1]] == \
         [hashlib.sha256(t.encode("utf-8")).hexdigest() for t in ("first", "second")]
-    assert trace[-1].payload["reason"] == "explicit_stop"
+    assert trace[-1].payload["disposition"] == "ESCALATE"
 
 
 def test_trace_payloads_carry_incident_id_and_turn_index():
     decision, trace = run(
         incident(),
-        ScriptedProvider(["ordinary response", STOP_SIGNAL]),
+        ScriptedProvider(["ordinary response", END]),
         FakeToolExecutor(),
         max_turns=2,
     )
 
-    assert decision is None
+    assert decision == ENDED
     assert [event.payload["incident_id"] for event in trace] == [
         "incident-phase-2",
         "incident-phase-2",
@@ -99,21 +100,21 @@ def test_trace_payloads_carry_incident_id_and_turn_index():
     assert [event.payload["turn_index"] for event in trace] == [0, 1]
 
 
-def test_loop_does_not_call_provider_after_explicit_stop():
-    provider = ScriptedProvider([STOP_SIGNAL, "still scripted"])
+def test_loop_does_not_call_provider_after_a_decision():
+    provider = ScriptedProvider([END, "still scripted"])
     executor = FakeToolExecutor()
 
     decision, trace = run(incident(), provider, executor, max_turns=1)
 
-    assert decision is None
+    assert decision == ENDED
     assert len(trace) == 1
-    assert trace[0].kind == "loop_stopped"
+    assert trace[0].kind == "decision_submitted"
     assert executor.calls == []
     assert provider.received_context == ((),)
     assert provider.respond() == "still scripted"
 
 
-def test_missing_stop_signal_propagates_script_exhaustion():
+def test_a_script_that_never_decides_propagates_exhaustion():
     provider = ScriptedProvider(["ordinary response"])
 
     with pytest.raises(ScriptExhaustedError):
@@ -123,30 +124,30 @@ def test_missing_stop_signal_propagates_script_exhaustion():
 def test_budget_allows_normal_completion():
     decision, trace = run(
         incident(),
-        ScriptedProvider(["ordinary", STOP_SIGNAL]),
+        ScriptedProvider(["ordinary", END]),
         FakeToolExecutor(),
         max_turns=4,
     )
 
-    assert decision is None
-    assert [event.kind for event in trace] == ["decision_rejected", "loop_stopped"]
+    assert decision == ENDED
+    assert [event.kind for event in trace] == ["decision_rejected", "decision_submitted"]
 
 
-def test_stop_on_exact_budget_boundary_succeeds():
+def test_a_decision_on_the_exact_budget_boundary_succeeds():
     decision, trace = run(
         incident(),
-        ScriptedProvider(["ordinary", STOP_SIGNAL]),
+        ScriptedProvider(["ordinary", END]),
         FakeToolExecutor(),
         max_turns=2,
     )
 
-    assert decision is None
+    assert decision == ENDED
     assert len(trace) == 2
-    assert trace[-1].kind == "loop_stopped"
+    assert trace[-1].kind == "decision_submitted"
 
 
 def test_zero_budget_refuses_provider_call_and_attaches_terminal_trace():
-    provider = ScriptedProvider([STOP_SIGNAL])
+    provider = ScriptedProvider([END])
 
     with pytest.raises(TurnBudgetExceededError) as raised:
         run(incident(), provider, FakeToolExecutor(), max_turns=0)
@@ -160,16 +161,16 @@ def test_zero_budget_refuses_provider_call_and_attaches_terminal_trace():
         "bound": "max_turns",
         "limit": 0,
     }
-    assert provider.respond() == STOP_SIGNAL
+    assert provider.respond() == END
 
 
 def test_negative_budget_is_rejected_before_provider_call():
-    provider = ScriptedProvider([STOP_SIGNAL])
+    provider = ScriptedProvider([END])
 
     with pytest.raises(ValueError, match="non-negative integer"):
         run(incident(), provider, FakeToolExecutor(), max_turns=-1)
 
-    assert provider.respond() == STOP_SIGNAL
+    assert provider.respond() == END
 
 
 def test_boolean_budgets_are_rejected():
@@ -177,7 +178,7 @@ def test_boolean_budgets_are_rejected():
         with pytest.raises(ValueError, match="non-negative integer"):
             run(
                 incident(),
-                ScriptedProvider([STOP_SIGNAL]),
+                ScriptedProvider([END]),
                 FakeToolExecutor(),
                 max_turns=invalid,
             )
@@ -188,22 +189,22 @@ def test_float_and_nan_budgets_are_rejected():
         with pytest.raises(ValueError, match="non-negative integer"):
             run(
                 incident(),
-                ScriptedProvider([STOP_SIGNAL]),
+                ScriptedProvider([END]),
                 FakeToolExecutor(),
                 max_turns=invalid,
             )
 
 
-def test_explicit_stop_before_budget_exhaustion_succeeds():
+def test_a_decision_before_budget_exhaustion_succeeds():
     decision, trace = run(
         incident(),
-        ScriptedProvider([STOP_SIGNAL]),
+        ScriptedProvider([END]),
         FakeToolExecutor(),
         max_turns=5,
     )
 
-    assert decision is None
-    assert trace[0].kind == "loop_stopped"
+    assert decision == ENDED
+    assert trace[0].kind == "decision_submitted"
 
 
 def test_budget_exhaustion_precedes_provider_exhaustion_when_limit_is_smaller():
@@ -231,7 +232,7 @@ def test_trace_sequence_remains_contiguous_through_budget_event():
 
 
 def test_identical_runs_produce_identical_traces():
-    script = ["ordinary", STOP_SIGNAL]
+    script = ["ordinary", END]
 
     first_decision, first = run(
         incident(), ScriptedProvider(script), FakeToolExecutor(), max_turns=2
@@ -240,13 +241,13 @@ def test_identical_runs_produce_identical_traces():
         incident(), ScriptedProvider(script), FakeToolExecutor(), max_turns=2
     )
 
-    assert first_decision is None
-    assert second_decision is None
+    assert first_decision == ENDED
+    assert second_decision == ENDED
     assert first == second
 
 
 def test_n_and_n_minus_one_limits_have_distinct_boundary_results():
-    script = ["ordinary", STOP_SIGNAL]
+    script = ["ordinary", END]
 
     decision, trace = run(
         incident(), ScriptedProvider(script), FakeToolExecutor(), max_turns=2
@@ -254,8 +255,8 @@ def test_n_and_n_minus_one_limits_have_distinct_boundary_results():
     with pytest.raises(TurnBudgetExceededError):
         run(incident(), ScriptedProvider(script), FakeToolExecutor(), max_turns=1)
 
-    assert decision is None
-    assert trace[-1].kind == "loop_stopped"
+    assert decision == ENDED
+    assert trace[-1].kind == "decision_submitted"
 
 
 def test_provider_response_remains_unconsumed_after_budget_refusal():
@@ -268,17 +269,17 @@ def test_provider_response_remains_unconsumed_after_budget_refusal():
 
 
 def test_tool_result_is_delivered_once_then_cleared_after_ordinary_turn():
-    provider = ScriptedProvider([tool_call_response(), "after observation", STOP_SIGNAL])
+    provider = ScriptedProvider([tool_call_response(), "after observation", END])
     executor = FakeToolExecutor()
 
     decision, trace = run(incident(), provider, executor, max_turns=3)
 
-    assert decision is None
+    assert decision == ENDED
     assert [event.kind for event in trace] == [
         "tool_call",
         "tool_result",
         "decision_rejected",
-        "loop_stopped",
+        "decision_submitted",
     ]
     assert [observation is None for observation in provider.received_observations] == [
         True,
@@ -294,12 +295,12 @@ def test_tool_call_contract_is_constructed_from_prefixed_json():
 
     decision, _ = run(
         incident(),
-        ScriptedProvider([tool_call_response(arguments={"value": "payload"}), STOP_SIGNAL]),
+        ScriptedProvider([tool_call_response(arguments={"value": "payload"}), END]),
         executor,
         max_turns=2,
     )
 
-    assert decision is None
+    assert decision == ENDED
     assert executor.calls == [
         ToolCall(
             call_id="tool-call-0",
@@ -310,12 +311,12 @@ def test_tool_call_contract_is_constructed_from_prefixed_json():
 
 
 def test_tool_result_is_traced_and_passed_to_provider_by_identity():
-    provider = ScriptedProvider([tool_call_response(), STOP_SIGNAL])
+    provider = ScriptedProvider([tool_call_response(), END])
     executor = FakeToolExecutor(marker="phase4-handoff-proof")
 
     decision, trace = run(incident(), provider, executor, max_turns=2)
 
-    assert decision is None
+    assert decision == ENDED
     result = executor.results[0]
     assert provider.received_observations[1] is result
     assert provider.received_context[1][0] is result
@@ -331,12 +332,12 @@ def test_tool_result_is_traced_and_passed_to_provider_by_identity():
 
 
 def test_provider_receives_none_until_a_tool_result_exists():
-    provider = ScriptedProvider(["ordinary", tool_call_response(), STOP_SIGNAL])
+    provider = ScriptedProvider(["ordinary", tool_call_response(), END])
     executor = FakeToolExecutor()
 
     decision, _ = run(incident(), provider, executor, max_turns=3)
 
-    assert decision is None
+    assert decision == ENDED
     assert provider.received_observations[:2] == (None, None)
     assert provider.received_observations[2] is executor.results[0]
 
@@ -348,14 +349,14 @@ def test_later_tool_result_replaces_cleared_observation_for_one_call():
             "after first result",
             tool_call_response(arguments={"value": "second"}),
             "after second result",
-            STOP_SIGNAL,
+            END,
         ]
     )
     executor = FakeToolExecutor()
 
     decision, _ = run(incident(), provider, executor, max_turns=5)
 
-    assert decision is None
+    assert decision == ENDED
     assert provider.received_observations == (
         None,
         executor.results[0],
@@ -373,42 +374,42 @@ def test_later_tool_result_replaces_cleared_observation_for_one_call():
 
 
 def test_unknown_tool_denial_is_observed_and_loop_continues():
-    provider = ScriptedProvider([tool_call_response(name="unknown"), STOP_SIGNAL])
+    provider = ScriptedProvider([tool_call_response(name="unknown"), END])
 
     decision, trace = run(incident(), provider, FakeToolExecutor(), max_turns=2)
 
-    assert decision is None
+    assert decision == ENDED
     assert trace[1].kind == "tool_result"
     assert trace[1].payload["status"] == "DENIED"
-    assert trace[-1].kind == "loop_stopped"
+    assert trace[-1].kind == "decision_submitted"
     assert provider.received_observations[1].status == "DENIED"
     assert provider.received_context[1][0].status == "DENIED"
 
 
 def test_malformed_arguments_are_rejected_and_loop_continues():
     provider = ScriptedProvider(
-        [tool_call_response(arguments={"value": 123}), STOP_SIGNAL]
+        [tool_call_response(arguments={"value": 123}), END]
     )
 
     decision, trace = run(incident(), provider, FakeToolExecutor(), max_turns=2)
 
-    assert decision is None
+    assert decision == ENDED
     assert trace[1].payload["status"] == "REJECTED"
-    assert trace[-1].kind == "loop_stopped"
+    assert trace[-1].kind == "decision_submitted"
     assert provider.received_observations[1].status == "REJECTED"
     assert provider.received_context[1][0].status == "REJECTED"
 
 
 def test_controlled_tool_error_is_recorded_and_loop_continues():
     provider = ScriptedProvider(
-        [tool_call_response(arguments={"fail": True}), STOP_SIGNAL]
+        [tool_call_response(arguments={"fail": True}), END]
     )
 
     decision, trace = run(incident(), provider, FakeToolExecutor(), max_turns=2)
 
-    assert decision is None
+    assert decision == ENDED
     assert trace[1].payload["status"] == "ERROR"
-    assert trace[-1].kind == "loop_stopped"
+    assert trace[-1].kind == "decision_submitted"
     assert provider.received_observations[1].status == "ERROR"
     assert provider.received_context[1][0].status == "ERROR"
 
@@ -416,19 +417,19 @@ def test_controlled_tool_error_is_recorded_and_loop_continues():
 def test_tool_trace_order_sequences_and_logical_turn_indexes():
     decision, trace = run(
         incident(),
-        ScriptedProvider([tool_call_response(), STOP_SIGNAL]),
+        ScriptedProvider([tool_call_response(), END]),
         FakeToolExecutor(),
         max_turns=2,
     )
 
-    assert decision is None
-    assert [event.kind for event in trace] == ["tool_call", "tool_result", "loop_stopped"]
+    assert decision == ENDED
+    assert [event.kind for event in trace] == ["tool_call", "tool_result", "decision_submitted"]
     assert [event.sequence for event in trace] == [0, 1, 2]
     assert [event.payload["turn_index"] for event in trace] == [0, 0, 1]
 
 
-def test_tool_round_trip_consumes_one_turn_and_budget_blocks_stop():
-    provider = ScriptedProvider([tool_call_response(), STOP_SIGNAL])
+def test_tool_round_trip_consumes_one_turn_and_budget_blocks_the_decision():
+    provider = ScriptedProvider([tool_call_response(), END])
 
     with pytest.raises(TurnBudgetExceededError) as raised:
         run(incident(), provider, FakeToolExecutor(), max_turns=1)
@@ -440,11 +441,11 @@ def test_tool_round_trip_consumes_one_turn_and_budget_blocks_stop():
     ]
     assert raised.value.trace[-1].payload["turn_index"] == 1
     assert provider.received_context == ((),)
-    assert provider.respond() == STOP_SIGNAL
+    assert provider.respond() == END
 
 
 def test_repeated_tool_runs_are_deterministic():
-    script = [tool_call_response(), STOP_SIGNAL]
+    script = [tool_call_response(), END]
 
     first_decision, first = run(
         incident(), ScriptedProvider(script), FakeToolExecutor(), max_turns=2
@@ -453,18 +454,18 @@ def test_repeated_tool_runs_are_deterministic():
         incident(), ScriptedProvider(script), FakeToolExecutor(), max_turns=2
     )
 
-    assert first_decision is None
-    assert second_decision is None
+    assert first_decision == ENDED
+    assert second_decision == ENDED
     assert first == second
 
 
 def test_malformed_tool_call_json_is_rejected_without_executor_dispatch():
-    provider = ScriptedProvider([TOOL_CALL_PREFIX + "{not-json", STOP_SIGNAL])
+    provider = ScriptedProvider([TOOL_CALL_PREFIX + "{not-json", END])
     executor = FakeToolExecutor()
 
     decision, trace = run(incident(), provider, executor, max_turns=2)
 
-    assert decision is None
+    assert decision == ENDED
     result = provider.received_observations[1]
     assert executor.calls == []
     assert result is not None
@@ -474,7 +475,7 @@ def test_malformed_tool_call_json_is_rejected_without_executor_dispatch():
     assert [event.kind for event in trace] == [
         "tool_call",
         "tool_result",
-        "loop_stopped",
+        "decision_submitted",
     ]
     assert [event.sequence for event in trace] == [0, 1, 2]
     assert [event.payload["turn_index"] for event in trace] == [0, 0, 1]
@@ -494,13 +495,13 @@ def test_malformed_tool_call_json_is_rejected_without_executor_dispatch():
 )
 def test_structurally_invalid_tool_call_envelopes_are_rejected_without_dispatch(intent):
     provider = ScriptedProvider(
-        [TOOL_CALL_PREFIX + json.dumps(intent, sort_keys=True), STOP_SIGNAL]
+        [TOOL_CALL_PREFIX + json.dumps(intent, sort_keys=True), END]
     )
     executor = FakeToolExecutor()
 
     decision, trace = run(incident(), provider, executor, max_turns=2)
 
-    assert decision is None
+    assert decision == ENDED
     assert executor.calls == []
     assert trace[0].kind == "tool_call"
     assert trace[1].kind == "tool_result"
@@ -508,23 +509,23 @@ def test_structurally_invalid_tool_call_envelopes_are_rejected_without_dispatch(
     assert trace[1].payload["status"] == "REJECTED"
     assert provider.received_observations[1].status == "REJECTED"
     assert provider.received_context[1][0] is provider.received_observations[1]
-    assert trace[-1].kind == "loop_stopped"
+    assert trace[-1].kind == "decision_submitted"
 
 
 def test_absent_arguments_default_to_empty_object_before_executor_dispatch():
     provider = ScriptedProvider(
-        [TOOL_CALL_PREFIX + json.dumps({"name": "fake_tool"}), STOP_SIGNAL]
+        [TOOL_CALL_PREFIX + json.dumps({"name": "fake_tool"}), END]
     )
     executor = FakeToolExecutor()
 
     decision, trace = run(incident(), provider, executor, max_turns=2)
 
-    assert decision is None
+    assert decision == ENDED
     assert executor.calls == [
         ToolCall(call_id="tool-call-0", name="fake_tool", arguments={})
     ]
     assert trace[1].payload["status"] == "REJECTED"
-    assert trace[-1].kind == "loop_stopped"
+    assert trace[-1].kind == "decision_submitted"
 
 
 def test_investigation_state_is_frozen_and_value_based():
@@ -541,14 +542,14 @@ def test_multiple_tool_results_accumulate_in_order_with_exact_identity():
         [
             tool_call_response(arguments={"value": "first"}),
             tool_call_response(arguments={"value": "second"}),
-            STOP_SIGNAL,
+            END,
         ]
     )
     executor = FakeToolExecutor()
 
     decision, trace = run(incident(), provider, executor, max_turns=3)
 
-    assert decision is None
+    assert decision == ENDED
     first, second = executor.results
     assert provider.received_observations == (None, first, second)
     assert provider.received_context == ((), (first,), (first, second))
@@ -582,8 +583,8 @@ def test_accumulated_result_content_causes_different_next_tool_call():
         max_turns=3,
     )
 
-    assert matched_decision is None
-    assert unmatched_decision is None
+    assert matched_decision == ENDED
+    assert unmatched_decision == ENDED
     assert matched_executor.calls[0] == unmatched_executor.calls[0]
     assert matched_executor.calls[1].arguments == {"value": "matched-path"}
     assert unmatched_executor.calls[1].arguments == {"value": "unmatched-path"}
@@ -729,12 +730,12 @@ def test_a_refused_tool_result_minted_nothing_a_decision_can_cite():
     """A DENIED result is an observation for the minimum-observation rule and carries no
     evidence id: citing anything after it alone is citing what was never minted."""
     provider = ScriptedProvider([tool_call_response(name="no_such_tool"),
-                                 decision_response(evidence_refs=[MINTED]), STOP_SIGNAL])
+                                 decision_response(evidence_refs=[MINTED]), END])
     executor = FakeToolExecutor()
     decision, trace = run(incident(), provider, executor, max_turns=3)
-    assert executor.results[0].status == "DENIED" and decision is None
+    assert executor.results[0].status == "DENIED" and decision == ENDED
     assert [e.kind for e in trace] == ["tool_call", "tool_result", "decision_rejected",
-                                       "loop_stopped"]
+                                       "decision_submitted"]
     assert trace[2].payload["rejection_class"] == "evidence_gate"
 
 
@@ -745,9 +746,9 @@ def test_a_refused_tool_result_minted_nothing_a_decision_can_cite():
 ])
 def test_malformed_citations_are_an_invalid_decision(refs, reason):
     provider = ScriptedProvider([tool_call_response(), decision_response(evidence_refs=refs),
-                                 STOP_SIGNAL])
+                                 END])
     decision, trace = run(incident(), provider, MintingExecutor(), max_turns=3)
-    assert decision is None and trace[2].kind == "decision_rejected"
+    assert decision == ENDED and trace[2].kind == "decision_rejected"
     assert trace[2].payload["rejection_class"] == "invalid_decision"
     assert trace[2].payload["reason"] == reason
 
@@ -774,7 +775,7 @@ def test_a_decision_with_no_patch_or_a_closed_tag_is_the_decision_it_states(resp
 
 
 def test_a_tool_call_with_a_closed_tag_is_dispatched():
-    provider = ScriptedProvider([tool_call_response() + "</TOOL_CALL>", STOP_SIGNAL])
+    provider = ScriptedProvider([tool_call_response() + "</TOOL_CALL>", END])
     executor = FakeToolExecutor()
 
     run(incident(), provider, executor, max_turns=2)
@@ -782,16 +783,19 @@ def test_a_tool_call_with_a_closed_tag_is_dispatched():
     assert len(executor.calls) == 1
 
 
-def test_stop_still_returns_none_decision():
-    decision, trace = run(
-        incident(),
-        ScriptedProvider([STOP_SIGNAL]),
-        FakeToolExecutor(),
-        max_turns=1,
-    )
+def test_stop_is_not_a_form_it_is_rejected_told_once_and_the_run_goes_on():
+    """Trace contract row 5: there is no stop without a decision. `<STOP>` is a reply like
+    any other that is none of the two forms — rejected, its reason told once — and the run
+    ends with the decision that follows, never with nothing decided."""
+    provider = ScriptedProvider(["<STOP>", END])
+    decision, trace = run(incident(), provider, FakeToolExecutor(), max_turns=2)
 
-    assert decision is None
-    assert [event.kind for event in trace] == ["loop_stopped"]
+    assert decision == ENDED
+    assert [event.kind for event in trace] == ["decision_rejected", "decision_submitted"]
+    assert trace[0].payload["rejection_class"] == "invalid_envelope"
+    assert provider.received_rejections == (
+        None, {"class": "invalid_envelope", "reason": INVALID_ENVELOPE})
+    assert "<STOP>" not in INVALID_ENVELOPE        # the model is never told it is a form
 
 
 @pytest.mark.parametrize(
@@ -837,18 +841,18 @@ def test_structurally_invalid_decision_is_rejected_and_loop_continues(
     response,
     reason,
 ):
-    provider = ScriptedProvider([response, STOP_SIGNAL])
+    provider = ScriptedProvider([response, END])
     executor = FakeToolExecutor()
 
     decision, trace = run(incident(), provider, executor, max_turns=2)
 
-    assert decision is None
+    assert decision == ENDED
     assert executor.calls == []
     assert provider.received_observations == (None, None)
     assert provider.received_context == ((), ())
     assert [event.kind for event in trace] == [
         "decision_rejected",
-        "loop_stopped",
+        "decision_submitted",
     ]
     assert [event.sequence for event in trace] == [0, 1]
     assert {k: trace[0].payload[k] for k in ("incident_id", "turn_index", "reason")} == {
@@ -883,7 +887,7 @@ def test_contract_invalid_decision_is_rejected_without_duplicating_invariants(
     response,
     reason,
 ):
-    provider = ScriptedProvider([response, STOP_SIGNAL])
+    provider = ScriptedProvider([response, END])
 
     decision, trace = run(
         incident(),
@@ -892,10 +896,10 @@ def test_contract_invalid_decision_is_rejected_without_duplicating_invariants(
         max_turns=2,
     )
 
-    assert decision is None
+    assert decision == ENDED
     assert trace[0].kind == "decision_rejected"
     assert trace[0].payload["reason"] == reason
-    assert trace[-1].kind == "loop_stopped"
+    assert trace[-1].kind == "decision_submitted"
 
 
 def test_decision_consumes_one_turn_and_stops_provider_immediately():
@@ -1013,21 +1017,21 @@ def test_evidence_required_decision_without_observations_is_rejected_and_continu
     provider = ScriptedProvider(
         [
             decision_response(disposition=disposition, **decision_fields),
-            STOP_SIGNAL,
+            END,
         ]
     )
     executor = FakeToolExecutor()
 
     decision, trace = run(incident(), provider, executor, max_turns=2)
 
-    assert decision is None
+    assert decision == ENDED
     assert executor.calls == []
     assert executor.results == []
     assert provider.received_observations == (None, None)
     assert provider.received_context == ((), ())
     assert [event.kind for event in trace] == [
         "decision_rejected",
-        "loop_stopped",
+        "decision_submitted",
     ]
     assert [event.sequence for event in trace] == [0, 1]
     assert [event.payload["turn_index"] for event in trace] == [0, 1]
@@ -1300,14 +1304,14 @@ def test_provider_failure_is_deterministic_across_identical_runs():
 
 def test_executor_exception_becomes_one_error_result_and_loop_continues():
     provider = ScriptedProvider(
-        [tool_call_response(), "continue after executor error", STOP_SIGNAL]
+        [tool_call_response(), "continue after executor error", END]
     )
     executor = RaisingToolExecutor()
 
     decision, trace = run(incident(), provider, executor, max_turns=3)
 
     result = provider.received_observations[1]
-    assert decision is None
+    assert decision == ENDED
     assert result is not None
     assert result.status == "ERROR"
     assert result.call_id == "tool-call-0"
@@ -1324,20 +1328,20 @@ def test_executor_exception_becomes_one_error_result_and_loop_continues():
         "tool_call",
         "tool_result",
         "decision_rejected",
-        "loop_stopped",
+        "decision_submitted",
     ]
     assert [event.sequence for event in trace] == [0, 1, 2, 3]
     assert trace[1].payload["status"] == "ERROR"
 
 
 def test_non_tool_result_from_executor_becomes_one_error_observation():
-    provider = ScriptedProvider([tool_call_response(), STOP_SIGNAL])
+    provider = ScriptedProvider([tool_call_response(), END])
     executor = NonToolResultExecutor({"not": "a ToolResult"})
 
     decision, trace = run(incident(), provider, executor, max_turns=2)
 
     result = provider.received_observations[1]
-    assert decision is None
+    assert decision == ENDED
     assert result is not None
     assert result.status == "ERROR"
     assert result.call_id == "tool-call-0"
@@ -1351,27 +1355,27 @@ def test_non_tool_result_from_executor_becomes_one_error_observation():
     assert [event.kind for event in trace] == [
         "tool_call",
         "tool_result",
-        "loop_stopped",
+        "decision_submitted",
     ]
     assert [event.sequence for event in trace] == [0, 1, 2]
 
 
 def test_deeply_nested_tool_json_is_rejected_without_executor_dispatch():
     pathological_json = "[" * 5_000 + "0" + "]" * 5_000
-    provider = ScriptedProvider([TOOL_CALL_PREFIX + pathological_json, STOP_SIGNAL])
+    provider = ScriptedProvider([TOOL_CALL_PREFIX + pathological_json, END])
     executor = FakeToolExecutor()
 
     decision, trace = run(incident(), provider, executor, max_turns=2)
 
     result = provider.received_observations[1]
-    assert decision is None
+    assert decision == ENDED
     assert executor.calls == []
     assert result is not None
     assert result.status == "REJECTED"
     assert [event.kind for event in trace] == [
         "tool_call",
         "tool_result",
-        "loop_stopped",
+        "decision_submitted",
     ]
 
 
@@ -1381,16 +1385,16 @@ def test_deeply_nested_decision_json_is_rejected_and_loop_continues():
     # Both are legitimate, already-covered _parse_decision outcomes; only the invariant
     # that the decision is safely rejected and the loop continues is asserted here.
     pathological_json = "[" * 5_000 + "0" + "]" * 5_000
-    provider = ScriptedProvider([DECISION_PREFIX + pathological_json, STOP_SIGNAL])
+    provider = ScriptedProvider([DECISION_PREFIX + pathological_json, END])
     executor = FakeToolExecutor()
 
     decision, trace = run(incident(), provider, executor, max_turns=2)
 
-    assert decision is None
+    assert decision == ENDED
     assert executor.calls == []
     assert [event.kind for event in trace] == [
         "decision_rejected",
-        "loop_stopped",
+        "decision_submitted",
     ]
     assert trace[0].payload["reason"] in {
         "decision must be valid JSON",
@@ -1403,17 +1407,17 @@ def test_recursion_error_during_decision_parse_is_reported_as_invalid_json(monke
         raise RecursionError("maximum recursion depth exceeded")
 
     monkeypatch.setattr(json, "loads", _raise_recursion_error)
-    provider = ScriptedProvider([DECISION_PREFIX + "{}", STOP_SIGNAL])
+    provider = ScriptedProvider([DECISION_PREFIX + "{}"])
     executor = FakeToolExecutor()
 
-    decision, trace = run(incident(), provider, executor, max_turns=2)
+    # json.loads is patched for the whole run, so no decision can parse: the run ends at its
+    # budget, the one other ending a script without a decision has
+    with pytest.raises(TurnBudgetExceededError) as raised:
+        run(incident(), provider, executor, max_turns=1)
 
-    assert decision is None
+    trace = raised.value.trace
     assert executor.calls == []
-    assert [event.kind for event in trace] == [
-        "decision_rejected",
-        "loop_stopped",
-    ]
+    assert [event.kind for event in trace] == ["decision_rejected", "budget_exceeded"]
     assert trace[0].payload["reason"] == "decision must be valid JSON"
 
 
@@ -1459,10 +1463,10 @@ REJECTIONS = [
 
 @pytest.mark.parametrize("response", REJECTIONS)
 def test_anything_but_the_three_forms_is_an_invalid_envelope_no_form_special_cased(response):
-    provider = ScriptedProvider([response, STOP_SIGNAL])
+    provider = ScriptedProvider([response, END])
     decision, trace = run(incident(), provider, FakeToolExecutor(), max_turns=2)
-    assert decision is None
-    assert [e.kind for e in trace] == ["decision_rejected", "loop_stopped"]
+    assert decision == ENDED
+    assert [e.kind for e in trace] == ["decision_rejected", "decision_submitted"]
     rejected = trace[0].payload
     assert rejected["rejection_class"] == "invalid_envelope"
     assert rejected["reason"] == INVALID_ENVELOPE
@@ -1491,7 +1495,7 @@ def test_every_rejection_class_carries_the_submissions_digest():
         "invalid_envelope": "<ESCALATE>{}",
     }
     for expected, response in cases.items():
-        provider = ScriptedProvider([response, STOP_SIGNAL])
+        provider = ScriptedProvider([response, END])
         _, trace = run(incident(), provider, FakeToolExecutor(), max_turns=2)
         assert trace[0].payload["rejection_class"] == expected, expected
         assert trace[0].payload["submission_sha256"] == \

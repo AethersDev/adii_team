@@ -1,6 +1,8 @@
-"""Minimal investigator loop driven by an explicit provider stop signal.
+"""The investigator loop: tool calls until a decision, under a turn budget.
 
-The grammar is closed: a response is `<TOOL_CALL>` JSON, `<DECISION>` JSON, or `<STOP>`.
+The grammar is closed: a response is `<TOOL_CALL>` JSON or `<DECISION>` JSON. A run ends
+with a decision, a bound, or a failure — never with a stop that decides nothing (trace
+contract row 5, decided 23 September 2026: "I cannot decide" is ESCALATE, with its reason).
 Anything else — another tag, malformed JSON, a decision that fails the contract or the
 evidence gate, naked prose — is an invalid submission: recorded as a durable
 `decision_rejected` event with a class, a bounded reason and the submission's digest, the
@@ -29,16 +31,15 @@ from ..contracts import (
 from .provider import ScriptExhaustedError
 from .state import InvestigationState
 
-STOP_SIGNAL: str = "<STOP>"
 TOOL_CALL_PREFIX: str = "<TOOL_CALL>"
 DECISION_PREFIX: str = "<DECISION>"
 
 # A rejection's reason is bounded text beside a structured class; the submission itself is
 # carried by digest and length — its text is the provider boundary's to record.
 REJECTION_REASON_CHARS = 240
-INVALID_ENVELOPE = ("not one of the three message forms — <TOOL_CALL>{...}, <DECISION>{...} or "
-                    "<STOP> — so it was recorded as rejected and nothing acted on it; send exactly "
-                    "one form, starting at the first character")
+INVALID_ENVELOPE = ("not one of the two message forms — <TOOL_CALL>{...} or <DECISION>{...} — so "
+                    "it was recorded as rejected and nothing acted on it; send exactly one form, "
+                    "starting at the first character")
 REJECTION_CLASSES = ("invalid_envelope", "invalid_decision", "evidence_gate")
 
 
@@ -114,8 +115,9 @@ def run(
     *,
     max_turns: int,
     sink: EventSink | None = None,
-) -> tuple[InvestigationDecision | None, tuple[TraceEvent, ...]]:
-    """Run model turns until the provider returns the explicit stop signal.
+) -> tuple[InvestigationDecision, tuple[TraceEvent, ...]]:
+    """Run model turns until the model submits a decision the loop accepts; a bound or a
+    provider failure ends the run as an exception instead.
 
     `sink`, when the runtime gives one, receives every durable event the loop alone can
     know — a rejected submission — the moment it happens. Tool calls, observations,
@@ -183,14 +185,6 @@ def run(
 
         observation = None
         turns_taken += 1
-
-        if response == STOP_SIGNAL:
-            record("loop_stopped", {
-                "incident_id": incident.incident_id,
-                "turn_index": turn_index,
-                "reason": "explicit_stop",
-            })
-            return None, tuple(trace)
 
         if response.startswith(DECISION_PREFIX):
             try:
@@ -304,7 +298,7 @@ def run(
             observation = result
             continue
 
-        # none of the three forms: an invalid submission, whatever it looks like
+        # none of the two forms — `<STOP>` included: an invalid submission, whatever it looks like
         reject(turn_index, "invalid_envelope", INVALID_ENVELOPE, response)
 
 

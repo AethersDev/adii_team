@@ -10,10 +10,11 @@ run is persisted (D).
 
 ## What exists, as merged on 14 September
 
-`loop.py` — `run(incident, provider, executor, *, max_turns)` returns `(decision or None,
-trace)`. The provider seam is `respond(observation=…, observations=…) -> str`, and the
-response is interpreted by prefix: `<TOOL_CALL>` JSON, `<DECISION>` JSON, `<STOP>`, or
-plain text. `provider.py` — `ScriptedProvider`, deterministic, for tests; no model, no
+`loop.py` — `run(incident, provider, executor, *, max_turns)` returns `(decision,
+trace)`: a run ends with a decision, or raises for a bound or a provider failure — never
+with a stop that decides nothing (trace contract row 5). The provider seam is
+`respond(observation=…, observations=…) -> str`, and the response is interpreted by
+prefix: `<TOOL_CALL>` JSON or `<DECISION>` JSON; anything else is rejected and told once. `provider.py` — `ScriptedProvider`, deterministic, for tests; no model, no
 network. `state.py` — `InvestigationState`, the observations accumulated so far, a frozen
 value. Endings are two exceptions carrying the trace so far, `TurnBudgetExceededError` and
 `ProviderFailureError`. The loop writes its own trace of eight kinds;

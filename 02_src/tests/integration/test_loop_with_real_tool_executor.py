@@ -7,9 +7,11 @@ from collections.abc import Iterator
 
 import pytest
 from adii.contracts import IncidentContext
-from adii.investigator.loop import STOP_SIGNAL, TOOL_CALL_PREFIX, run
+from adii.investigator.loop import TOOL_CALL_PREFIX, run
 from adii.investigator.provider import ScriptedProvider
 from adii.tools import ToolExecutor, build_sql_tools, open_walkthrough_world
+
+from ..unit.fakes import END, ENDED
 
 
 def incident() -> IncidentContext:
@@ -43,13 +45,13 @@ def test_investigator_traces_real_ok_result_with_evidence(executor: ToolExecutor
                 "run_sql",
                 {"query": "SELECT COUNT(*) AS order_count FROM orders"},
             ),
-            STOP_SIGNAL,
+            END,
         ]
     )
 
     decision, trace = run(incident(), provider, executor, max_turns=2)
 
-    assert decision is None
+    assert decision == ENDED
     result = provider.received_observations[1]
     assert result is not None
     assert result.status == "OK"
@@ -62,7 +64,7 @@ def test_investigator_traces_real_ok_result_with_evidence(executor: ToolExecutor
     assert [event.kind for event in trace] == [
         "tool_call",
         "tool_result",
-        "loop_stopped",
+        "decision_submitted",
     ]
     assert [event.sequence for event in trace] == [0, 1, 2]
     assert [event.payload["turn_index"] for event in trace] == [0, 0, 1]
@@ -78,13 +80,13 @@ def test_investigator_observes_real_denial_once_and_continues(
         [
             tool_call("delete_table", {"table": "orders"}),
             "continue after denial",
-            STOP_SIGNAL,
+            END,
         ]
     )
 
     decision, trace = run(incident(), provider, executor, max_turns=3)
 
-    assert decision is None
+    assert decision == ENDED
     result = provider.received_observations[1]
     assert result is not None
     assert result.status == "DENIED"
@@ -96,7 +98,7 @@ def test_investigator_observes_real_denial_once_and_continues(
         "tool_call",
         "tool_result",
         "decision_rejected",      # prose: none of the three forms (row 6)
-        "loop_stopped",
+        "decision_submitted",
     ]
     assert [event.sequence for event in trace] == [0, 1, 2, 3]
     assert [event.payload["turn_index"] for event in trace] == [0, 0, 1, 2]
@@ -111,13 +113,13 @@ def test_investigator_accumulates_real_rejection_and_preserves_prior_result(
             tool_call("run_sql", {"query": "SELECT COUNT(*) FROM orders"}),
             tool_call("run_sql", {"query": 123}),
             "continue after rejection",
-            STOP_SIGNAL,
+            END,
         ]
     )
 
     decision, trace = run(incident(), provider, executor, max_turns=4)
 
-    assert decision is None
+    assert decision == ENDED
     first = provider.received_observations[1]
     second = provider.received_observations[2]
     assert first is not None
@@ -142,7 +144,7 @@ def test_investigator_accumulates_real_rejection_and_preserves_prior_result(
         "tool_call",
         "tool_result",
         "decision_rejected",      # prose: none of the three forms (row 6)
-        "loop_stopped",
+        "decision_submitted",
     ]
     assert [event.sequence for event in trace] == list(range(6))
     assert [event.payload["turn_index"] for event in trace] == [0, 0, 1, 1, 2, 3]

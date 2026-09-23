@@ -19,6 +19,10 @@ import time
 from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler
 
+# A script entry the endpoint answers with `content: null` — a reply in the API's shape that
+# carries no text, which the runtime files as the model's failure, never the provider's.
+NO_TEXT = "<no text>"
+
 
 class FakeModel(BaseHTTPRequestHandler):
     script: list[str] = []
@@ -72,7 +76,8 @@ class FakeModel(BaseHTTPRequestHandler):
             self.send_response(500)
             self.end_headers()
             return
-        reply = {"choices": [{"message": {"role": "assistant", "content": content}}],
+        text = None if content == NO_TEXT else content
+        reply = {"choices": [{"message": {"role": "assistant", "content": text}}],
                  "usage": FakeModel.usage or {"prompt_tokens": 100, "completion_tokens": 20},
                  "system_fingerprint": "fp_fake"}
         payload = json.dumps(reply).encode("utf-8")

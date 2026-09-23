@@ -22,7 +22,8 @@ from adii.runtime import __main__ as cli
 from adii.runtime.run import Recorder
 from adii.tools import ReadOnlyDatabase, build_sql_tools
 
-from .fake_model import FakeModel
+from ..unit.fakes import END
+from .fake_model import NO_TEXT, FakeModel
 
 INCIDENT = "orders-missing-day"
 TURNS = [   # what the scripted stand-in model says, in order, in A's protocol
@@ -240,12 +241,20 @@ def test_a_model_that_repeats_an_invalid_form_leaves_one_rejection_per_turn(tmp_
 
 
 def test_endings_translate_by_type_never_by_message(tmp_path, endpoint):
-    FakeModel.script[:] = ["<STOP>"]                    # the model stops without a decision
+    FakeModel.script[:] = [NO_TEXT]           # a reply in the API's shape that carries no text
     assert cli.main(["--incident", INCIDENT, "--provider", "local", "--endpoint", endpoint,
-                     "--model", "test-model-1", "--archive", str(tmp_path), "--label", "stopped",
+                     "--model", "test-model-1", "--archive", str(tmp_path), "--label", "mute",
                      "--no-report"]) == 3
+    mute = read_record(tmp_path / "mute" / "record.json")
+    assert mute.termination == "model_failure" and "without text content" in mute.detail
+    FakeModel.script[:] = ["<STOP>", "<STOP>"]     # not a form: rejected, and the bound ends it
+    assert cli.main(["--incident", INCIDENT, "--provider", "local", "--endpoint", endpoint,
+                     "--model", "test-model-1", "--max-turns", "2", "--archive", str(tmp_path),
+                     "--label", "stopped", "--no-report"]) == 3
     stopped = read_record(tmp_path / "stopped" / "record.json")
-    assert stopped.termination == "model_failure" and "row 5" in stopped.detail
+    assert stopped.termination == "bound_hit"
+    assert [e.payload["rejection_class"] for e in stopped.trace
+            if e.kind == "decision_rejected"] == ["invalid_envelope", "invalid_envelope"]
     FakeModel.script[:] = ["nothing useful"] * 3       # three plain turns against a bound of 2
     assert cli.main(["--incident", INCIDENT, "--provider", "local", "--endpoint", endpoint,
                      "--model", "test-model-1", "--max-turns", "2", "--archive", str(tmp_path),
@@ -720,9 +729,9 @@ def test_a_response_without_usage_is_an_unknown_row_never_zero(tmp_path, endpoin
     prices what the provider reported and counts the rest."""
     from adii.reporting.ledger import PRICES, aggregate
     monkeypatch.setenv("OPENAI_API_KEY", KEY)
-    FakeModel.script[:] = ["<STOP>"]
+    FakeModel.script[:] = [END]                       # one request, one decision
     assert cli.main([*PAID, "--endpoint", endpoint, "--archive", str(tmp_path),
-                     "--label", "one"]) == 3
+                     "--label", "one"]) == 0
     r = read_record(tmp_path / "one" / "record.json")
     ledger = aggregate(r.trace, PRICES["gpt-4.1-mini"])
     assert (ledger.proved, ledger.unknown) == (1, 0) and r.api_cost_usd == ledger.lower_bound_usd
