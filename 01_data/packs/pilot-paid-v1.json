@@ -1,0 +1,32 @@
+{
+  "schema": "adii.pack/v1",
+  "pack": "pilot-paid-v1",
+  "provider": "openai",
+  "model": "gpt-4.1",
+  "endpoint": null,
+  "served_as": null,
+  "arms": [
+    "full",
+    "alert-only"
+  ],
+  "repeats": 1,
+  "incidents": [
+    "revenue-drop-a8c042",
+    "revenue-drop-9e8afe",
+    "revenue-drop-87a370",
+    "revenue-drop-7b89be",
+    "revenue-drop-df8351",
+    "revenue-drop-3ca544",
+    "revenue-drop-68c0c2",
+    "revenue-drop-29c766",
+    "revenue-drop-96e69b",
+    "revenue-drop-8d2dab"
+  ],
+  "max_turns": 20,
+  "max_cost_usd": 0.5,
+  "max_tokens": 1024,
+  "pack_cap_usd": 10.2,
+  "judge_model": "gpt-4.1-mini",
+  "created_at": "2026-09-23T08:00:15+00:00",
+  "source_revision": "8a653d7991922637f6bb286f47d62f7ca655d4a1"
+}

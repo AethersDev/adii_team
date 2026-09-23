@@ -103,7 +103,7 @@ def test_a_dead_backend_is_a_rendered_state_not_a_blank_page():
 def test_the_page_refuses_a_record_shape_it_does_not_read():
     """A reader that guesses at an unknown shape is how the archive and the page drift
     apart without anyone noticing. The schema string is pinned on both sides."""
-    assert 'const SCHEMA = "adii.run_record/v1"' in code("app.js")
+    assert 'const SCHEMAS = ["adii.run_record/v2", "adii.run_record/v1"]' in code("app.js")
     assert "mismatch(" in code("app.js")
 
 

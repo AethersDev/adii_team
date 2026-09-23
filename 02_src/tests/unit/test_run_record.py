@@ -14,6 +14,7 @@ from adii.contracts import RepairAuthorization, TraceEvent, ValidationResult
 from adii.examples.walkthrough import load
 from adii.reporting.record import (
     SCHEMA,
+    V1,
     RunRecord,
     from_json,
     read_record,
@@ -42,8 +43,9 @@ def test_a_record_round_trips_through_strict_json():
 def test_the_committed_v1_fixture_loads_under_its_declared_version():
     """When v2 exists this file stays: a fixture of every historical shape must keep loading
     under the version it declares. Provenance is the only part that legitimately differs."""
-    assert json.loads(COMMITTED.read_text(encoding="utf-8"))["schema"] == SCHEMA
+    assert json.loads(COMMITTED.read_text(encoding="utf-8"))["schema"] == V1
     committed, fresh = read_record(COMMITTED), walkthrough_record()
+    assert json.loads(fresh.to_json())["schema"] == SCHEMA == "adii.run_record/v2"
     assert replace(committed, provenance={}) == replace(fresh, provenance={})
 
 
@@ -57,7 +59,9 @@ def test_a_verdict_that_could_not_be_established_round_trips_and_older_records_l
     assert back == not_checkable and back.validation.state == "NOT_CHECKABLE"
     doc = json.loads(record.to_json())
     doc["validation"] = {"accepted": False, "checks_run": [], "report": "no validator yet"}
-    assert from_json(json.dumps(doc)).validation.state == "UNCHECKED"
+    with pytest.raises(ValueError, match="record is missing 'reason_code'"):
+        from_json(json.dumps(doc))          # inherited D4: v2 has the field, always
+    assert from_json(json.dumps({**doc, "schema": V1})).validation.state == "UNCHECKED"
 
 
 def test_the_authorization_fact_round_trips_and_records_before_it_load_without_one():
@@ -72,11 +76,14 @@ def test_the_authorization_fact_round_trips_and_records_before_it_load_without_o
     assert from_json(denied.to_json()) == denied and denied.admissible is False
     doc = json.loads(record.to_json())
     del doc["authorization"]
-    older = from_json(json.dumps(doc))
+    with pytest.raises(ValueError, match="record is missing 'authorization'"):
+        from_json(json.dumps(doc))
+    older = from_json(json.dumps({**doc, "schema": V1}))
     assert older.authorization is None and older.admissible is False
     doc = json.loads(record.to_json())
     doc["decision"] = {"disposition": "NO_REPAIR", "root_cause_id": None,
-                       "root_cause_summary": "the business moved", "repair_id": None, "patch": {}}
+                       "root_cause_summary": "the business moved", "repair_id": None, "patch": {},
+                       "evidence_refs": []}
     doc["validation"] = None
     with pytest.raises(ValueError, match="only a REPAIR decision has targets to authorize"):
         from_json(json.dumps(doc))
@@ -92,7 +99,9 @@ def test_citations_round_trip_and_a_record_never_cites_what_its_trace_never_mint
     assert from_json(record.to_json()).decision.evidence_refs == record.decision.evidence_refs
     doc = json.loads(record.to_json())
     del doc["decision"]["evidence_refs"]
-    assert from_json(json.dumps(doc)).decision.evidence_refs == ()
+    with pytest.raises(ValueError, match="record is missing 'evidence_refs'"):
+        from_json(json.dumps(doc))
+    assert from_json(json.dumps({**doc, "schema": V1})).decision.evidence_refs == ()
     doc = json.loads(record.to_json())
     doc["decision"]["evidence_refs"] = [doc["decision"]["evidence_refs"][0], "ev-never-minted"]
     with pytest.raises(ValueError, match="cites evidence its trace never minted: ev-never-minted"):
@@ -103,7 +112,7 @@ def test_citations_round_trip_and_a_record_never_cites_what_its_trace_never_mint
 
 def test_an_unknown_schema_is_refused_not_guessed():
     doc = json.loads(walkthrough_record().to_json())
-    doc["schema"] = "adii.run_record/v2"
+    doc["schema"] = "adii.run_record/v3"
     with pytest.raises(ValueError, match="unknown record schema"):
         from_json(json.dumps(doc))
 

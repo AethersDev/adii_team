@@ -44,6 +44,16 @@ def test_every_promised_cell_is_run_scored_and_reported(tmp_path, endpoint):
     assert {a: r["runs"] for a, r in result["arms"].items()} == \
         {"full": 4, "alert-only": 4, "always-escalate": 4}
     assert "| full |" in (tmp_path / "packs" / "t.report.md").read_text(encoding="utf-8")
+    assert "Runs not scored: none" in (tmp_path / "packs" / "t.report.md").read_text(
+        encoding="utf-8")
+    # inherited D5: a run with no evaluation report is named unscored, never by how it ended
+    first = tmp_path / "runs" / runs[0]
+    (first / "evaluation_report.json").unlink()
+    assert grid.main(["--pack", "t", "--report", "--archive", str(tmp_path / "runs"),
+                      "--packs", str(tmp_path / "packs")]) == 0
+    result = json.loads((tmp_path / "packs" / "t.report.json").read_text(encoding="utf-8"))
+    assert result["unscored"] == [runs[0]]
+    assert next(r for r in result["runs"] if r["label"] == runs[0])["category"] == "unscored"
     # the alert-only arm was shown no tool
     alert_only = next(p for p in (tmp_path / "runs").iterdir() if "-alert-only-" in p.name)
     told = json.loads((alert_only / "receipt.json").read_text(encoding="utf-8"))

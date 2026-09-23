@@ -10,7 +10,8 @@
  * down, the incident and every turn; then validation, evaluation, feedback, technical
  * details — and a section the record cannot fill is left out, never drawn empty.
  *
- * ONE renderer for every record. It renders `adii.run_record/v1` and nothing else — a record
+ * ONE renderer for every record. It renders `adii.run_record/v2`, and v1 — the same shape
+ * before evidence_refs, a reason_code and authorization existed — and nothing else — a record
  * in any other shape gets the contract-mismatch state, never a guess — and it invents no
  * field: everything on the page is in the record, or is one of the sentences in
  * phrasing.js, each a deterministic projection of record fields, each tested.
@@ -23,7 +24,7 @@
  * No innerHTML anywhere. Every string here is model-written the day a live provider runs,
  * and a report that executes what the model wrote is inherited defect D12. Text nodes
  * cannot execute. */
-const SCHEMA = "adii.run_record/v1";
+const SCHEMAS = ["adii.run_record/v2", "adii.run_record/v1"];
 const CHIP = {
   REPAIR: ["adii-chip--repair", "g-repair"],
   NO_REPAIR: ["adii-chip--no-repair", "g-no-repair"],
@@ -387,7 +388,7 @@ async function frontDoor() {
     const first = await load(`/api/runs/${latest.label}`);
     cards.push(el("article", "adii-record adii-record--operator incident",
       el("div", "adii-record__head", el("h3", "adii-record__title", incident)),
-      el("p", "incident__alert", first.schema === SCHEMA ? first.context.alert : "(record not readable)"),
+      el("p", "incident__alert", SCHEMAS.includes(first.schema) ? first.context.alert : "(record not readable)"),
       el("div", "incident__facts",
         el("span", null, el("b", null, String(runs.length)), ` run${runs.length === 1 ? "" : "s"}`
           + (runs.every((r) => r.model === null || r.model === undefined) ? ", all scripted" : "")
@@ -428,7 +429,7 @@ async function incidentPage(incident) {
         el("h1", "adii-record__title", incident),
         el("p", "adii-record__owner", "Reported by the operator")),
       el("p", "adii-claim__label", "What was reported"),
-      el("p", "adii-measure", first.schema === SCHEMA ? first.context.alert : "(record not readable)")),
+      el("p", "adii-measure", SCHEMAS.includes(first.schema) ? first.context.alert : "(record not readable)")),
     el("section", null,
       el("div", "adii-section__head", el("h2", null, "Runs"),
         el("span", "adii-eyebrow", `${runs.length}, newest first`)),
@@ -460,7 +461,7 @@ async function runPage(label, against) {
   if (row.error) return refused("The archive could not read this record", `${row.error}.`);
   if (row.running) return watch(label);
   const a = await load(`/api/runs/${label}`);
-  if (a.schema !== SCHEMA) return mismatch(a.schema);
+  if (!SCHEMAS.includes(a.schema)) return mismatch(a.schema);
   const evaluation = row.evaluation ? await load(`/api/runs/${label}/evaluation`) : null;
   const other = against && state.runs.find((r) => r.label === against && !r.error
     && r.incident_id === row.incident_id);
@@ -470,7 +471,7 @@ async function runPage(label, against) {
     $("view").replaceChildren(story(a, false, label, evaluation), howto(a.context.incident_id));
   } else {
     const b = await load(`/api/runs/${against}`);
-    if (b.schema !== SCHEMA) return mismatch(b.schema);
+    if (!SCHEMAS.includes(b.schema)) return mismatch(b.schema);
     $("view").replaceChildren(
       el("div", "story__nav",
         el("span", "adii-eyebrow", `Two runs of ${a.context.incident_id}, side by side`),
@@ -767,7 +768,7 @@ function refused(title, why) {
 }
 function mismatch(schema) {
   refused("This record is in a shape this inspector does not read",
-    `It declares ${schema} and this page renders ${SCHEMA}.`);
+    `It declares ${schema} and this page renders ${SCHEMAS.join(" and ")}.`);
 }
 
 /* ── records: a container with a written owner ──────────────────────── */
