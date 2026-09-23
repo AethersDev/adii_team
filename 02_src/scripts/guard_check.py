@@ -492,6 +492,10 @@ GUARDS = (
     Guard("C.grounding_key_bound_to_this_answer_key", "C", "evaluation/__main__.py",
           '        if grounding["answer_key_filename"] != key_path.name:\n',
           "        if False:\n"),
+    # trace contract row 1: the record holds what the model was sent, each message once
+    Guard("D.request_records_what_was_sent", "D", "provider/openai_compatible.py",
+          "        self._recorded = len(self._messages)\n",
+          "        pass\n"),
     Guard("C.failed_rebuild_is_reject_not_unchecked", "C", "validation/validator.py",
           '                                 checks_run=("rebuild",))\n',
           '                                 checks_run=())\n'),

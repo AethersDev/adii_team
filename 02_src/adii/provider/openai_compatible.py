@@ -315,6 +315,7 @@ class ChatProvider:
         self._turn = 0
         self._worker: RequestWorker | None = None
         self._messages = initial_messages(context, tools)
+        self._recorded = 0      # how many of those messages a request has already recorded
 
     def _elapsed(self) -> str:
         return (f"{time.monotonic() - self._started:.3f} s elapsed of "
@@ -364,8 +365,15 @@ class ChatProvider:
                 "rejected": rejection})})
         remaining, reserve, reserved = self._admit()
         self._turn += 1
+        # what the model is told, in the record (trace contract row 1): every message added
+        # since the previous request — the protocol and the incident first, then the model's
+        # own reply and what answered it — so the whole prompt of any turn is the trace's
+        # `sent` lists joined in order, and `messages` stays the count archived records carry
+        sent = [dict(m) for m in self._messages[self._recorded:]]
+        self._recorded = len(self._messages)
         self._recorder.event("model_requested", {
-            "turn": self._turn, "model": self._model, "messages": len(self._messages), **reserved})
+            "turn": self._turn, "model": self._model, "messages": len(self._messages),
+            "sent": sent, **reserved})
         body: dict[str, object] = {"model": self._served_as, "messages": self._messages,
                                    "temperature": 0}
         if self._max_tokens is not None:
