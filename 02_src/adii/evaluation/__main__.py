@@ -23,18 +23,24 @@ import argparse
 import json
 from pathlib import Path
 
+from ..provider.judge import ENDPOINT as JUDGE_ENDPOINT
+from ..provider.judge import Judge
 from ..reporting.record import ARCHIVE, LABEL, read_record
 from .evaluation_report import build_evaluation_report, to_json
 from .freeze import compute_digest, load_frozen_answer_key
 from .grounding import load_grounding_key
+from .judge import judge_repair
 
 NAME = "evaluation_report.json"
 
 
-def score(folder: Path, key_path: Path, grounding_path: Path | None = None) -> dict:
+def score(folder: Path, key_path: Path, grounding_path: Path | None = None,
+          judge: Judge | None = None) -> dict:
     """The report for one archived run, or ValueError naming why it is not scored. With a
     grounding key — bound by digest to this very answer key — the report's grounding says
-    whether the decisive observations were made and cited."""
+    whether the decisive observations were made and cited. With a judge, a case the
+    deterministic path cannot settle is put to it, and the report names the judge by model
+    and prompt digest beside `settled_by`; without one, that case stays unresolved."""
     record = json.loads(read_record(folder / "record.json").to_json())
     key = load_frozen_answer_key(key_path)
     incident = record["context"]["incident_id"]
@@ -57,7 +63,20 @@ def score(folder: Path, key_path: Path, grounding_path: Path | None = None) -> d
         if grounding["answer_key_filename"] != key_path.name:
             raise ValueError(f"the grounding key is bound to {grounding['answer_key_filename']!r}, "
                              f"not to {key_path.name!r}: a run is grounded against its own key")
-    return build_evaluation_report(record, key, grounding_key=grounding)
+    asked: list[dict] = []
+
+    def judged(decision: dict, validation: dict, answer_key: dict) -> dict:
+        result = judge_repair(decision, validation, answer_key, judge)
+        asked.append(result)
+        return result
+
+    report = build_evaluation_report(record, key, judge=judged if judge else None,
+                                     grounding_key=grounding)
+    if report.get("settled_by") == "judge":        # which judge said what, for this case
+        [result] = asked
+        report["judge"] = {**judge.calls[-1], "verdict": result["verdict"],
+                           "reasoning": result["reasoning"]}
+    return report
 
 
 def write_report(folder: Path, report: dict) -> Path:
@@ -78,6 +97,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--grounding-key", metavar="PATH",
                         help="a grounding key bound to --key: whether the decisive observations "
                              "were made and cited, beside the category")
+    parser.add_argument("--judge-model", metavar="ID",
+                        help="a priced model that settles what the deterministic path cannot: a "
+                             "correct, accepted repair whose ids differ from the key's; without "
+                             "it such a case is reported unresolved")
+    parser.add_argument("--judge-endpoint", default=JUDGE_ENDPOINT, metavar="URL",
+                        help=f"the judge's OpenAI-compatible endpoint (default {JUDGE_ENDPOINT})")
     parser.add_argument("--archive", default=str(ARCHIVE), metavar="DIR",
                         help="the archive (default: 01_data/runs)")
     args = parser.parse_args(argv)
@@ -87,8 +112,9 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     key_path = Path(args.key)
     try:
+        judge = Judge(args.judge_model, args.judge_endpoint) if args.judge_model else None
         report = score(folder, key_path,
-                       Path(args.grounding_key) if args.grounding_key else None)
+                       Path(args.grounding_key) if args.grounding_key else None, judge)
     except (ValueError, FileNotFoundError) as why:   # not scorable, or the key is not frozen
         print(f"not scored: {why}")
         return 2
@@ -99,6 +125,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     print(f"scored {args.run}: {report['category']}"
           + (f" ({report['sub_kind']})" if report.get("sub_kind") else "")
+          + f", settled by {report.get('settled_by', 'none')}"
           + f" — against {key_path.name} sha256:{compute_digest(key_path)}")
     print(f"  report: {path}")
     return 0

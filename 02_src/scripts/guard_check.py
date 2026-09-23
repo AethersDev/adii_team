@@ -496,6 +496,13 @@ GUARDS = (
     Guard("D.request_records_what_was_sent", "D", "provider/openai_compatible.py",
           "        self._recorded = len(self._messages)\n",
           "        pass\n"),
+    # decision J: a case the deterministic path cannot settle is the judge's, or unresolved
+    Guard("C.judge_unresolved_without_a_judge", "C", "evaluation/scoring.py",
+          "    if judge is None:\n",
+          "    if False:\n"),
+    Guard("D.judge_named_by_prompt_digest", "D", "provider/judge.py",
+          '            "prompt_sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),\n',
+          '            "prompt_sha256": None,\n'),
     Guard("C.failed_rebuild_is_reject_not_unchecked", "C", "validation/validator.py",
           '                                 checks_run=("rebuild",))\n',
           '                                 checks_run=())\n'),

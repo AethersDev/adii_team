@@ -59,7 +59,7 @@ safe to trust — each assumes the other has already done its job.
 
 ## Domain 1 — is this decision correct?
 
-**Files:** `scoring.py`, `judge.py`, `validation_wiring.py`, `openai_provider.py`
+**Files:** `scoring.py`, `judge.py`, `validation_wiring.py`; the model call is `provider/judge.py`
 
 **The flow for one decision:**
 
@@ -78,7 +78,7 @@ scoring.decide_route()  ──────────────────�
 judge.judge_repair()
   builds a prompt naming the reference repair, what any acceptable
   alternative must satisfy, and what the investigator actually did →
-  calls a model (fake in tests, openai_provider.py for real) →
+  calls a model (fake in tests, provider/judge.py for real) →
   parses a "correct"/"incorrect" verdict at a word boundary
         │
         ▼
@@ -100,9 +100,9 @@ alternative — it never re-opens whether the answer key itself is right.
 
 **`validation_wiring.py`** is the seam where the real `validation/` package
 (built by whoever owns it) plugs in later — today it's a fake that checks
-patch text structurally. **`openai_provider.py`** is the equivalent seam for a
-real model behind the judge — built and hand-verified, not yet wired into
-anything, kept ready for the day a real judge call is needed.
+patch text structurally. The real model behind the judge is
+`02_src/adii/provider/judge.py`, standard library only, wired into
+`python -m adii.evaluation --judge-model ID` (final plan, decision J).
 
 ## Domain 2 — can I trust the answer key and the rules?
 
@@ -191,7 +191,6 @@ Domain 1 — per-decision scoring
   scoring.py                    the deterministic router (decide_route, score_decision)
   judge.py                      the model-backed tiebreaker for ambiguous cases
   validation_wiring.py          fake independent-validator seam (real one: validation/)
-  openai_provider.py            real-model seam for judge.py (built, not yet wired in)
 
 Domain 2 — trusting the answer key and the rules
   freeze.py                     C2: hash-freeze / verified-load for any JSON file

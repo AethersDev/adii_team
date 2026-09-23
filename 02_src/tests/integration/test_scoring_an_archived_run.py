@@ -4,6 +4,7 @@ read through D's own reader; the key is frozen; the incident is checked; a repai
 checked is refused, not filed as rejected; the report lands beside the record once."""
 from __future__ import annotations
 
+import hashlib
 import json
 
 import pytest
@@ -147,3 +148,83 @@ def test_a_grounding_key_bound_to_another_answer_key_is_refused(archive, tmp_pat
                  "--grounding-key", str(grounding)]) == 2
     assert "grounded against its own key" in capsys.readouterr().out
     assert not (archive / "demo-learning-001" / NAME).exists()
+
+
+# ── decision J: the judge on the scoring path ─────────────────────────────────────────────
+JUDGE_KEY = "sk-judge-test-0123456789abcdefghij"
+
+
+@pytest.fixture
+def judge_endpoint(monkeypatch):
+    import threading
+    from http.server import ThreadingHTTPServer
+
+    from .fake_model import FakeModel
+    monkeypatch.setenv("OPENAI_API_KEY", JUDGE_KEY)
+    FakeModel.script, FakeModel.seen, FakeModel.usage = [], [], None
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), FakeModel)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    yield f"http://127.0.0.1:{httpd.server_port}/v1"
+    httpd.shutdown()
+    httpd.server_close()
+
+
+def a_key_the_run_does_not_match_by_id(tmp_path):
+    """The walkthrough's repair is correct and accepted, but its repair id is not the key's:
+    the deterministic path cannot settle it, which is exactly what the judge is for."""
+    satisfy = {**KEY["repair_must_satisfy"], "reference_repair_id": "ANOTHER_NAME_FOR_THE_FIX"}
+    key = key_file(tmp_path, repair_must_satisfy=satisfy)
+    freeze_answer_key(key)
+    return key
+
+
+def test_without_a_judge_a_case_it_would_settle_stays_unresolved(archive, tmp_path):
+    key = a_key_the_run_does_not_match_by_id(tmp_path)
+    assert main(["--run", "demo-learning-001", "--key", str(key), "--archive", str(archive)]) == 0
+    report = json.loads((archive / "demo-learning-001" / NAME).read_text(encoding="utf-8"))
+    assert (report["category"], report["sub_kind"], report["settled_by"]) == \
+        ("failure", "unresolved", "none")
+    assert "judge" not in report
+
+
+def test_the_judge_settles_it_and_the_report_says_which_judge_said_what(
+        archive, tmp_path, judge_endpoint, capsys):
+    from .fake_model import FakeModel
+    key = a_key_the_run_does_not_match_by_id(tmp_path)
+    FakeModel.script[:] = ["correct — it removes exactly one of the two conversions."]
+    assert main(["--run", "demo-learning-001", "--key", str(key), "--archive", str(archive),
+                 "--judge-model", "gpt-4.1-mini", "--judge-endpoint", judge_endpoint]) == 0
+    assert "settled by judge" in capsys.readouterr().out
+    text = (archive / "demo-learning-001" / NAME).read_text(encoding="utf-8")
+    report = json.loads(text)
+    assert (report["category"], report["settled_by"]) == ("success", "judge")
+    [asked] = FakeModel.seen
+    prompt = asked["messages"][0]["content"]
+    assert asked["model"] == "gpt-4.1-mini" and asked["temperature"] == 0
+    judge = report["judge"]
+    assert judge["model"] == "gpt-4.1-mini" and judge["verdict"] == "correct"
+    assert judge["prompt_sha256"] == hashlib.sha256(prompt.encode("utf-8")).hexdigest()
+    assert judge["usage"] == {"prompt_tokens": 100, "completion_tokens": 20}
+    assert judge["cost_usd"] and judge["price_table"]
+    assert JUDGE_KEY not in text                          # the credential is in no artefact
+
+
+def test_a_judge_that_does_not_give_a_verdict_scores_nothing(
+        archive, tmp_path, judge_endpoint, capsys):
+    from .fake_model import FakeModel
+    key = a_key_the_run_does_not_match_by_id(tmp_path)
+    FakeModel.script[:] = ["Perhaps; it is hard to say."]
+    assert main(["--run", "demo-learning-001", "--key", str(key), "--archive", str(archive),
+                 "--judge-model", "gpt-4.1-mini", "--judge-endpoint", judge_endpoint]) == 2
+    assert "not scored" in capsys.readouterr().out
+    assert not (archive / "demo-learning-001" / NAME).exists()
+
+
+def test_a_judge_must_be_priced_and_have_its_credential(archive, tmp_path, monkeypatch, capsys):
+    key = a_key_the_run_does_not_match_by_id(tmp_path)
+    args = ["--run", "demo-learning-001", "--key", str(key), "--archive", str(archive)]
+    assert main([*args, "--judge-model", "an-unpriced-model"]) == 2
+    assert "nominal price" in capsys.readouterr().out
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    assert main([*args, "--judge-model", "gpt-4.1-mini"]) == 2
+    assert "OPENAI_API_KEY is not set" in capsys.readouterr().out
