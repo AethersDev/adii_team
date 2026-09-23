@@ -5,7 +5,7 @@ open: the placeholders it writes for them are replaced in place when the rows re
 Local endpoints, and since 17 September paid ones behind a receipt, a price and a cap.**
 
 The one package that talks to a model. `ChatProvider` sits behind A's `respond()` seam and
-speaks A's protocol — `<TOOL_CALL>`, `<DECISION>`, `<STOP>` — to an OpenAI-compatible chat
+speaks A's protocol — `<TOOL_CALL>` and `<DECISION>` — to an OpenAI-compatible chat
 endpoint on this machine, over the standard library. It keeps the conversation A does not:
 a system message stating the protocol, the incident and the tools; then, each turn, the
 newest observation in, the reply out, untouched.
@@ -102,9 +102,9 @@ completion succeeded at check time, not that one will.
 
 `runtime/live.py`: the runtime calls `investigate`, which calls A's `run()` with this
 provider and the tools the runtime is already watching. A's two ending exceptions map to
-two termination classes by type, never by message. A stop with no decision has no class
-yet (contract row 5) and is mapped to `model_failure` with the detail saying so — the one
-policy choice this spike makes that main must not. The validator (build plan M6) is not
+two termination classes by type, never by message. There is no stop without a decision:
+`<STOP>` is not a form, and a reply of it is rejected like any other that is none of the
+two (contract row 5, decided 23 September). The validator (build plan M6) is not
 yet wired into `live.py`, so a live REPAIR carries the only truthful verdict: not checked,
 not accepted, no finding.
 

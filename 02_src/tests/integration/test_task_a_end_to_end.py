@@ -17,6 +17,8 @@ from adii.investigator.loop import (
 from adii.investigator.provider import ScriptedProvider, ScriptExhaustedError
 from adii.tools import ToolExecutor, build_sql_tools, open_walkthrough_world
 
+from ..unit.fakes import END, ENDED
+
 ResponseFactory = Callable[[int, ToolResult | None, tuple[ToolResult, ...]], str]
 
 
@@ -342,7 +344,7 @@ def test_malformed_envelope_after_real_tool_call_still_recoverable(
         [
             _tool_call("run_sql", {"query": "SELECT COUNT(*) FROM orders"}),
             TOOL_CALL_PREFIX + "{not-json",
-            "<STOP>",
+            END,
         ]
     )
 
@@ -350,7 +352,7 @@ def test_malformed_envelope_after_real_tool_call_still_recoverable(
 
     real_result = provider.received_observations[1]
     rejected_result = provider.received_observations[2]
-    assert decision is None
+    assert decision == ENDED
     assert executor.calls_dispatched == 1
     assert real_result is not None
     assert rejected_result is not None
@@ -374,7 +376,7 @@ def test_malformed_envelope_after_real_tool_call_still_recoverable(
             "tool_result",
             "tool_call",
             "tool_result",
-            "loop_stopped",
+            "decision_submitted",
         ],
         turn_indexes=[0, 0, 1, 1, 2],
     )

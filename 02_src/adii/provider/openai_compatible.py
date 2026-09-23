@@ -2,7 +2,7 @@
 
 The seam A defines is one call per model turn: `respond(observation=…, observations=…)
 -> str`, and A interprets the string by prefix — `<TOOL_CALL>` JSON, `<DECISION>` JSON,
-`<STOP>`, or plain text. So this provider keeps the conversation itself: a system message
+or anything else, which it rejects. So this provider keeps the conversation itself: a system message
 that states the protocol, the incident and the tools; then, each turn, the newest
 observation as a user message, the endpoint's reply as the assistant's, and the reply back
 to A untouched. A never sees the endpoint and the endpoint never sees the runtime.

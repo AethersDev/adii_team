@@ -194,6 +194,11 @@ patch DENIED by authorization and still validated; an inapplicable patch REJECT 
 `rebuild`. The walkthrough keeps passing through the same generic path. Guards:
 `C.oracle_is_declared_per_incident`, `C.untargeted_tables_keep_identity`.
 
+**Order rule (decision V).** The mechanism lands in phase 1, proved on the walkthrough
+through the generic path and on test-only packages written under the test's temporary
+directory. Configuration A's package, and its oracle, enter in phase 2 after the reserve
+commitment (2.2), so no evaluated case exists before its authority sequence allows it.
+
 **Scope rule.** Configuration A first, because D1 and D3 require it. `delivery-duplicated`
 second if phase 1 has time left, because identity-against-count is the best D3 story. No
 third world in this plan.
@@ -438,12 +443,12 @@ scope cut, the order is: the second rebuildable world, the benchmark view on the
 | # | decision | recommended | mark | commit |
 |---|---|---|---|---|
 | CI | CI demoted to manual dispatch; the local gate on the Mac is the merge gate; cross-platform correctness by qualifying the exact ZIP on Windows and Mac | APPROVED | APPROVED — the project owner, 23 Sep 2026 | phase 0 |
-| J | the judge: a standard-library provider, its prompt and verdict in the report, frozen with the scorer; the SDK provider and the `openai` extra deleted | APPROVED | | |
-| R1 | trace contract row 1: `sent` on `model_requested` — the messages added since the previous request; the count kept | APPROVED | | |
-| R5 | trace contract row 5: `<STOP>` leaves the live grammar; no stop without a decision on any path | APPROVED, removal | | |
+| J | the judge: a standard-library provider, its prompt and verdict in the report, frozen with the scorer; the SDK provider and the `openai` extra deleted | APPROVED | APPROVED — the project owner, 23 Sep 2026: the judge frozen (model, prompt digest, verdict, usage, cost recorded), and the settlement source explicit in every report — deterministic, judge or unresolved | decisions |
+| R1 | trace contract row 1: `sent` on `model_requested` — the messages added since the previous request; the count kept | APPROVED | APPROVED — the project owner, 23 Sep 2026 | decisions |
+| R5 | trace contract row 5: `<STOP>` leaves the live grammar; no stop without a decision on any path | APPROVED, removal | APPROVED, removal — the project owner, 23 Sep 2026 | decisions |
 | R4 | trace contract row 4: per-event timestamps | DEFER — latency stays the wall clock, said so | | |
 | R7 | trace contract row 7: an event for the authorization fact | DEFER — the record carries it; nothing reads an event | | |
-| V | the validator generalised as in 1.5; oracles live with the validator, keyed by incident, never under `01_data/` | APPROVED | | |
+| V | the validator generalised as in 1.5; oracles live with the validator, keyed by incident, never under `01_data/` | APPROVED | APPROVED — the project owner, 23 Sep 2026, with an order: the mechanism is generalised first and proved on the walkthrough and on test-only packages; configuration A enters as a catalogue package in phase 2, after the reserve commitment, never before | decisions |
 | C1–C7 | the catalogue rows as proposed, amended: packages under `01_data/incidents/<id>/` in the `--incident-dir` shape; truth under `02_src/adii/evaluation/catalogue/` in the v1 key schema with grounding keys beside; the six public classes; declassification irreversible; the commitment first | APPROVED with the amendments | | |
 | G | alert-only's evidence-gate policy | both variants once, each in the receipt | | |
 | R | the repeat rule | two of three per cell; disagreements listed | | |
@@ -456,3 +461,5 @@ scope cut, the order is: the second rebuildable world, the benchmark view on the
 |---|---|---|---|
 | 23 Sep 2026 | 0 | 0.1 already done: the nine-commit branch reached `main` as PR #39 on 22 Sep, content-identical. 0.2: the archive attested, 138 artefacts across 49 run folders, verified OK. 0.3 baseline on the Mac: ruff clean; 1,190 tests passed, 13 skipped (the blind-key tests, kept out on purpose); 137 of 137 guards killed. 0.4: decision CI marked; the workflow runs on dispatch only; the briefing, CLAUDE.md, AGENTS.md, the review playbook, the build plan's done-when and the adii-change skill state the local gate and the ZIP qualification | `main` at 3914d23 |
 | 23 Sep 2026 | 1.2 | the grounding check reads the archived trace: a predicate is observed only when its call was answered OK; `decisive: {observed, cited, missing}` beside `grounded` in the report via `--grounding-key`, the key refused unless bound to the answer key given; the invented trace shape and its tests replaced by the walkthrough record's real trace; D5b reproduced end to end; guards `C.decisive_is_read_from_the_trace` and `C.grounding_key_bound_to_this_answer_key`, both killed | branch `evaluation/grounding-reads-the-trace` |
+| 23 Sep 2026 | decisions | J, R1, R5 and V approved by the project owner; trace contract rows 1 (in part) and 5 marked | |
+| 23 Sep 2026 | 1.4 | `<STOP>` left the grammar: the loop returns a decision or raises, the live adapter's placeholder `model_failure` is gone, the rejection message names two forms; a `<STOP>` reply is an invalid envelope, told once; scripted tests end in an ESCALATE decision; the live path's model failure is exercised by a reply in the API's shape with no text; the plan's `A.stop_is_not_a_form` guard is not registered, because removed code leaves nothing to neutralise — the rejection path it rides on is already guarded; A 7 of 7 and D 78 of 78 killed; 1,196 passed | |

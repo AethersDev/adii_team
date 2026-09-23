@@ -1,7 +1,16 @@
 """Test-only deterministic collaborators for investigator unit tests."""
 
-from adii.contracts import ToolCall, ToolResult
-from adii.investigator.loop import STOP_SIGNAL
+import json
+
+from adii.contracts import Disposition, InvestigationDecision, ToolCall, ToolResult
+from adii.investigator.loop import DECISION_PREFIX
+
+# How a scripted test ends a run now that there is no stop without a decision (trace
+# contract row 5): an ESCALATE, which needs no observation, as the loop parses it.
+END_SUMMARY = "The script ends here."
+END = DECISION_PREFIX + json.dumps({"disposition": "ESCALATE", "root_cause_id": None,
+                                    "root_cause_summary": END_SUMMARY})
+ENDED = InvestigationDecision(Disposition.ESCALATE, None, END_SUMMARY)
 
 
 class FakeToolExecutor:
@@ -73,7 +82,7 @@ class StateAwareFakeProvider:
                 else self.response_if_unmatched
             )
         else:
-            response = STOP_SIGNAL
+            response = END
 
         self._turn += 1
         return response

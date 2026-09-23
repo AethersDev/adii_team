@@ -11,9 +11,8 @@ thing happened. The trace `run()` returns is the loop's local account and agrees
 record on every durable fact; nothing in it is translated into the record afterwards.
 
 Endings translate, they are not interpreted: A's two exception types map to two
-termination classes by type, never by message. A stop with no decision has no class yet
-(D-1 row 5, open); it is mapped to `model_failure` here with the detail saying so, which
-is exactly the policy choice the adapter must not make on main.
+termination classes by type, never by message. There is no stop without a decision to
+classify: the loop returns a decision or raises (trace contract row 5, decided 23 Sep).
 """
 from __future__ import annotations
 
@@ -81,7 +80,4 @@ class LoopInvestigator:
                 raise Terminated("infrastructure_failure", str(cause)) from None
             raise Terminated("model_failure", failed.reason) from None
         provider.close()
-        if decision is None:
-            raise Terminated("model_failure", "the model stopped without a decision "
-                             "(no termination class for this yet: trace contract row 5)")
         return decision
