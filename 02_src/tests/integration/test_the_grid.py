@@ -97,3 +97,20 @@ def test_the_floor_arm_and_the_no_model_provider_come_only_together(tmp_path, ca
         assert runtime.main(["--incident", TWO[0], "--archive", str(tmp_path), *mismatched]) == 2
         assert "floor of the controls asks no model" in capsys.readouterr().out
     assert not any(tmp_path.iterdir())
+
+
+def test_a_reasoning_effort_is_a_pack_term_that_reaches_every_paid_cell(tmp_path, monkeypatch,
+                                                                         capsys):
+    pack = {"pack": "p", "provider": "openai", "model": "gpt-6-sol", "max_turns": 20,
+            "max_cost_usd": 0.5, "max_tokens": 4096, "reasoning_effort": "low"}
+    asked = []
+    monkeypatch.setattr(grid.runtime, "main", lambda argv: asked.append(argv) or 0)
+    grid.run_cell(pack, "p-x-full-r1", TWO[0], "full", tmp_path)
+    grid.run_cell({k: v for k, v in pack.items() if k != "reasoning_effort"}, "p-x-full-r2",
+                  TWO[0], "full", tmp_path)
+    assert asked[0][-2:] == ["--reasoning-effort", "low"]
+    assert "--reasoning-effort" not in asked[1]
+    assert grid.main(["--pack", "q", "--provider", "local", "--model", "m",
+                      "--reasoning-effort", "low", "--packs", str(tmp_path / "packs")]) == 2
+    assert "--provider openai" in capsys.readouterr().out
+    assert not (tmp_path / "packs").exists()

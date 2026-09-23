@@ -40,7 +40,11 @@ import urllib.request
 
 from ..reporting.ledger import PRICES, Price, priced, reserve_for
 from .credential import load_env_local
-from .openai_compatible import endpoint_may_carry_a_credential, input_tokens_upper_bound
+from .openai_compatible import (
+    REASONING_EFFORTS,
+    endpoint_may_carry_a_credential,
+    input_tokens_upper_bound,
+)
 from .worker import error_code as _error_code
 from .worker import transact
 
@@ -101,10 +105,14 @@ def listing(endpoint: str, model: str, credential: str) -> dict[str, object]:
     return {"credential": "accepted", "models_listed": len(ids), "model_listed": model in ids}
 
 
-def probe(endpoint: str, model: str, credential: str, price: Price) -> dict[str, object]:
-    """The active check: one completion of one token, by the run's own transaction. Returns
-    the bill and whether the reserve premise held, or the refusal in structure."""
-    body = {"model": model, "messages": PROBE, "max_tokens": 1, "temperature": 0}
+def probe(endpoint: str, model: str, credential: str, price: Price, max_tokens: int = 1,
+          effort: str | None = None) -> dict[str, object]:
+    """The active check: one completion, by the run's own transaction, in the run's own
+    request shape — the completion bound as `max_completion_tokens`, and `reasoning_effort`
+    in place of `temperature` for a reasoning model. Returns the bill and whether the
+    reserve premise held, or the refusal in structure."""
+    body = {"model": model, "messages": PROBE, "max_completion_tokens": max_tokens,
+            **({"temperature": 0} if effort is None else {"reasoning_effort": effort})}
     request = {"url": endpoint.rstrip("/") + "/chat/completions", "body": json.dumps(body),
                "headers": {"Content-Type": "application/json",
                            "Authorization": f"Bearer {credential}"},
@@ -123,7 +131,7 @@ def probe(endpoint: str, model: str, credential: str, price: Price) -> dict[str,
     bound = input_tokens_upper_bound(PROBE)
     tokens_in, tokens_out = usage.get("prompt_tokens"), usage.get("completion_tokens")
     holds = (isinstance(tokens_in, int) and isinstance(tokens_out, int)
-             and tokens_in <= bound and tokens_out <= 1)
+             and tokens_in <= bound and tokens_out <= max_tokens)
     return {"ok": True, "usage": usage, "cost": priced(usage, price), "bound": bound,
             "premise": holds}
 
@@ -149,7 +157,15 @@ def main(argv: list[str] | None = None) -> int:
                         help="the active check too: one completion of one token — billable")
     parser.add_argument("--model", required=True, help="the model id the run will ask for")
     parser.add_argument("--endpoint", default="https://api.openai.com/v1")
+    parser.add_argument("--max-tokens", type=int, default=1,
+                        help="--spend's completion bound (default 1); a reasoning model's "
+                             "reasoning is inside it, so qualify one at the run's own bound")
+    parser.add_argument("--reasoning-effort", choices=REASONING_EFFORTS,
+                        help="--spend asks as the run will: this effort, no temperature")
     args = parser.parse_args(argv)
+    if args.max_tokens < 1:
+        print("--max-tokens must be a whole number above zero")
+        return 2
     if not endpoint_may_carry_a_credential(args.endpoint):
         print(f"{args.endpoint!r}: https (unless on this machine), no query string, no userinfo")
         return 2
@@ -181,9 +197,13 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if seen["model_listed"] else 1
 
     price = PRICES[args.model]
-    reserve = reserve_for(input_tokens_upper_bound(PROBE), price, 1)
-    say("spend_check", f"BILLABLE — one request, max_tokens=1, nominal_max_cost_usd={reserve:f}")
-    result = probe(args.endpoint, args.model, credential, price)
+    reserve = reserve_for(input_tokens_upper_bound(PROBE), price, args.max_tokens)
+    say("spend_check", f"BILLABLE — one request, max_tokens={args.max_tokens}"
+                       + (f", reasoning_effort={args.reasoning_effort}"
+                          if args.reasoning_effort else "")
+                       + f", nominal_max_cost_usd={reserve:f}")
+    result = probe(args.endpoint, args.model, credential, price, args.max_tokens,
+                   args.reasoning_effort)
     say("request_sent", 1)
     if not result["ok"]:
         say("spend_check", "BLOCKED")
@@ -195,10 +215,12 @@ def main(argv: list[str] | None = None) -> int:
                  f"completion_tokens={usage.get('completion_tokens')}")
     say("cost_usd", f"{cost:f} (nominal, {price.table})" if cost is not None
         else "unknown — no integer usage in the reply")
-    say("reserve_premise", (f"holds — prompt_tokens <= {result['bound']}, completion_tokens <= 1")
+    say("reserve_premise", (f"holds — prompt_tokens <= {result['bound']}, "
+                            f"completion_tokens <= {args.max_tokens}")
         if result["premise"] else
         (f"VIOLATED — prompt_tokens {usage.get('prompt_tokens')} against a bound of "
-         f"{result['bound']}, completion_tokens {usage.get('completion_tokens')} against 1; "
+         f"{result['bound']}, completion_tokens {usage.get('completion_tokens')} against "
+         f"{args.max_tokens}; "
          "the cap's arithmetic would not hold for this model"))
     say("completion", "succeeded at check time")
     return 0 if result["premise"] else 1

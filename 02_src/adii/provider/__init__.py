@@ -15,6 +15,7 @@ and it is labelled a spike for that reason.
 from .credential import ENV_LOCAL, load_env_local
 from .openai_compatible import (
     PROTOCOL,
+    REASONING_EFFORTS,
     TIMEOUT_S,
     BoundExceeded,
     ChatProvider,
@@ -27,7 +28,7 @@ from .openai_compatible import (
     input_tokens_upper_bound,
 )
 
-__all__ = ["ENV_LOCAL", "PROTOCOL", "TIMEOUT_S", "BoundExceeded", "ChatProvider",
-           "ProviderFailure", "ReserveBreached", "endpoint_is_local",
+__all__ = ["ENV_LOCAL", "PROTOCOL", "REASONING_EFFORTS", "TIMEOUT_S", "BoundExceeded",
+           "ChatProvider", "ProviderFailure", "ReserveBreached", "endpoint_is_local",
            "endpoint_may_carry_a_credential", "estimator", "initial_messages",
            "input_tokens_upper_bound", "load_env_local"]

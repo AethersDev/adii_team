@@ -32,6 +32,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from ..examples.canonical_world import FAMILIES, STATES, incident_id
+from ..provider import REASONING_EFFORTS
 from ..provider.judge import MAX_COST_USD as JUDGE_MAX_COST_USD
 from ..provider.judge import Judge
 from ..reporting.record import ARCHIVE, LABEL, REPO, read_record, source_revision
@@ -67,6 +68,8 @@ def run_cell(pack: dict, label: str, incident: str, arm: str, archive: Path) -> 
     if pack["provider"] == "openai":
         argv += ["--max-cost-usd", str(pack["max_cost_usd"]), "--max-tokens",
                  str(pack["max_tokens"])]
+    if pack.get("reasoning_effort"):
+        argv += ["--reasoning-effort", pack["reasoning_effort"]]
     return runtime.main(argv)
 
 
@@ -162,6 +165,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-tokens", type=int, default=1024,
                         help="the completion bound per request on a paid provider: room for a "
                              "decision with its patch, priced in full in every reserve")
+    parser.add_argument("--reasoning-effort", choices=REASONING_EFFORTS,
+                        help="a reasoning model's effort, a pack term like every bound")
     parser.add_argument("--pack-cap-usd", type=float)
     parser.add_argument("--judge-model", help="a priced model for cases the key's ids cannot "
                                               "settle; without it they are reported unresolved")
@@ -178,12 +183,18 @@ def main(argv: list[str] | None = None) -> int:
         if not (args.provider and args.model) or args.repeats < 1:
             print("--provider, --model and at least one repeat are needed to run a pack")
             return 2
+        if args.reasoning_effort and args.provider != "openai":
+            print("--reasoning-effort is a paid reasoning model's setting: --provider openai")
+            return 2
         pack = {"schema": "adii.pack/v1", "pack": args.pack, "provider": args.provider,
                 "model": args.model, "endpoint": args.endpoint, "served_as": args.served_as,
                 "arms": args.arms, "repeats": args.repeats, "incidents": args.incidents,
                 "max_turns": args.max_turns, "max_cost_usd": args.max_cost_usd,
                 "max_tokens": args.max_tokens,
-                "pack_cap_usd": args.pack_cap_usd, "judge_model": args.judge_model}
+                "pack_cap_usd": args.pack_cap_usd, "judge_model": args.judge_model,
+                # a term only when set, so a pack begun before the term existed resumes
+                **({"reasoning_effort": args.reasoning_effort} if args.reasoning_effort
+                   else {})}
         paid = sum(arm != "always-escalate" for _, _, arm, _ in cells(pack))
         if args.provider == "openai":
             judged = JUDGE_MAX_COST_USD if args.judge_model else Decimal(0)

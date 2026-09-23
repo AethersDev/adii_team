@@ -542,6 +542,16 @@ GUARDS = (
           '"category": scored["category"] if scored else "unscored" if record else "missing",',
           '"category": scored["category"] if scored else record.termination if record '
           'else "missing",'),
+    # decision M2: a reasoning model is asked with its effort and never with a temperature
+    Guard("D.effort_replaces_temperature", "D", "provider/openai_compatible.py",
+          "        if self._effort is None:\n",
+          "        if True:\n"),
+    Guard("D.effort_is_paid_only", "D", "runtime/__main__.py",
+          '    if args.reasoning_effort and args.provider != "openai":\n',
+          "    if False:\n"),
+    Guard("C.pack_effort_is_paid_only", "C", "evaluation/grid.py",
+          '        if args.reasoning_effort and args.provider != "openai":\n',
+          "        if False:\n"),
     # a reply cut off at the completion bound is named as cut, never left to read as malformed
     Guard("D.cut_reply_is_named", "D", "provider/openai_compatible.py",
           '        self._cut = finish == "length"\n',

@@ -391,7 +391,9 @@ def test_the_active_pre_flight_spends_one_token_and_says_so_first(endpoint, monk
                    "reserve_premise: holds — prompt_tokens <= 20, completion_tokens <= 1\n"
                    "completion: succeeded at check time\n")
     [request] = FakeModel.seen[before:]
-    assert request["max_tokens"] == 1 and request["messages"] == [
+    assert request["max_completion_tokens"] == 1 and request["temperature"] == 0
+    assert "max_tokens" not in request and "reasoning_effort" not in request
+    assert request["messages"] == [
         {"role": "user", "content": "ping"}] and request["model"] == "gpt-4.1-mini"
     assert [p.name for p in tmp_path.iterdir()] == []            # nothing archived anywhere
 
@@ -563,7 +565,8 @@ def test_the_receipt_gates_the_paid_provider_and_the_cap_is_hard(tmp_path, endpo
         assert asked["input_tokens_upper_bound"] == input_tokens_upper_bound(sent["messages"])
         assert Decimal(asked["reserve_usd"]) == \
             reserve_for(asked["input_tokens_upper_bound"], price, 512)
-        assert asked["max_output_tokens"] == 512 and sent["max_tokens"] == 512
+        assert asked["max_output_tokens"] == 512 and sent["max_completion_tokens"] == 512
+        assert sent["temperature"] == 0 and "reasoning_effort" not in sent
         assert asked["estimator"].startswith("utf-8 bytes") and "o200k_base" in asked["estimator"]
     reserves = [Decimal(r["reserve_usd"]) for r in requested]
     assert reserves[0] < reserves[1] < reserves[2]           # the prompt grows with each turn
@@ -974,3 +977,41 @@ def test_a_reply_cut_off_at_the_completion_limit_is_said_so_once(tmp_path, endpo
     told = [json.loads(m["content"]) for m in FakeModel.seen[1]["messages"][-2:]]
     assert "rejected" in told[0] and "cut off" in told[1]["cut_off"]
     assert sum("cut_off" in m["content"] for m in FakeModel.seen[1]["messages"]) == 1
+
+
+def test_a_reasoning_model_is_asked_with_its_effort_and_no_temperature(tmp_path, endpoint,
+                                                                      monkeypatch, capsys):
+    """gpt-6-sol refuses `temperature` beside a reasoning effort, and its reasoning tokens
+    are completion tokens: the effort is sent in its place, recorded in the receipt, and the
+    completion bound travels as `max_completion_tokens`, priced in every reserve."""
+    monkeypatch.setenv("OPENAI_API_KEY", KEY)
+    FakeModel.script[:] = [END]                       # one request, one decision
+    FakeModel.seen[:] = []
+    argv = ["--incident", INCIDENT, "--provider", "openai", "--model", "gpt-6-sol",
+            "--endpoint", endpoint, "--archive", str(tmp_path), "--max-tokens", "4096",
+            "--max-cost-usd", "0.50", "--reasoning-effort", "low"]
+    assert cli.main([*argv, "--label", "sol"]) == 0
+    [sent] = FakeModel.seen
+    assert sent["reasoning_effort"] == "low" and "temperature" not in sent
+    assert sent["max_completion_tokens"] == 4096 and "max_tokens" not in sent
+    told = read_receipt(tmp_path / "sol" / RECEIPT)["configuration"]
+    assert told["reasoning_effort"] == "low" and "temperature" not in told
+    assert cli.main(["--incident", INCIDENT, "--provider", "local", "--model", "m",
+                     "--endpoint", endpoint, "--archive", str(tmp_path),
+                     "--reasoning-effort", "low"]) == 2
+    assert "--provider openai only" in capsys.readouterr().out
+
+
+def test_the_active_pre_flight_asks_in_the_runs_own_shape(endpoint, monkeypatch, capsys):
+    from adii.provider.__main__ import main as preflight
+    monkeypatch.setenv("OPENAI_API_KEY", KEY)
+    monkeypatch.setattr(FakeModel, "usage", {"prompt_tokens": 5, "completion_tokens": 900})
+    FakeModel.script[:] = ["pong"]
+    FakeModel.seen[:] = []
+    assert preflight(["--check", "--spend", "--model", "gpt-6-sol", "--endpoint", endpoint,
+                      "--max-tokens", "4096", "--reasoning-effort", "low"]) == 0
+    out = capsys.readouterr().out
+    assert "max_tokens=4096, reasoning_effort=low" in out and "completion_tokens <= 4096" in out
+    [request] = [r for r in FakeModel.seen if "messages" in r]
+    assert request["reasoning_effort"] == "low" and "temperature" not in request
+    assert request["max_completion_tokens"] == 4096
