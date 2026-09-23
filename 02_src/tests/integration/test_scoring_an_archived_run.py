@@ -206,6 +206,8 @@ def test_the_judge_settles_it_and_the_report_says_which_judge_said_what(
     assert judge["prompt_sha256"] == hashlib.sha256(prompt.encode("utf-8")).hexdigest()
     assert judge["usage"] == {"prompt_tokens": 100, "completion_tokens": 20}
     assert judge["cost_usd"] and judge["price_table"]
+    assert judge["justification"] == "it removes exactly one of the two conversions."
+    assert "reasoning" not in judge
     assert JUDGE_KEY not in text                          # the credential is in no artefact
 
 

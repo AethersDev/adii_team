@@ -75,7 +75,7 @@ def score(folder: Path, key_path: Path, grounding_path: Path | None = None,
     if report.get("settled_by") == "judge":        # which judge said what, for this case
         [result] = asked
         report["judge"] = {**judge.calls[-1], "verdict": result["verdict"],
-                           "reasoning": result["reasoning"]}
+                           "justification": result["reasoning"]}
     return report
 
 
