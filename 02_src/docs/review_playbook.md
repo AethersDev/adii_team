@@ -8,12 +8,16 @@ git switch -c your-name/short-description
 python -m ruff check 02_src
 python -m pytest
 git push -u origin your-name/short-description
-# open a PR, watch CI, respond to review, merge, then:
+# open a PR, respond to review, merge, then:
 git switch main && git pull
 ```
 
-`main` is protected. Everything arrives through a PR with green CI on **Windows and
-macOS**. "Works on my machine" is not an argument here; CI is the argument.
+`main` is protected. Everything arrives through a PR, merged once the local gate is green:
+ruff, the full pytest run with Chrome present, the two syncs, and the guard pass for every
+track touched. CI is optional assistance and runs only when someone dispatches it by hand.
+Cross-platform correctness is not argued from a developer machine: it is established by
+qualifying the exact submission ZIP on clean Windows and macOS machines
+([final_plan.md](final_plan.md), decision CI).
 
 ## The author-understanding gate
 

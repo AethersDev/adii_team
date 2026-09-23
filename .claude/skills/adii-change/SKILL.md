@@ -74,5 +74,6 @@ python -m ruff check 02_src
 python -m pytest
 ```
 
-Both green, CI green on Windows **and** macOS, and the human author can answer the five
+Both green on your machine, with the syncs and the guard pass for every track touched, and
+the human author can answer the five
 questions in the PR template.
