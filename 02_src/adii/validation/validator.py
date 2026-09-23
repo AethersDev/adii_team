@@ -25,6 +25,7 @@ from pathlib import Path
 from adii.contracts import Disposition, IncidentContext, InvestigationDecision, ValidationResult
 from adii.reporting.record import REPO
 from adii.tools import ReadOnlyDatabase, load_transform_sources
+from adii.tools.errors import Rejected
 from adii.tools.walkthrough_world import build_script as walkthrough_world
 
 from .checks import Invariant, changes_the_world, check
@@ -114,7 +115,10 @@ class Validator:
         if incident_id == WALKTHROUGH[0] or not spec.is_file():
             return ()
         query = json.loads(spec.read_text(encoding="utf-8"))["query"]
-        return rebuilt.query(query, max_rows=MAX_SERIES_ROWS).rows
+        try:
+            return rebuilt.query(query, max_rows=MAX_SERIES_ROWS).rows
+        except Rejected:        # the patch reshaped what the query reads: no series to draw,
+            return ()           # and the verdict — already decided by the checks — stands
 
 
 def validate(context: IncidentContext, decision: InvestigationDecision) -> ValidationResult:
