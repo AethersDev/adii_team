@@ -1,6 +1,6 @@
 # The canonical demo world
 
-**Not built yet. This directory is a work order.**
+**Built 23 September 2026.** The three configurations are incident packages under [`01_data/incidents/`](../../incidents/), written by `python -m adii.examples.canonical_world` and held to it byte for byte, with opaque ids; the data-readiness gate (`02_src/tests/integration/test_incident_packages_are_ready.py`) holds every package to the rules below. This page stays the specification.
 
 It is also the first operational environment the whole team shares: the tool layer
 exposes it, the agent loop investigates it, the evaluation layer knows its truth

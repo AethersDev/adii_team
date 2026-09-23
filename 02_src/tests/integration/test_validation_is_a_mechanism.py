@@ -100,7 +100,8 @@ def test_the_incident_as_frozen_shows_the_defect_the_validator_is_asked_about(pa
 def test_the_correct_patch_is_authorized_accepted_and_admissible(package):
     record = run(package, {STG: CORRECT})
     assert record.authorization.authorized and record.validation.state == "ACCEPT"
-    assert record.validation.checks_run == ("rebuild", "every_delivered_order_is_staged_once",
+    assert record.validation.checks_run == ("rebuild", "changes_the_world",
+                                            "every_delivered_order_is_staged_once",
                                             "revenue_is_the_delivered_orders")
     assert record.admissible
 
@@ -150,3 +151,22 @@ def test_an_incident_with_no_oracle_is_not_rebuildable(package, tmp_path):
     with pytest.raises(UnknownIncident):
         blind.validate(context, decision)
     assert ValidatorOnLivePath(blind).validate(context, decision).state == "NOT_CHECKABLE"
+
+
+def test_a_large_world_is_rebuilt_under_a_budget_that_scales_with_it(package, tmp_path):
+    """400,000 delivered orders: a fixed rebuild budget cuts the correct repair's rebuild and
+    calls it a rejection; one that scales with the frozen world's own cost accepts it."""
+    folder, validator = package
+    big = ("CREATE TABLE delivery (batch_id TEXT, expected_rows INTEGER);\n"
+           "INSERT INTO delivery VALUES ('B-1', 400000);\n"
+           "CREATE TABLE raw_orders AS WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 "
+           "FROM n WHERE i < 400000) SELECT printf('o%06d', i) AS order_id, 'B-1' AS batch_id, "
+           "10.0 AS amount_usd FROM n;\n"
+           "CREATE TABLE load_log (batch_id TEXT, rows_loaded INTEGER, status TEXT);\n"
+           "INSERT INTO load_log VALUES ('B-1', 220000, 'FAILED');\n"
+           "CREATE TABLE stg_orders AS SELECT * FROM raw_orders WHERE order_id <= 'o220000';\n"
+           "CREATE TABLE mart_revenue AS SELECT batch_id, SUM(amount_usd) AS revenue_usd "
+           "FROM stg_orders GROUP BY batch_id;\n")
+    (folder / "world.sql").write_text(big, encoding="utf-8")
+    record = run(package, {STG: CORRECT})
+    assert record.validation.state == "ACCEPT", record.validation.report

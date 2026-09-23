@@ -166,3 +166,32 @@ class TestBuild:
             ReadOnlyDatabase.in_memory("CREATE TABL t (a);")
         with pytest.raises(ValueError, match="reserved"):
             ReadOnlyDatabase.in_memory('CREATE TABLE "sqlite_master" (a);')
+
+
+BIG = ("CREATE TABLE t AS WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n "
+       "WHERE i < 400000) SELECT i, i % 7 AS k FROM n;")
+
+
+def test_the_query_budget_scales_with_the_rows_a_world_holds():
+    """A scan a small world's floor would cut is answered in a world that holds the rows to
+    justify it; a quadratic query is cut all the same."""
+    from adii.tools.database import QUERY_TICKS_FLOOR
+    scan = "SELECT k, COUNT(*), SUM(i) FROM t GROUP BY k"
+    with pytest.raises(Rejected, match="execution budget"):
+        ReadOnlyDatabase.in_memory(BIG, max_progress_ticks=QUERY_TICKS_FLOOR).query(
+            scan, max_rows=10)
+    world = ReadOnlyDatabase.in_memory(BIG)
+    assert len(world.query(scan, max_rows=10).rows) == 7
+    with pytest.raises(Rejected, match="execution budget"):
+        world.query("SELECT count(*) FROM t a, t b", max_rows=1)
+
+
+def test_a_fingerprint_counts_and_digests_rows_as_a_multiset():
+    a = ReadOnlyDatabase.in_memory("CREATE TABLE t (x); INSERT INTO t VALUES (1), (2), (2);")
+    b = ReadOnlyDatabase.in_memory("CREATE TABLE t (x); INSERT INTO t VALUES (2), (1), (2);")
+    c = ReadOnlyDatabase.in_memory("CREATE TABLE t (x); INSERT INTO t VALUES (1), (2), (3);")
+    assert a.fingerprint("SELECT x FROM t") == b.fingerprint("SELECT x FROM t")
+    assert a.fingerprint("SELECT x FROM t")[0] == 3
+    assert a.fingerprint("SELECT x FROM t") != c.fingerprint("SELECT x FROM t")
+    with pytest.raises(Denied):
+        a.fingerprint("DELETE FROM t")

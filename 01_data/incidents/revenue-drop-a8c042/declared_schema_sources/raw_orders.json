@@ -1,0 +1,25 @@
+{
+  "source": "vendor.orders_feed",
+  "schema_version": 2,
+  "fields": {
+    "order_id": {
+      "meaning": "the vendor's order identifier, unique"
+    },
+    "batch_id": {
+      "meaning": "the nightly delivery the order arrived in"
+    },
+    "line_no": {
+      "meaning": "the order's line within its batch, from 1"
+    },
+    "order_date": {
+      "meaning": "the day the order was placed"
+    },
+    "distributor": {
+      "meaning": "the distributor that placed the order"
+    },
+    "amount_usd": {
+      "meaning": "order value",
+      "unit": "USD"
+    }
+  }
+}

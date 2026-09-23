@@ -39,6 +39,7 @@ from datetime import UTC, datetime
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+from ..examples.canonical_world import INCIDENTS
 from ..examples.specimens import SPECIMENS
 from ..examples.walkthrough import load as load_walkthrough
 from ..reporting.ledger import PRICES
@@ -122,10 +123,15 @@ def brought(body: dict) -> tuple[dict, str]:
 
 
 def incidents() -> list[dict[str, str]]:
-    """Every incident a run can be started on: the walkthrough's and the specimens'."""
+    """Every incident a run can be started on: the walkthrough's, the development packages'
+    and the specimens'."""
     context, _ = load_walkthrough()
-    return [{"incident_id": c.incident_id, "alert": c.alert}
-            for c in (context, *(s.context for s in SPECIMENS))]
+    packages = [json.loads((p / "incident.json").read_text(encoding="utf-8"))
+                for p in sorted(INCIDENTS.glob("*")) if (p / "incident.json").is_file()]
+    return [{"incident_id": context.incident_id, "alert": context.alert},
+            *({"incident_id": p["incident_id"], "alert": p["alert"]} for p in packages),
+            *({"incident_id": s.context.incident_id, "alert": s.context.alert}
+              for s in SPECIMENS)]
 
 
 def index(root: Path) -> list[dict]:

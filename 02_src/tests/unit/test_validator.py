@@ -49,8 +49,9 @@ class TestAcceptsACorrectRepair:
     def test_the_correct_patch_is_accepted_with_checks_recorded(self):
         result = validate(CONTEXT, repair_decision(CORRECT))
         assert result.accepted is True and result.state == "ACCEPT"
-        # the rebuild is the first check; the three world checks follow it
-        assert result.checks_run[0] == "rebuild" and len(result.checks_run) == 4
+        # the rebuild is the first check, then whether the world moved, then the invariants
+        assert result.checks_run[:2] == ("rebuild", "changes_the_world")
+        assert len(result.checks_run) == 5
         assert result.report
 
 

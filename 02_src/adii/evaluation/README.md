@@ -86,7 +86,26 @@ invalidate everything we report?
 
 *Enforced by* `test_the_investigator_cannot_reach_the_judge`.
 
+## Capacity: the scale ladder
+
+```bash
+python -m adii.evaluation.scale                          # 10k, 100k and 1M orders
+python -m adii.evaluation.scale --rows 10000 5000000     # any sizes, smallest first
+```
+
+Decision quality is measured on incidents; capacity on rows. The ladder regenerates the
+canonical world's first family at each size — the same causal facts and ids, so the same
+frozen keys — investigates its three worlds through the real runtime with the ideal
+investigator in `scale.py`, puts the correct repair and the scale-to-the-total fake through
+the real validator, scores every decision, and reports build, investigation and validation
+time and peak memory. What grows is only the data behind the tools; the model's evidence
+stays bounded, because every tool result is. The suite runs its smallest rung, 30,000 orders.
+
 ## Scoring an archived run
+
+The development set's labels are in `catalogue/`: for each generated incident under
+`01_data/incidents/`, its answer key (frozen, `.sha256` beside it) and its grounding key,
+authored by the team from the generated worlds and frozen before any run.
 
 ```bash
 python -m adii.evaluation --run <label> --key 02_src/adii/evaluation/fixtures/<incident>.answer.json

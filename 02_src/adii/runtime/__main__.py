@@ -58,6 +58,7 @@ from decimal import Decimal
 from pathlib import Path, PurePosixPath
 
 from ..contracts import IncidentContext
+from ..examples.canonical_world import INCIDENTS
 from ..examples.specimens import SPECIMENS
 from ..examples.walkthrough import FIXTURE, load
 from ..provider import (
@@ -72,7 +73,7 @@ from ..reporting import render_run, write_record
 from ..reporting.ledger import BYTE_LEVEL_TOKENIZERS, PRICES, aggregate, reserve_for
 from ..reporting.receipts import NAME as RECEIPT
 from ..reporting.receipts import digest_of, write_receipt
-from ..reporting.record import ARCHIVE, reserve
+from ..reporting.record import ARCHIVE, LABEL, reserve
 from ..tools import (
     EVIDENCE_BUNDLES,
     ReadOnlyDatabase,
@@ -131,6 +132,9 @@ def incident(incident_id: str, max_tool_calls: int | None = None):
             evidence = ({"transforms": digest_of(canonical_json(specimen.transforms))}
                         if specimen.transforms else {})
             return specimen.context, tools, digest_of(specimen.world), None, evidence
+    folder = INCIDENTS / incident_id          # a development package: the same loader as a
+    if LABEL.fullmatch(incident_id) and folder.is_dir():      # brought incident's
+        return incident_from_dir(folder, max_tool_calls)
     return None
 
 
@@ -394,7 +398,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"not an incident: {bad}")
             return 2
         if found is None:
-            known = [load()[0].incident_id, *(s.context.incident_id for s in SPECIMENS)]
+            known = [load()[0].incident_id, *(s.context.incident_id for s in SPECIMENS),
+                     *sorted(p.name for p in INCIDENTS.glob("*") if p.is_dir())]
             print(f"no such incident {args.incident!r}; known: {', '.join(known)}")
             return 2
     context, tools, world_digest, recorded, evidence = found
