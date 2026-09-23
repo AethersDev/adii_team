@@ -560,11 +560,6 @@ GUARDS = (
     Guard("A.call_then_text_is_named", "A", "investigator/loop.py",
           "                    why = TOOL_CALL_THEN_TEXT\n",
           "                    pass\n"),
-    # the burned cases: frozen and kept, never in a pack unless named
-    Guard("C.burned_never_in_a_default_pack", "C", "evaluation/grid.py",
-          '                                       if p.name.removesuffix(".answer.json") not in '
-          'BURNED))',
-          '                                       if True))'),
     # a reply cut off at the completion bound is named as cut, never left to read as malformed
     Guard("D.cut_reply_is_named", "D", "provider/openai_compatible.py",
           '        self._cut = finish == "length"\n',

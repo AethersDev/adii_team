@@ -1,0 +1,125 @@
+{
+  "schema": "adii.benchmark_report/v1",
+  "pack": "pilot-paid-v3",
+  "arms": {
+    "full": {
+      "runs": 6,
+      "right": 0,
+      "right_by_truth": {
+        "REPAIR": "0/6",
+        "NO_REPAIR": "0/0",
+        "ESCALATE": "0/0"
+      },
+      "right_by_tier": {
+        "explicit": "0/3",
+        "implicit": "0/3"
+      },
+      "categories": {
+        "unnecessary_escalation": 6
+      },
+      "decisive_observed": 6,
+      "admitted_where_no_repair_was_right": 0,
+      "cost_usd_lower_bound": 0.0169
+    }
+  },
+  "unscored": [],
+  "repeat_disagreements": [],
+  "runs": [
+    {
+      "label": "pilot-paid-v3-revenue-drop-7b89be-full-r1",
+      "incident": "revenue-drop-7b89be",
+      "arm": "full",
+      "repeat": 1,
+      "truth": "REPAIR",
+      "tier": "implicit",
+      "termination": "submitted",
+      "disposition": "ESCALATE",
+      "category": "unnecessary_escalation",
+      "decisive": true,
+      "validation": null,
+      "admissible": false,
+      "cost_usd": 0.002836,
+      "latency_ms": 30885
+    },
+    {
+      "label": "pilot-paid-v3-revenue-drop-87a370-full-r1",
+      "incident": "revenue-drop-87a370",
+      "arm": "full",
+      "repeat": 1,
+      "truth": "REPAIR",
+      "tier": "implicit",
+      "termination": "submitted",
+      "disposition": "ESCALATE",
+      "category": "unnecessary_escalation",
+      "decisive": true,
+      "validation": null,
+      "admissible": false,
+      "cost_usd": 0.002454,
+      "latency_ms": 26769
+    },
+    {
+      "label": "pilot-paid-v3-revenue-drop-9a76e9-full-r1",
+      "incident": "revenue-drop-9a76e9",
+      "arm": "full",
+      "repeat": 1,
+      "truth": "REPAIR",
+      "tier": "explicit",
+      "termination": "submitted",
+      "disposition": "ESCALATE",
+      "category": "unnecessary_escalation",
+      "decisive": true,
+      "validation": null,
+      "admissible": false,
+      "cost_usd": 0.002768,
+      "latency_ms": 31495
+    },
+    {
+      "label": "pilot-paid-v3-revenue-drop-9e8afe-full-r1",
+      "incident": "revenue-drop-9e8afe",
+      "arm": "full",
+      "repeat": 1,
+      "truth": "REPAIR",
+      "tier": "explicit",
+      "termination": "submitted",
+      "disposition": "ESCALATE",
+      "category": "unnecessary_escalation",
+      "decisive": true,
+      "validation": null,
+      "admissible": false,
+      "cost_usd": 0.003278,
+      "latency_ms": 39822
+    },
+    {
+      "label": "pilot-paid-v3-revenue-drop-a8c042-full-r1",
+      "incident": "revenue-drop-a8c042",
+      "arm": "full",
+      "repeat": 1,
+      "truth": "REPAIR",
+      "tier": "explicit",
+      "termination": "submitted",
+      "disposition": "ESCALATE",
+      "category": "unnecessary_escalation",
+      "decisive": true,
+      "validation": null,
+      "admissible": false,
+      "cost_usd": 0.002583,
+      "latency_ms": 29864
+    },
+    {
+      "label": "pilot-paid-v3-revenue-drop-b9ddd0-full-r1",
+      "incident": "revenue-drop-b9ddd0",
+      "arm": "full",
+      "repeat": 1,
+      "truth": "REPAIR",
+      "tier": "implicit",
+      "termination": "submitted",
+      "disposition": "ESCALATE",
+      "category": "unnecessary_escalation",
+      "decisive": true,
+      "validation": null,
+      "admissible": false,
+      "cost_usd": 0.002997,
+      "latency_ms": 30013
+    }
+  ]
+}
