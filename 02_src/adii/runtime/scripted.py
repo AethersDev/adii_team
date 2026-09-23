@@ -7,6 +7,7 @@ the only place the run exists, which is what "counters come from the trace" has 
 from __future__ import annotations
 
 from ..contracts import (
+    Disposition,
     IncidentContext,
     InvestigationDecision,
     InvestigationRun,
@@ -52,6 +53,16 @@ class EndingInvestigator:
         for call in self._calls:
             tools.execute(call)
         raise self._ending
+
+
+class AlwaysEscalate:
+    """The floor of the controls: no model and no tools, ESCALATE every time. What it scores
+    is what abstaining on everything is worth on a set of incidents."""
+
+    def investigate(self, context: IncidentContext, tools: Tools) -> InvestigationDecision:
+        return InvestigationDecision(Disposition.ESCALATE, None,
+                                     "The always-escalate arm escalates every incident without "
+                                     "looking at any evidence.")
 
 
 class ScriptedValidator:

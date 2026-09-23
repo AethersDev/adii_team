@@ -27,9 +27,9 @@ and a test fails the build when it is stale. Milestone marks come from
     investigator       349 lines
     tools             1262 lines
     validation         248 lines
-    evaluation        1523 lines
+    evaluation        1725 lines
     reporting          667 lines
-    runtime            733 lines
+    runtime            764 lines
     examples           833 lines
     demo               445 lines
 ```
