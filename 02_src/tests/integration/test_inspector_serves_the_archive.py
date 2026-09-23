@@ -580,3 +580,16 @@ def test_a_visitor_brings_an_incident_over_their_own_files_and_the_archive_keeps
         httpd.server_close()
         model.shutdown()
         model.server_close()
+
+
+def test_a_reasoning_effort_holds_the_page_to_the_operators_model(monkeypatch):
+    """gpt-6-sol's effort is refused beside another model's request: with an effort set, the
+    page may ask only for the model the operator started the server with."""
+    monkeypatch.setattr(server, "LAUNCH", {"provider": "openai", "model": "gpt-6-sol",
+                                           "reasoning_effort": "low", "max_turns": 20,
+                                           "max_cost_usd": 0.5})
+    assert server.models() == ["gpt-6-sol"]
+    with pytest.raises(ValueError, match="model must be one of gpt-6-sol"):
+        server.requested({"model": "gpt-4.1"})
+    monkeypatch.setitem(server.LAUNCH, "reasoning_effort", None)
+    assert "gpt-4.1" in server.models()

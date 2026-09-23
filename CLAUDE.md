@@ -170,7 +170,7 @@ python -m adii.demo 8000 --model <id> --endpoint http://127.0.0.1:8090/v1 --serv
 |---|---|---|
 | the briefing block of `CLAUDE.md` and `AGENTS.md` | `02_src/docs/agent_briefing.md` | `python 02_src/scripts/sync_briefing.py` |
 | `02_src/docs/current_status.md` | the `- [x]` marks in `02_src/docs/build_plan.md`, plus the packages' line counts | `python 02_src/scripts/sync_status.py` |
-| `02_src/adii/demo/web/{tokens,base,components}.css` | `03_assets/identity/css/` | `python 02_src/scripts/sync_identity.py` |
+| `02_src/adii/demo/web/logo/*.svg` | `03_assets/identity/assets/logo/` | `python 02_src/scripts/sync_identity.py` |
 
 A test fails on any drift between a generated file and its source, so the local gate catches it.
 

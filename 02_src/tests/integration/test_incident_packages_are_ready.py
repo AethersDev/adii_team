@@ -288,3 +288,14 @@ def test_after_validation_is_the_validators_reading_of_its_own_rebuild():
     faked = repair(REPAIR_STATE, {STG: fake}).validation
     assert faked.state == "REJECT"
     assert faked.rebuilt_series[-1][1] == pytest.approx(delivered)
+
+
+def test_a_patch_that_reshapes_the_series_keeps_its_verdict_and_draws_no_rebuild():
+    """The series is for drawing, never for deciding: a patch whose rebuild the alerted
+    query cannot read is still rejected by the checks, with no series — not lost as an
+    infrastructure failure."""
+    mart = path_of("mart_daily_revenue")
+    record = repair(REPAIR_STATE, {STG: staging(FIRST, "business-changed"),
+                                   mart: "SELECT order_date AS d FROM stg_orders"})
+    assert record.termination == "submitted"
+    assert record.validation.state == "REJECT" and record.validation.rebuilt_series == ()

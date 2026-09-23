@@ -39,11 +39,12 @@ from datetime import UTC, datetime
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from ..examples.canonical_world import INCIDENTS
+from ..examples.canonical_world import DEMO, DEMO_STATES, INCIDENTS, incident_id
 from ..examples.specimens import SPECIMENS
 from ..examples.walkthrough import load as load_walkthrough
 from ..reporting.ledger import PRICES
 from ..reporting.record import ARCHIVE, LABEL, REPO, read_record
+from ..runtime.__main__ import alerted_series
 from ..runtime.__main__ import main as run_main
 from ..tools import ReadOnlyDatabase
 from ..tools.user_world import LIMITS, world_from_files
@@ -66,7 +67,9 @@ def models() -> list[str]:
     """The models a run may be asked for: on the paid path every priced one — the price
     table is the allow-list, and the cap bounds the spend whichever is chosen; on a local
     endpoint only the one the operator named, since the page cannot know what it serves."""
-    return sorted(PRICES) if LAUNCH.get("provider") == "openai" else [str(LAUNCH["model"])]
+    if LAUNCH.get("provider") == "openai" and not LAUNCH.get("reasoning_effort"):
+        return sorted(PRICES)
+    return [str(LAUNCH["model"])]     # a reasoning effort is the operator's model's setting
 
 
 def requested(body: dict) -> dict[str, object]:
@@ -122,14 +125,21 @@ def brought(body: dict) -> tuple[dict, str]:
     return incident, world
 
 
-def incidents() -> list[dict[str, str]]:
+# the samples the page offers a first visitor: the company generated for the stage
+SAMPLES = tuple(incident_id(DEMO, state) for state in DEMO_STATES)
+
+
+def incidents() -> list[dict[str, object]]:
     """Every incident a run can be started on: the walkthrough's, the development packages'
-    and the specimens'."""
+    and the specimens'. A sample carries its alerted series, read from its world the way
+    the runtime reads it, so the page can draw what looks wrong before anything runs."""
     context, _ = load_walkthrough()
     packages = [json.loads((p / "incident.json").read_text(encoding="utf-8"))
                 for p in sorted(INCIDENTS.glob("*")) if (p / "incident.json").is_file()]
     return [{"incident_id": context.incident_id, "alert": context.alert},
-            *({"incident_id": p["incident_id"], "alert": p["alert"]} for p in packages),
+            *({"incident_id": p["incident_id"], "alert": p["alert"],
+               **({"sample": True, "series": alerted_series(INCIDENTS / p["incident_id"])}
+                  if p["incident_id"] in SAMPLES else {})} for p in packages),
             *({"incident_id": s.context.incident_id, "alert": s.context.alert}
               for s in SPECIMENS)]
 
@@ -158,6 +168,9 @@ def index(root: Path) -> list[dict]:
             "label": label,
             "evaluation": evaluation_of(folder),
             "incident_id": record.context.incident_id,
+            "alert": record.context.alert,
+            "changed": sorted(record.decision.patch) if record.decision else [],
+            "admissible": record.admissible,
             "termination": record.termination,
             "disposition": record.decision.disposition.value if record.decision else None,
             # the contract's own derivation: ACCEPT, REJECT, NOT_CHECKABLE, or the legacy

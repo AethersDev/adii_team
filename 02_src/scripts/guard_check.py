@@ -197,9 +197,9 @@ GUARDS = (
           "            if not LABEL.fullmatch(label) or not (ARCHIVE / label).is_dir():\n",
           "            if not (ARCHIVE / label).is_dir():\n"),
     Guard("D.page_renders_text_never_markup", "D", "demo/web/app.js",
-          "  n.append(...kids);\n",
-          "  kids.forEach((k) => (typeof k === \"string\" "
-          "? n.insertAdjacentHTML(\"beforeend\", k) : n.append(k)));\n"),
+          '    node.append(typeof kid === "string" ? document.createTextNode(kid) : kid);\n',
+          '    if (typeof kid === "string") node.insertAdjacentHTML("beforeend", kid);\n'
+          "    else node.append(kid);\n"),
     Guard("D.server_starts_local_only", "D", "demo/__main__.py",
           "    if args.provider == \"local\" and not endpoint_is_local(args.endpoint):\n",
           "    if False:\n"),
@@ -216,9 +216,18 @@ GUARDS = (
     Guard("D.paid_wire_name_is_the_priced_name", "D", "runtime/__main__.py",
           "    if served_as not in (None, model):\n",
           "    if False:\n"),
-    Guard("D.live_view_states_no_verdict", "D", "demo/web/app.js",
-          "      list.replaceChildren(...turns(events).map((turn, i) => turnCard(turn, i)));\n",
-          "      list.replaceChildren(...turns(events).map(turnCard));\n"),
+    # decisions F1–F3: the page says what the record says — cited is cited, a fix stands only
+    # with both authorities, and the drawing never costs the verdict it illustrates
+    Guard("D.how_adii_knows_is_what_was_cited", "D", "demo/web/view.js",
+          "  return refs.filter((ref) => byId[ref]).map((ref) => ({ ref, ...byId[ref] }));\n",
+          "  return Object.keys(byId).map((ref) => ({ ref, ...byId[ref] }));\n"),
+    Guard("D.a_fix_stands_only_with_both_authorities", "D", "demo/web/view.js",
+          "  return Boolean(a && a.authorized && v && v.accepted);\n",
+          "  return Boolean(v && v.accepted);\n"),
+    Guard("C.the_series_never_costs_a_verdict", "C", "validation/validator.py",
+          "            return ()           # and the verdict — already decided by the checks "
+          "— stands\n",
+          "            raise\n"),
     Guard("D.page_launch_needs_operator", "D", "demo/server.py",
           "        if not LAUNCH:\n",
           "        if False:\n"),

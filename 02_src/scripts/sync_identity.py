@@ -1,12 +1,12 @@
-"""Copy the identity handoff's stylesheets into the inspector.
+"""Copy the identity handoff's logo into the front door.
 
     python 02_src/scripts/sync_identity.py
 
 The design system is delivered to 03_assets/identity/ as an archive and stays exactly as
-delivered, so its own checks and specimens keep working. The inspector runs on a copy of
-the three stylesheets, because nothing the system needs to run may live in 03_assets. A
-test fails the build when the copy and the handoff differ, so there is one source of truth
-and it is the handoff.
+delivered. The front door (final plan, decision W) draws its own page but not its own mark:
+the logo is the handoff's, unchanged, served from a copy, because nothing the system needs
+to run may live in 03_assets. A test fails the build when the copy and the handoff differ,
+so there is one source of truth and it is the handoff.
 """
 from __future__ import annotations
 
@@ -14,9 +14,9 @@ import shutil
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE = ROOT / "03_assets" / "identity" / "css"
-TARGET = ROOT / "02_src" / "adii" / "demo" / "web"
-FILES = ("tokens.css", "base.css", "components.css")
+SOURCE = ROOT / "03_assets" / "identity" / "assets" / "logo"
+TARGET = ROOT / "02_src" / "adii" / "demo" / "web" / "logo"
+FILES = ("adii-lockup-horizontal.svg", "adii-symbol.svg", "favicon.svg")
 
 
 def stale() -> list[str]:
@@ -26,6 +26,7 @@ def stale() -> list[str]:
 
 def main() -> int:
     changed = stale()
+    TARGET.mkdir(parents=True, exist_ok=True)
     for name in changed:
         shutil.copyfile(SOURCE / name, TARGET / name)
         print(f"wrote {(TARGET / name).relative_to(ROOT)}")

@@ -36,7 +36,7 @@ WALKTHROUGH = Path(__file__).resolve().parents[3] / "01_data" / "walkthrough"
 
 PAYLOAD = ("<img src=x onerror=\"document.title='EXECUTED'\">"
            "<script>document.title='EXECUTED'</script>")
-TITLE = "ADII — Autonomous Data Incident Investigator"
+TITLE = "ADII — Is it broken?"
 INSTALLED = {
     "darwin": ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"],
     "win32": [r"C:\Program Files\Google\Chrome\Application\chrome.exe",
@@ -74,34 +74,48 @@ def dump_dom(command: list[str]) -> str:
 
 
 def poisoned(label: str) -> RunRecord:
-    """The walkthrough record with the payload in every field a model could have written:
+    """The walkthrough record with the payload in every field a model could have written —
     the alert, the claim, a patch path and body, a tool name, an observation, the model id,
-    the termination detail."""
+    the termination detail — and in the alerted metric's name, which the page draws."""
     context, run = load()
     context = IncidentContext(incident_id=context.incident_id, alert=PAYLOAD, as_of=context.as_of,
                               permitted_write_paths=context.permitted_write_paths)
     decision = replace(run.decision, root_cause_summary=PAYLOAD, patch={PAYLOAD: PAYLOAD})
-    trace = run.trace + (TraceEvent(len(run.trace), "tool_result", {
-        "call_id": "c9", "name": PAYLOAD, "status": "OK", "content": {"rows": [[PAYLOAD]]}}),)
+    trace = run.trace + (
+        TraceEvent(len(run.trace), "tool_result", {
+            "call_id": "c9", "name": PAYLOAD, "status": "OK", "content": {"rows": [[PAYLOAD]]}}),
+        TraceEvent(len(run.trace) + 1, "alert_observed", {
+            "metric": PAYLOAD, "unit": PAYLOAD, "query": PAYLOAD, "columns": ["d", "v"],
+            "rows": [["2026-01-01", 10.0], [PAYLOAD, 5.0]]}))
     record = RunRecord.from_run(label, context, run, configuration={"model": PAYLOAD},
                                 origin="test")
     return replace(record, decision=decision, trace=trace, detail=PAYLOAD)
+
+
+def serve(archive: Path, web: Path | None, monkeypatch) -> ThreadingHTTPServer:
+    monkeypatch.setattr(server, "ARCHIVE", archive)
+    if web is not None:
+        monkeypatch.setattr(server, "WEB", web)
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    return httpd
+
+
+def browse(binary: str, tmp_path: Path, url: str, *more: str) -> str:
+    return dump_dom([binary, "--headless=new", "--disable-gpu", "--no-sandbox",
+                     "--disable-dev-shm-usage", "--hide-scrollbars", "--no-first-run",
+                     f"--user-data-dir={tmp_path / 'chrome'}", *more, "--dump-dom", url])
 
 
 def test_the_shipped_page_renders_model_text_as_text_and_executes_nothing(tmp_path,
                                                                            monkeypatch):
     binary = chrome()
     archive = tmp_path / "archive"
-    monkeypatch.setattr(server, "ARCHIVE", archive)
     write_record(poisoned("poison"), archive)
-    httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
-    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    httpd = serve(archive, None, monkeypatch)
     try:
-        dom = dump_dom(
-            [binary, "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage",
-             "--hide-scrollbars", "--no-first-run", f"--user-data-dir={tmp_path / 'chrome'}",
-             "--virtual-time-budget=5000", "--dump-dom",
-             f"http://127.0.0.1:{httpd.server_port}/#r/poison"])
+        dom = browse(binary, tmp_path, f"http://127.0.0.1:{httpd.server_port}/#r/poison",
+                     "--virtual-time-budget=5000")
     finally:
         httpd.shutdown()
         httpd.server_close()
@@ -115,21 +129,19 @@ def test_the_shipped_page_renders_model_text_as_text_and_executes_nothing(tmp_pa
 
 HARNESS = """<!doctype html><meta charset="utf-8"><title>harness</title><body>
 <script>
-// Embeds the inspector at an exact CSS width, which headless Chrome's own window cannot go
+// Embeds the page at an exact CSS width, which headless Chrome's own window cannot go
 // below 500. Same origin, so the inner document is readable: once the inner page has
 // measured itself, its measurement and its text are copied out here, where --dump-dom
 // can see them. Test scaffolding; never shipped.
 const q = new URLSearchParams(location.search);
 const frame = document.createElement("iframe");
-// Tall enough that the inner document never scrolls, and scrolling off besides: an inner
-// scrollbar takes 17px of width on Windows and would make the measured width a lie.
 frame.width = q.get("w"); frame.height = "12000"; frame.style.border = "0";
 frame.setAttribute("scrolling", "no");
 frame.src = "/#" + q.get("route");
 document.body.append(frame);
 const poll = setInterval(() => {
   const inner = frame.contentDocument && frame.contentDocument.documentElement;
-  if (!inner || !inner.dataset.measured) return;
+  if (!inner || !inner.dataset.measured || !frame.contentDocument.querySelector("main")) return;
   clearInterval(poll);
   document.documentElement.dataset.measured = inner.dataset.measured;
   const out = document.createElement("pre"); out.id = "text";
@@ -138,81 +150,54 @@ const poll = setInterval(() => {
 }, 50);
 </script>"""
 
+EXPECTED = {
+    "": ("Investigations", "Is it broken?", "Attach CSV files", "Fix it", "Leave it"),
+    "r/fix": ("Yes. Fix it.", "How ADII knows", "Proposed fix", "Independent rebuild",
+              "Sign-off", "Record", "Investigated: ADII looked at"),
+    "r/leave": ("No. Leave it.", "How ADII knows", "No change proposed", "Sign-off"),
+    "r/ended": ("The run couldn't finish.", "Nothing was changed.", "The record says"),
+}
 
-@pytest.mark.parametrize(("width", "route"), [
-    (1440, "r/accepted"), (1440, "r/bound-hit"), (1440, "r/unchecked"), (1440, ""),
-    (390, "r/accepted"), (390, "r/bound-hit"), (390, ""),
-])
+
+@pytest.mark.parametrize("width", [1440, 390])
+@pytest.mark.parametrize("route", list(EXPECTED))
 def test_every_screen_fits_the_viewport_at_desktop_and_phone_width(tmp_path, monkeypatch,
                                                                      width, route):
-    """Mobile is an acceptance condition: no horizontal document overflow, and the sections
-    a stranger needs — what was reported, how the run ended, the steps, the decision or its
-    absence, how to create a run — present at both widths. Measured in the browser at the
-    exact width, through a same-origin harness, not asserted from CSS."""
+    """Mobile is an acceptance condition: no horizontal document overflow, and what each
+    screen must say present at both widths. Measured in the browser at the exact width,
+    through a same-origin harness, not asserted from CSS."""
+    from .test_the_front_door_projects import recorded
     binary = chrome()
     archive = tmp_path / "archive"
-    endings = WALKTHROUGH / "endings"
-    for label, source in (("accepted", WALKTHROUGH / "record.json"),
-                          ("bound-hit", endings / "bound-hit" / "record.json"),
-                          ("unchecked", endings / "repair-rejected" / "record.json")):
+    for label, record in (("fix", recorded("transform-defect")),
+                          ("leave", recorded("business-changed"))):
         (archive / label).mkdir(parents=True)
-        (archive / label / "record.json").write_bytes(source.read_bytes())
-    # the accepted run has been scored: the page shows what the authority said
-    (archive / "accepted" / "evaluation_report.json").write_text(json.dumps({
-        "schema": "adii.evaluation_report/v1", "run_label": "accepted",
-        "incident_id": "demo-learning-001", "category": "success", "sub_kind": None,
-        "verdict": "correct", "settled_by": "deterministic"}), encoding="utf-8")
-    # a repair nobody checked: what every live REPAIR carries until a validator exists
-    unchecked = json.loads((archive / "unchecked" / "record.json").read_text(encoding="utf-8"))
-    unchecked["validation"] = {"accepted": False, "checks_run": [],
-                               "report": "No independent validator exists yet."}
-    (archive / "unchecked" / "record.json").write_text(json.dumps(unchecked), encoding="utf-8")
+        (archive / label / "record.json").write_text(json.dumps(record), encoding="utf-8")
+    ended = {**recorded("cannot-decide"), "decision": None, "termination":
+             "infrastructure_failure", "detail": "provider unreachable"}
+    (archive / "ended").mkdir()
+    (archive / "ended" / "record.json").write_text(json.dumps(ended), encoding="utf-8")
     web = tmp_path / "web"
     shutil.copytree(server.WEB, web)
     (web / "harness.html").write_text(HARNESS, encoding="utf-8")
-    monkeypatch.setattr(server, "ARCHIVE", archive)
-    monkeypatch.setattr(server, "WEB", web)
-    httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
-    threading.Thread(target=httpd.serve_forever, daemon=True).start()
-    command = [binary, "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage",
-               "--hide-scrollbars", "--no-first-run", f"--user-data-dir={tmp_path / 'chrome'}",
-               f"--window-size={max(width + 40, 500)},900", "--virtual-time-budget=15000",
-               "--dump-dom",
-               f"http://127.0.0.1:{httpd.server_port}/harness.html?w={width}&route={route}"]
+    httpd = serve(archive, web, monkeypatch)
+    url = f"http://127.0.0.1:{httpd.server_port}/harness.html?w={width}&route={route}"
     try:
-        started = time.monotonic()
-        dom = dump_dom(command)
+        dom = browse(binary, tmp_path, url, f"--window-size={max(width + 40, 500)},900",
+                     "--virtual-time-budget=15000")
         widths = re.search(r'data-measured="(\d+),(\d+)"', dom)
-        if not widths:
-            # A browser that produced no measurement within its budget is a launch under
-            # load, not a page defect. One more try, and the failure message says which.
-            first = (f"first attempt took {time.monotonic() - started:.0f}s, "
-                     f"dom tail: {dom[-300:]!r}")
-            dom = dump_dom(command)
+        if not widths:          # a launch under load, not a page defect: one more try
+            dom = browse(binary, tmp_path, url, f"--window-size={max(width + 40, 500)},900",
+                         "--virtual-time-budget=15000")
             widths = re.search(r'data-measured="(\d+),(\d+)"', dom)
     finally:
         httpd.shutdown()
         httpd.server_close()
-    assert "</html>" in dom, f"no document within the deadline; dom tail: {dom[-300:]!r}"
-    assert widths, f"the inner page never reported its measured widths twice; {first}"
+    assert widths, f"the inner page never reported its widths; dom tail: {dom[-300:]!r}"
     scroll, client = map(int, widths.groups())
     assert client == width, f"the harness did not embed the page at {width}px (got {client})"
     assert scroll <= client, f"horizontal overflow at {width}px: {scroll} > viewport {client}"
     text = dom[dom.index('<pre id="text">'):]
-    if route:
-        for heading in ("The incident", "The investigation, turn by turn", "Details for engineers"):
-            assert heading in text, f"{heading!r} missing at {width}px"
-        assert ("What it concluded" in text) != ("Why there is no decision" in text)
-        assert ("Decided: " in text) != ("Stopped " in text)      # the headline, first
-        if route == "r/unchecked":
-            assert "not checked by a validator" in text and "not accepted" not in text
-        if route == "r/accepted":
-            assert "What the evaluation said" in text and "matched the answer key" in text
-        else:
-            assert "What the evaluation said" not in text     # unscored: no section at all
-        assert "Your feedback" in text and "Record feedback" in text
-        assert "Creating a run" in text
-    else:
-        assert "Autonomous Data Incident Investigator" in text
-        assert "Previous investigations" in text and "View runs" in text
-    assert "did not load" not in text, "the page rendered an error state"
+    for said in EXPECTED[route]:
+        assert said in text, f"{said!r} missing from {route or 'the list'} at {width}px"
+    assert "could not be read" not in text, "the page rendered an error state"
