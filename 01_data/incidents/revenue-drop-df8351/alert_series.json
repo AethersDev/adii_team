@@ -1,0 +1,5 @@
+{
+  "metric": "Daily revenue",
+  "unit": "USD",
+  "query": "SELECT day, ROUND(revenue_usd, 2) AS revenue_usd FROM mart_daily_revenue ORDER BY day"
+}

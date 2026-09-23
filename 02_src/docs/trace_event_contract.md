@@ -69,6 +69,7 @@ inventing a turn that never completed.
 | `tool_observed` | tool layer | `call_id`, `name`, `status`, `content`, `observation_id`, `at` | a `ToolResult`, verbatim, plus the identity a decision may later cite — minted here, never by the model (D2); `DENIED`, `REJECTED` and `ERROR` are observations too |
 | `submission_proposed` | investigator | `disposition`, `root_cause_id`, `repair_id`, `evidence_refs`, `at` | the terminal submission as the loop produced it, before the contract validated it — so a malformed answer is on the record as a scored failure, not a crash (M4) |
 | `validation_completed` | validator | `accepted`, `at` | the verdict, from the other authority, distinguishable from the agent's own rehearsal |
+| `alert_observed` | runtime | `metric`, `unit`, `query`, `columns`, `rows` | decided 23 Sep 2026 (final plan, F1): the alerted metric as the runtime read it from the frozen world before the investigation, when the incident declares one — what a page draws as the thing that looked wrong; never shown to the model, never a tool call, so never its evidence or its grounding |
 | `run_terminated` | runtime | `termination`, `detail`, `at` | how the run ended, in the loop's own controlled terms; without it a truncated archive and a completed run look the same |
 
 The walkthrough's five kinds map onto these — `incident_received` to `run_started`,

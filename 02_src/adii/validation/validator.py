@@ -31,6 +31,7 @@ from .checks import Invariant, changes_the_world, check
 from .patching import PatchRejected, Step, apply_patch
 
 ORACLES = Path(__file__).resolve().parent / "oracles"
+MAX_SERIES_ROWS = 400
 INCIDENTS = REPO / "01_data" / "incidents"
 WALKTHROUGH = ("demo-learning-001", REPO / "01_data" / "walkthrough")   # its world is code
 SCHEMA = "adii.validation_oracle/v1"
@@ -103,7 +104,17 @@ class Validator:
         report = "rebuild: the world rebuilt with the patch applied; " + "; ".join(
             f"{o.name}: {'holds' if o.passed else 'fails'} — {o.detail}" for o in outcomes)
         return ValidationResult(accepted=accepted, report=report,
-                                checks_run=("rebuild", *(o.name for o in outcomes)))
+                                checks_run=("rebuild", *(o.name for o in outcomes)),
+                                rebuilt_series=self.alerted_series(context.incident_id, rebuilt))
+
+    def alerted_series(self, incident_id: str, rebuilt: ReadOnlyDatabase) -> tuple:
+        """The incident's declared alerted series, read from the rebuilt world with the
+        query the runtime read the frozen one with; () when none is declared."""
+        spec = self._incidents / incident_id / "alert_series.json"
+        if incident_id == WALKTHROUGH[0] or not spec.is_file():
+            return ()
+        query = json.loads(spec.read_text(encoding="utf-8"))["query"]
+        return rebuilt.query(query, max_rows=MAX_SERIES_ROWS).rows
 
 
 def validate(context: IncidentContext, decision: InvestigationDecision) -> ValidationResult:

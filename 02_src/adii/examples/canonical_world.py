@@ -138,6 +138,11 @@ RAW_ORDERS_SCHEMA = {
         "amount_usd": {"meaning": "order value", "unit": "USD"},
     },
 }
+# the alerted metric, as a series a page can draw: read by the runtime from the frozen world
+# before the investigation and by the validator from its rebuild — never shown to the model
+ALERT_SERIES = {"metric": "Daily revenue", "unit": "USD",
+                "query": "SELECT day, ROUND(revenue_usd, 2) AS revenue_usd "
+                         "FROM mart_daily_revenue ORDER BY day"}
 QUIET = {"bulletin": "The quarterly price list is unchanged.",
          "platform": "Maintenance windows are unchanged this month."}
 
@@ -286,6 +291,7 @@ def package(family: Family, state: str) -> dict[str, str]:
         "reconciliation_sources/vendor_receipts.log": receipts(family, state),
         "declared_schema_map.json": as_json({"raw_orders": "raw_orders.json"}),
         "declared_schema_sources/raw_orders.json": as_json(RAW_ORDERS_SCHEMA),
+        "alert_series.json": as_json(ALERT_SERIES),
     }
 
 

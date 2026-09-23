@@ -174,12 +174,18 @@ class ValidationResult:
                          from archived records, never produced by the runtime
 
     Any other combination is refused here. `state` is the one derivation every reader uses.
+
+    `rebuilt_series` (decided 23 September 2026, final plan decision F2): where the incident
+    declares its alerted series, the series as the rebuilt world computes it, row by row — so
+    "after validation" is the validator's reading, never a page's recomputation. Empty when
+    nothing was rebuilt or nothing was declared; never a verdict's input.
     """
 
     accepted: bool
     report: str
     checks_run: tuple[str, ...] = ()
     reason_code: str | None = None
+    rebuilt_series: tuple[tuple[object, ...], ...] = ()
 
     def __post_init__(self) -> None:
         if not self.report.strip():
@@ -192,6 +198,8 @@ class ValidationResult:
                 raise ValueError("a verdict that could not be established cannot be accepted")
             if self.checks_run:
                 raise ValueError("a verdict that could not be established names no checks")
+        if self.rebuilt_series and "rebuild" not in self.checks_run:
+            raise ValueError("a rebuilt series comes only from a rebuild that ran")
 
     @property
     def state(self) -> str:
