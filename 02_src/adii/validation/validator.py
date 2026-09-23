@@ -27,7 +27,7 @@ from adii.reporting.record import REPO
 from adii.tools import ReadOnlyDatabase, load_transform_sources
 from adii.tools.walkthrough_world import build_script as walkthrough_world
 
-from .checks import Invariant, check
+from .checks import Invariant, changes_the_world, check
 from .patching import PatchRejected, Step, apply_patch
 
 ORACLES = Path(__file__).resolve().parent / "oracles"
@@ -92,11 +92,13 @@ class Validator:
         # the rebuild is the first check: a patch the world cannot apply is a rejection by the
         # check named `rebuild`, never the legacy "nothing checked" shape
         try:
-            rebuilt = apply_patch(world, pipeline, transforms, decision.patch)
+            rebuilt = apply_patch(world, pipeline, transforms, decision.patch,
+                                  world_ticks=frozen.build_ticks)
         except PatchRejected as problem:
             return ValidationResult(accepted=False, report=f"rebuild: patch rejected: {problem}",
                                     checks_run=("rebuild",))
-        outcomes = [check(invariant, frozen, rebuilt) for invariant in invariants]
+        outcomes = [changes_the_world(tuple(step.table for step in pipeline), frozen, rebuilt),
+                    *(check(invariant, frozen, rebuilt) for invariant in invariants)]
         accepted = all(outcome.passed for outcome in outcomes)
         report = "rebuild: the world rebuilt with the patch applied; " + "; ".join(
             f"{o.name}: {'holds' if o.passed else 'fails'} — {o.detail}" for o in outcomes)

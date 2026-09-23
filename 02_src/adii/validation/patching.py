@@ -25,8 +25,10 @@ from dataclasses import dataclass
 
 from adii.tools import ReadOnlyDatabase
 
-# How long a rebuild may run: ticks of the tool layer's progress handler (10,000 SQLite
-# instructions each). A frozen world and its pipeline build in a handful.
+# A rebuild may cost twice what building the frozen world cost, plus this floor, in ticks of
+# the tool layer's progress handler (10,000 SQLite instructions each): the world again, and as
+# much again for a candidate that derives more of it than the broken transform did — so a world
+# of millions of rows rebuilds, and a runaway is still cut at a bound that grows with the world.
 MAX_BUILD_TICKS = 2_000
 # What a statement separator can hide in: a line comment, a block comment, a string literal.
 # Struck out before the one-statement check, never from the SQL that runs.
@@ -89,10 +91,12 @@ def rebuild_script(world: str, pipeline: tuple[Step, ...], transforms: dict[str,
 
 
 def apply_patch(world: str, pipeline: tuple[Step, ...], transforms: dict[str, str],
-                patch: dict[str, str]) -> ReadOnlyDatabase:
-    """The frozen world, rebuilt from scratch with `patch` applied, or `PatchRejected`."""
+                patch: dict[str, str], world_ticks: int = 0) -> ReadOnlyDatabase:
+    """The frozen world, rebuilt from scratch with `patch` applied, or `PatchRejected`.
+    `world_ticks` is what building the frozen world cost; the rebuild may cost twice that
+    plus MAX_BUILD_TICKS."""
     script = rebuild_script(world, pipeline, transforms, patch)
     try:
-        return ReadOnlyDatabase.in_memory(script, max_build_ticks=MAX_BUILD_TICKS)
+        return ReadOnlyDatabase.in_memory(script, max_build_ticks=2 * world_ticks + MAX_BUILD_TICKS)
     except ValueError as refused:          # the build SQLite would not run, in its words
         raise PatchRejected(f"the world does not rebuild with this patch: {refused}") from None

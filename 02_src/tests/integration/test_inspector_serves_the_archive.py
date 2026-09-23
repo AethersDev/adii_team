@@ -175,8 +175,11 @@ def test_a_run_can_be_started_from_the_page_only_when_the_operator_allowed_it(tm
         status, answer = call("POST", "/api/runs", {"incident": "orders-missing-day"})
         assert status == 403 and "read-only" in answer["error"]
         assert call("GET", "/api/launch")[1] == {"enabled": False}
-        assert [i["incident_id"] for i in call("GET", "/api/incidents")[1]][:2] == \
-            ["demo-learning-001", "orders-missing-day"]
+        listed = [i["incident_id"] for i in call("GET", "/api/incidents")[1]]
+        # the teaching incident, then the canonical world's packages, then the specimens
+        assert listed[0] == "demo-learning-001" and listed[-1] == "customer-region-misassigned"
+        from adii.examples.canonical_world import packages
+        assert listed[1:1 + len(packages())] == sorted(packages())
 
         server.LAUNCH.update({"provider": "local",
                               "endpoint": f"http://127.0.0.1:{model.server_port}/v1",

@@ -212,25 +212,31 @@ citations resolved, the sent messages in the record.
 
 ---
 
-## Phase 2 — The final development set
+## Phase 2 — The development set
 
-**Goal.** Six geometries as incident packages under the final contracts, with a frozen
-development key and a hash-bound grounding key each, authored before any evaluated run.
+**Revised 23 September.** The bootcamp brief asks for a clear end-to-end agent over
+reasonable data — synthetic data is named as acceptable — and for labelled eval data, which
+the team may annotate itself. So the private-corpus compilation, the reserve commitment and
+the catalogue's seven decision rows are not needed and are not done; the set is generated
+here, and the team labels it.
 
-| # | unit | done when |
-|---|---|---|
-| 2.1 | catalogue rows 1–7 marked (decision C1–C7); the amendments in the decision table | the marks committed |
-| 2.2 | D-20: the custodian's private partition and `python -m adii.evaluation.commitment --partition … --out 02_src/adii/evaluation/reserve_commitment.json`; the commitment committed **before** any package under `01_data/incidents/` | the file predates every incident in `git log` |
-| 2.3 | D-21: `python -m adii.runtime --incident <id>` resolves `01_data/incidents/<id>/` through `incident_from_dir`; two guard tests — every incident has a truth file marked `public_development` with a public selection class; nothing in the repository is blind-eligible | both tests red against a planted violation, green otherwise |
-| 2.4 | the canonical world's three configurations A, B, C as packages ([DATA_WORLD_v0.md](DATA_WORLD_v0.md), [../../01_data/demo/world/README.md](../../01_data/demo/world/README.md)): one schema, one alert, **one permitted path set across all three** (the leak in [DECISIVE_TESTS_v0.md](DECISIVE_TESTS_v0.md)), A with its transform bundle, B with the notice, C with the disagreeing manifest and the absent receipt | the runtime loads each with no configuration-specific code; A is rebuildable |
-| 2.5 | the other three geometries compiled from the specimens' worlds into packages: `remove_excess` (the replayed delivery), `reassign_relationship` (the region map), `action_not_executable` (the signed settlement); C of the canonical world is `unresolved_evidence` | each passes the four questions; reachability held by a test that runs the decisive calls against the real tool layer |
-| 2.6 | six answer keys in the v1 schema under `02_src/adii/evaluation/catalogue/`, frozen by digest; six grounding keys bound to them; authored by the architect as custodian and labelled team-authored development keys, as the page already says | every key loads frozen; every grounding key loads bound; `test_answer_keys_stay_out` still green |
+**Built.** `python -m adii.examples.canonical_world` writes 18 incident packages under
+`01_data/incidents/`: six families — six companies, each with its own day, volume,
+distributors and decoy release — and in each the same alert over three states of the
+evidence: the load stopped part-way (REPAIR), the business really changed (NO_REPAIR), the
+evidence cannot decide (ESCALATE). Half the families are explicit, their notices saying what
+happened; half are implicit, the evidence only in the data. Ids are opaque; the generator
+writes worlds, never answers. Labels, authored by the team and frozen by digest before any
+run: an answer key and a grounding key per case under `02_src/adii/evaluation/catalogue/`;
+an oracle per case beside the validator.
 
-The walkthrough stays the teaching fixture. The six specimens stay for the inspector's
-history and are not the development set.
-
-Gate: six packages load; six keys frozen before any run in phase 5 exists; the archive
-attested.
+**Gate.** `tests/integration/test_incident_packages_are_ready.py`: every package is its
+generator's output, states no answer, shares every surface with its siblings, is reachable
+through the real tool layer, and is rebuildable; every case has a frozen key and a bound
+grounding key; and every case is solvable — an ideal scripted investigator makes the
+decisive calls, cites them, and scores success with the decisive evidence observed and
+cited, a REPAIR accepted by the validator and admissible. The six specimens stay for the
+page's history and are not in the benchmark.
 
 ---
 
@@ -449,7 +455,7 @@ scope cut, the order is: the second rebuildable world, the benchmark view on the
 | R4 | trace contract row 4: per-event timestamps | DEFER — latency stays the wall clock, said so | | |
 | R7 | trace contract row 7: an event for the authorization fact | DEFER — the record carries it; nothing reads an event | | |
 | V | the validator generalised as in 1.5; oracles live with the validator, keyed by incident, never under `01_data/` | APPROVED | APPROVED — the project owner, 23 Sep 2026, with an order: the mechanism is generalised first and proved on the walkthrough and on test-only packages; configuration A enters as a catalogue package in phase 2, after the reserve commitment, never before | decisions |
-| C1–C7 | the catalogue rows as proposed, amended: packages under `01_data/incidents/<id>/` in the `--incident-dir` shape; truth under `02_src/adii/evaluation/catalogue/` in the v1 key schema with grounding keys beside; the six public classes; declassification irreversible; the commitment first | APPROVED with the amendments | | |
+| C1–C7 | the catalogue rows | not needed | DEFER — not needed: the set is generated and team-labelled, as the bootcamp brief allows (23 Sep) | |
 | G | alert-only's evidence-gate policy | both variants once, each in the receipt | | |
 | R | the repeat rule | two of three per cell; disagreements listed | | |
 | S | semantics v2 as in 3.3 | APPROVED, frozen before the paid pack | | |
@@ -466,3 +472,6 @@ scope cut, the order is: the second rebuildable world, the benchmark view on the
 | 23 Sep 2026 | 1.3 | trace contract row 1 built: every `model_requested` carries `sent`, each message appended since the previous request — the protocol and the incident first, then the model's own reply and what answered it — so any turn's whole prompt is the `sent` lists joined, held equal to what the endpoint received turn by turn, and the receipt's protocol digest held equal to the system message actually sent; `messages`, the count, kept; the page shows `sent` in each turn's raw events and adds no sentence; guard `D.request_records_what_was_sent`, killed | |
 | 23 Sep 2026 | 1.1 | the judge on the scoring path: `provider/judge.py`, standard library, one request per routed case through the run's own transaction, a priced model at temperature 0 with a bounded reply, the credential from the environment or `.env.local`; `python -m adii.evaluation --judge-model ID [--judge-endpoint URL]`; the report keeps `settled_by` (deterministic, judge or none) and, when the judge settled it, `judge: {model, prompt_sha256, usage, cost_usd, price_table, verdict, justification}`; without a judge the case stays `failure / unresolved`; a reply that is not a verdict scores nothing; the SDK provider, the `judge` extra and the `openai` pin deleted — zero third-party runtime dependencies, and three chosen development tools; guards `C.judge_unresolved_without_a_judge` and `D.judge_named_by_prompt_digest`, both killed | |
 | 23 Sep 2026 | 1.5 | the validator is a mechanism: a rebuild runs the incident's own pipeline from its frozen world and transform bundle, a patch may replace only a transform the pipeline declares, and one check compares invariants row for row; each rebuildable incident has an oracle beside the validator — pipeline and invariants, a closed shape that refuses a patch, a repair id or a disposition; the walkthrough runs on it, and D3's four outcomes are proved through the real runtime on a test-only package shaped like configuration A — correct: authorized, ACCEPT, admissible; symptom-hiding: REJECT by the oracle; correct but outside the path: DENIED and ACCEPT; inapplicable: REJECT by rebuild; the plan's untargeted-identity check is not built, because a rebuild re-derives only pipeline tables from the frozen world, so base tables cannot change by construction; the report's judge field renamed `justification`; guards `C.oracle_shape_is_closed` and `C.invariants_compare_rows` added and four validation rows moved with the code, all killed; phase 1 closed | |
+| 23 Sep 2026 | 2 (data) | the data audit found the specimens cannot carry the benchmark — no derivable pipelines, missing evidence, empty permitted paths leaking ESCALATE — so the canonical world was built first: `python -m adii.examples.canonical_world` writes one alert, one schema, one tool surface, one permitted path and one decoy release into three packages under `01_data/incidents/` with opaque ids, differing only in what the evidence says (the load stopped at 55 of 100; two distributor contracts ended; the manifest claims 100 under a known counting fault and the vendor receipt is missing); the generator writes worlds and never answers; three oracles authored beside the validator; the data-readiness gate holds every package to its generator, to no stated answer, to one surface per alert, to reachability through the real tool layer and to a pipeline that reproduces its own world; the stage story held on the real packages — scale-to-the-total recovers the chart and is rejected, the load repaired is accepted, a repair of a world that was never broken is rejected by a new generic check that a repair changes the world; `--incident <id>` and the page resolve packages; guards `C.a_repair_changes_the_world` and `D.incident_id_is_one_segment`, both killed; the specimens stay for the page's history and are not in the benchmark; keys and grounding keys next, frozen before any run | |
+| 23 Sep 2026 | 2 | the set scaled and labelled: six families × three states = 18 generated packages, explicit and implicit tiers, 18 answer keys and 18 grounding keys frozen, 18 oracles; the gate proves every case solvable and its labels consistent; the reserve commitment and catalogue rows dropped as unneeded for the brief | |
+| 23 Sep 2026 | 2 (scale) | capacity measured apart from decision quality: `python -m adii.evaluation.scale` grows the canonical world's exact incidents and holds the decisions. Probing it found three defects that only scale shows, all fixed: the validator falsely rejected a correct repair at 1M orders because its rebuild budget was a fixed instruction count — it now scales with the frozen world's own build; the decisive per-day query was refused at 5M because the query budget was fixed — it now scales with the rows the world holds, a cross join still cut; invariant checks held both sides' rows under a 100,000-row cap — they now compare streamed multiset fingerprints. On this machine (M4, 16 GB): 10k, 100k, 1M and 5M orders all reach the same three decisions, the correct repair ACCEPT and the fake REJECT at every size; validation 0.06 s, 0.7 s, 6.2 s and 33 s; peak memory 50 MB, 0.3 GB, 2.7 GB and 6.7 GB, so in-memory worlds end near 5M orders on 16 GB; the orders extract indexed by day; guards `B.query_budget_scales_with_the_world` and `C.rebuild_budget_scales_with_the_world`, both killed | |

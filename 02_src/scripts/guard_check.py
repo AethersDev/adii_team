@@ -503,6 +503,21 @@ GUARDS = (
     Guard("D.judge_named_by_prompt_digest", "D", "provider/judge.py",
           '            "prompt_sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),\n',
           '            "prompt_sha256": None,\n'),
+    # the canonical world: a repair repairs something; a package id never leaves the packages
+    Guard("C.a_repair_changes_the_world", "C", "validation/checks.py",
+          "    if moved:\n",
+          "    if True:\n"),
+    Guard("D.incident_id_is_one_segment", "D", "runtime/__main__.py",
+          "    if LABEL.fullmatch(incident_id) and folder.is_dir():      # brought incident's\n",
+          "    if folder.is_dir():      # brought incident's\n"),
+    # scale: every budget grows with the world it bounds, never a fixed number of instructions
+    Guard("B.query_budget_scales_with_the_world", "B", "tools/database.py",
+          '        limits.setdefault("max_progress_ticks", '
+          'max(QUERY_TICKS_FLOOR, held // ROWS_PER_TICK))\n',
+          '        limits.setdefault("max_progress_ticks", QUERY_TICKS_FLOOR)\n'),
+    Guard("C.rebuild_budget_scales_with_the_world", "C", "validation/patching.py",
+          "max_build_ticks=2 * world_ticks + MAX_BUILD_TICKS)",
+          "max_build_ticks=MAX_BUILD_TICKS)"),
     Guard("C.failed_rebuild_is_reject_not_unchecked", "C", "validation/validator.py",
           '                                    checks_run=("rebuild",))\n',
           '                                    checks_run=())\n'),
@@ -555,8 +570,9 @@ GUARDS = (
           "    if got == want:\n",
           "    if len(got) == len(want):\n"),
     Guard("B.build_budget_bounds_a_candidate_transform", "B", "tools/database.py",
-          "        if max_build_ticks is not None:\n",
-          "        if False:\n"),
+          "            return max_build_ticks is not None and ticks > max_build_ticks"
+          "   # non-zero aborts\n",
+          "            return False\n"),
     # C's own guards (the key loaders, the scorer's refusals) join here from C's tests.
 )
 

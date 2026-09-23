@@ -1,0 +1,8 @@
+{
+  "incident_id": "revenue-drop-96e69b",
+  "alert": "Daily revenue for 2026-05-19 fell about 30% against the previous two weeks. A release went out that morning, and product wants it rolled back.",
+  "as_of": "2026-05-20T07:00:00Z",
+  "permitted_write_paths": [
+    "transforms/stg_orders.sql"
+  ]
+}

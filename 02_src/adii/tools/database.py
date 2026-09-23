@@ -18,6 +18,7 @@ may — `test_only_the_tool_layer_touches_the_outside_world` says so.
 """
 from __future__ import annotations
 
+import hashlib
 import math
 import sqlite3
 from dataclasses import dataclass
@@ -53,6 +54,10 @@ _ACTION_NAMES = {
 }
 
 PROGRESS_EVERY_N_INSTRUCTIONS = 10_000
+# One query's budget, in ticks: a tick for every ROWS_PER_TICK rows the world holds, and never
+# less than the floor, however small the world. A query past it is interrupted and sent back.
+QUERY_TICKS_FLOOR = 500
+ROWS_PER_TICK = 20
 
 
 @dataclass(frozen=True)
@@ -79,13 +84,15 @@ class ReadOnlyDatabase:
     """Wraps a connection so that only reads can reach it. Build it, then hand it to the
     tools; the tools never see the connection."""
 
-    def __init__(self, connection: sqlite3.Connection, *, max_progress_ticks: int = 500,
+    def __init__(self, connection: sqlite3.Connection, *,
+                 max_progress_ticks: int = QUERY_TICKS_FLOOR,
                  max_cell_chars: int = 500) -> None:
         if isinstance(max_progress_ticks, bool) or max_progress_ticks <= 0:
             raise ValueError("max_progress_ticks must be a positive int")
         if isinstance(max_cell_chars, bool) or max_cell_chars <= 0:
             raise ValueError("max_cell_chars must be a positive int")
         self._connection = connection
+        self.build_ticks = 0         # what building it cost; set by `in_memory`
         self._max_progress_ticks = max_progress_ticks
         self._max_cell_chars = max_cell_chars
         self._denied: str | None = None
@@ -104,20 +111,26 @@ class ReadOnlyDatabase:
         file. A script SQLite refuses is a ValueError naming the reason, not a database.
         `max_build_ticks` bounds the build itself, in ticks of the progress handler: a
         script still running past it — a candidate transform that never finishes — is
-        interrupted and refused the same way, never waited for."""
+        interrupted and refused the same way, never waited for.
+
+        What the build cost is kept as `build_ticks`, for a rebuild's budget to scale with.
+        Unless `max_progress_ticks` is given, one query's budget scales with the world's size:
+        a tick for every ROWS_PER_TICK rows it holds, never less than the floor — enough to read
+        every row several times over, never quadratically many — so a world of millions of rows
+        answers the questions a world of hundreds does, and a runaway is still cut."""
         connection = sqlite3.connect(":memory:")
         connection.set_authorizer(_no_attach)
-        if max_build_ticks is not None:
-            if isinstance(max_build_ticks, bool) or max_build_ticks <= 0:
-                raise ValueError("max_build_ticks must be a positive int")
-            ticks = 0
+        if max_build_ticks is not None and (isinstance(max_build_ticks, bool)
+                                            or max_build_ticks <= 0):
+            raise ValueError("max_build_ticks must be a positive int")
+        ticks = 0
 
-            def over_budget() -> bool:
-                nonlocal ticks
-                ticks += 1
-                return ticks > max_build_ticks       # non-zero aborts the statement
+        def counted() -> bool:
+            nonlocal ticks
+            ticks += 1
+            return max_build_ticks is not None and ticks > max_build_ticks   # non-zero aborts
 
-            connection.set_progress_handler(over_budget, PROGRESS_EVERY_N_INSTRUCTIONS)
+        connection.set_progress_handler(counted, PROGRESS_EVERY_N_INSTRUCTIONS)
         try:
             connection.executescript(build_script)
         except sqlite3.Error as bad:
@@ -125,7 +138,13 @@ class ReadOnlyDatabase:
             raise ValueError(f"the world's build script is not one SQLite accepts: {bad}") \
                 from None
         connection.commit()
-        return cls(connection, **limits)
+        held = sum(connection.execute(f'SELECT count(*) FROM "{name}"').fetchone()[0]
+                   for (name,) in connection.execute(
+                       "SELECT name FROM sqlite_master WHERE type = 'table'").fetchall())
+        limits.setdefault("max_progress_ticks", max(QUERY_TICKS_FLOOR, held // ROWS_PER_TICK))
+        database = cls(connection, **limits)
+        database.build_ticks = ticks
+        return database
 
     @classmethod
     def from_file(cls, path: str | Path, **limits: int) -> ReadOnlyDatabase:
@@ -172,12 +191,32 @@ class ReadOnlyDatabase:
         lookups; the model's tool passes none."""
         if isinstance(max_rows, bool) or max_rows <= 0:
             raise ValueError("max_rows must be a positive int")
+        columns, fetched = self._read(sql, parameters, lambda c: c.fetchmany(max_rows + 1))
+        rows = tuple(tuple(self._bound(v) for v in row) for row in fetched[:max_rows])
+        return QueryResult(columns=columns, rows=rows, truncated=len(fetched) > max_rows)
+
+    def fingerprint(self, sql: str) -> tuple[int, str]:
+        """How many rows one read-only statement yields, and a digest of them as a multiset —
+        streamed, never held, so two worlds of millions of rows are compared in bounded
+        memory. The same refusals as `query`; the digest ignores row order."""
+        def digest(cursor) -> tuple[int, int]:
+            count, total = 0, 0
+            for batch in iter(lambda: cursor.fetchmany(10_000), []):
+                for row in batch:
+                    count += 1
+                    total += int.from_bytes(hashlib.sha256(repr(row).encode()).digest(), "big")
+            return count, total % 2 ** 256
+        _, (count, total) = self._read(sql, (), digest)
+        return count, f"{total:064x}"
+
+    def _read(self, sql: str, parameters: tuple[object, ...], consume):
+        """Run one statement and `consume` its cursor, inside the boundary's refusals."""
         if not sql.strip():
             raise Rejected("the query is empty")
         self._denied, self._ticks, self._interrupted = None, 0, False
         try:
             cursor = self._connection.execute(sql, parameters)
-            fetched = cursor.fetchmany(max_rows + 1)
+            consumed = consume(cursor)
         except sqlite3.ProgrammingError as problem:
             raise Rejected(f"one statement per call: {problem}") from None
         except sqlite3.DatabaseError as problem:
@@ -193,9 +232,7 @@ class ReadOnlyDatabase:
             raise Rejected(f"SQL error: {problem}") from None
         if cursor.description is None:
             raise Rejected("the statement returned no result set; only SELECT is useful here")
-        columns = tuple(d[0] for d in cursor.description)
-        rows = tuple(tuple(self._bound(v) for v in row) for row in fetched[:max_rows])
-        return QueryResult(columns=columns, rows=rows, truncated=len(fetched) > max_rows)
+        return tuple(d[0] for d in cursor.description), consumed
 
     def tables(self) -> tuple[str, ...]:
         result = self.query(
