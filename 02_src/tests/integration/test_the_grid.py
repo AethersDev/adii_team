@@ -71,7 +71,12 @@ def test_a_paid_pack_whose_worst_case_crosses_its_cap_is_refused_before_anything
             "--repeats", "3", "--max-cost-usd", "0.50", "--pack-cap-usd", "5",
             "--archive", str(tmp_path / "runs"), "--packs", str(tmp_path / "packs")]
     assert grid.main(argv) == 2
-    assert "12 paid runs × $0.50 = $6.00" in capsys.readouterr().out
+    assert "12 paid runs × ($0.50 + a judge's $0.00) = $6.00" in capsys.readouterr().out
+    assert not (tmp_path / "runs").exists() and not (tmp_path / "packs").exists()
+    # a judge's questions are charged to the same cap, at their own bound, in exact arithmetic
+    argv[argv.index("5")] = "6.00"
+    assert grid.main([*argv, "--judge-model", "gpt-4.1-mini"]) == 2
+    assert "= $6.12" in capsys.readouterr().out
     assert not (tmp_path / "runs").exists() and not (tmp_path / "packs").exists()
 
 

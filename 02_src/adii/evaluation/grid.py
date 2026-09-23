@@ -16,7 +16,8 @@ that failed is an archived record like any other, never a missing one.
 
 Spending is capped twice: each paid run by `--max-cost-usd`, hard in the provider; and the
 pack by `--pack-cap-usd`, hard by construction — a pack whose every paid run spending its
-whole cap would cross it is refused before anything runs. The pack's receipt,
+whole cap, and the judge asked once per paid run at its own bound, would cross it is
+refused before anything runs, in exact arithmetic. The pack's receipt,
 `01_data/packs/<pack>.json`, is written before the first run and names what the pack is; a
 pack resumed with anything different is refused. The report reads the records and the
 evaluation reports and nothing else.
@@ -27,9 +28,11 @@ import argparse
 import json
 from collections import Counter, defaultdict
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 
 from ..examples.canonical_world import FAMILIES, STATES, incident_id
+from ..provider.judge import MAX_COST_USD as JUDGE_MAX_COST_USD
 from ..provider.judge import Judge
 from ..reporting.record import ARCHIVE, LABEL, REPO, read_record, source_revision
 from ..runtime import __main__ as runtime
@@ -177,10 +180,12 @@ def main(argv: list[str] | None = None) -> int:
                 "pack_cap_usd": args.pack_cap_usd, "judge_model": args.judge_model}
         paid = sum(arm != "always-escalate" for _, _, arm, _ in cells(pack))
         if args.provider == "openai":
-            worst = paid * args.max_cost_usd
-            if args.pack_cap_usd is None or worst > args.pack_cap_usd:
-                print(f"the pack's worst case is {paid} paid runs × ${args.max_cost_usd:.2f} = "
-                      f"${worst:.2f}; --pack-cap-usd must be at least that, or the pack smaller")
+            judged = JUDGE_MAX_COST_USD if args.judge_model else Decimal(0)
+            worst = paid * (Decimal(str(args.max_cost_usd)) + judged)
+            if args.pack_cap_usd is None or worst > Decimal(str(args.pack_cap_usd)):
+                print(f"the pack's worst case is {paid} paid runs × (${args.max_cost_usd:.2f}"
+                      f" + a judge's ${judged:.2f}) = ${worst:.2f}; --pack-cap-usd must be at "
+                      "least that, or the pack smaller")
                 return 2
         if receipt.is_file():
             was = json.loads(receipt.read_text(encoding="utf-8"))

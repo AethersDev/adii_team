@@ -6,12 +6,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+from decimal import Decimal
 
 import pytest
 from adii.evaluation.__main__ import NAME, main
 from adii.evaluation.freeze import freeze_answer_key
 from adii.evaluation.grounding import build_grounding_key
 from adii.examples.walkthrough import main as walkthrough
+from adii.provider.judge import MAX_COST_USD
 from adii.reporting.manifest import RETENTION, verify, write_manifest
 
 KEY = {
@@ -206,6 +208,7 @@ def test_the_judge_settles_it_and_the_report_says_which_judge_said_what(
     assert judge["prompt_sha256"] == hashlib.sha256(prompt.encode("utf-8")).hexdigest()
     assert judge["usage"] == {"prompt_tokens": 100, "completion_tokens": 20}
     assert judge["cost_usd"] and judge["price_table"]
+    assert Decimal(judge["cost_usd"]) <= Decimal(judge["reserve_usd"]) <= MAX_COST_USD
     assert judge["justification"] == "it removes exactly one of the two conversions."
     assert "reasoning" not in judge
     assert JUDGE_KEY not in text                          # the credential is in no artefact
@@ -220,6 +223,19 @@ def test_a_judge_that_does_not_give_a_verdict_scores_nothing(
                  "--judge-model", "gpt-4.1-mini", "--judge-endpoint", judge_endpoint]) == 2
     assert "not scored" in capsys.readouterr().out
     assert not (archive / "demo-learning-001" / NAME).exists()
+
+
+def test_a_judge_question_that_could_cost_more_than_its_bound_is_never_asked(
+        archive, tmp_path, judge_endpoint, monkeypatch, capsys):
+    from adii.provider import judge
+
+    from .fake_model import FakeModel
+    key = a_key_the_run_does_not_match_by_id(tmp_path)
+    monkeypatch.setattr(judge, "MAX_COST_USD", Decimal("0.0001"))
+    assert main(["--run", "demo-learning-001", "--key", str(key), "--archive", str(archive),
+                 "--judge-model", "gpt-4.1-mini", "--judge-endpoint", judge_endpoint]) == 2
+    assert "it was not asked" in capsys.readouterr().out
+    assert FakeModel.seen == []
 
 
 def test_a_judge_must_be_priced_and_have_its_credential(archive, tmp_path, monkeypatch, capsys):
