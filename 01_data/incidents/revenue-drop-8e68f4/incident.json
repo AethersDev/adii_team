@@ -1,0 +1,8 @@
+{
+  "incident_id": "revenue-drop-8e68f4",
+  "alert": "Daily revenue for 2026-12-01 fell sharply: the day counted about 49% fewer orders than a usual day. A release went out that morning, and product wants it rolled back.",
+  "as_of": "2026-12-02T07:00:00Z",
+  "permitted_write_paths": [
+    "transforms/stg_orders.sql"
+  ]
+}

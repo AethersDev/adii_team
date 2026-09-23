@@ -31,3 +31,6 @@ dist/
 
 # Logs
 *.log
+
+# the submission ZIP: built from a tag by 02_src/scripts/package_submission.py
+adii_submission.zip

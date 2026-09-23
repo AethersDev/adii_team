@@ -286,18 +286,23 @@ every cell materialised, and once for real on the local model.
 
 ## Phase 4 — Freeze
 
-`python -m adii.freeze --pack <name>` writes `02_src/adii/evaluation/freeze/<name>.json`:
-digests of the protocol, the advertised tool schemas per incident, the bounds
-configuration, the price table id (verified against the provider's page **before** this
-step, the table id bumped if it moved), the validator's source and oracles, the scorer's
-source and semantics v2, every catalogue key and grounding key, the judge model and prompt
-digest, and the code revision. From then on every receipt carries the freeze digest, and a
-test asserts the digests still match. Tag `freeze-<date>`.
+`python -m adii.evaluation.lock --name freeze-<date>` writes
+`02_src/adii/evaluation/freezes/<name>.json`: the sha256 of every file the evaluated system is
+made of — every module under `02_src/adii` (the protocol, the tools, the validator and its
+oracles, the scorer and its semantics, the judge's prompt, the price table, the page), the
+pinned requirements, the incident packages and the catalogue (keys, grounding keys,
+partition, burned list) — the terms of the four registered final packs written out in full
+(decision E), and the commit it was taken at. The price table is verified against the
+provider's page before this step. The freeze file is committed with the tree it digests and
+tagged `freeze-<date>`. From then on `test_the_freeze.py` fails the gate if any frozen file
+changes, and the grid refuses a registered pack unless the tree matches the newest freeze
+and the pack's terms are the frozen ones; the pack's receipt names the freeze by digest.
+`python -m adii.evaluation.lock --check` says whether the tree still matches.
 
-**Windows qualification, once, on the frozen build.** `python 02_src/scripts/package_submission.py`
-(a new script, standard library only: `git archive` of the tagged commit plus the files
-the submission names, written as `adii_submission.zip`, with a manifest of its own
-contents) run on the Mac; the ZIP extracted on a clean Windows machine — a teammate's, the
+**Windows qualification, once, on the frozen build.** `python 02_src/scripts/package_submission.py
+--ref freeze-<date>` (standard library only: `git archive` of the tag, plus, after phase 5,
+every named pack's receipt, reports and run folders, written as `adii_submission.zip` with
+`SUBMISSION.json` listing every file by sha256; the same inputs build the same bytes) run on the Mac; the ZIP extracted on a clean Windows machine — a teammate's, the
 Windows rig, or a local VM — and there: `py -3.12 -m venv .venv`, `pip install -r
 requirements.txt`, `python 02_src/scripts/check_env.py`, `pytest`, `python -m
 adii.runtime --incident demo-learning-001 --provider scripted`, `python -m adii.demo`, and
@@ -468,6 +473,7 @@ scope cut, the order is: the second rebuildable world, the benchmark view on the
 | F2 | "after validation" is the validator's reading: `ValidationResult.rebuilt_series`, the declared series read from the rebuilt world with the same query, on ACCEPT and REJECT alike, empty when nothing was rebuilt; a contract row, and the record moves to `adii.run_record/v3` (v2 and v1 still load) | APPROVED | APPROVED — the project owner, 23 Sep 2026 | the front door |
 | F3 | "How ADII knows" is built from the investigator's citations: each cited observation rendered by a fixed template from its recorded result — no model wording, no protocol change | APPROVED | APPROVED — the project owner, 23 Sep 2026 | the front door |
 | W | the product's name beside the unchanged logo: **ADII — Is it broken?** The question before the machinery; Fix it · Leave it · Escalate it are the answers, and maker-checker is the reveal. The category line, once understood, elsewhere: "Intervention assurance for consequential data changes." | APPROVED | APPROVED — the project owner, 23 Sep 2026 | the front door |
+| A2 | the alert names the number it measured: version 1 said "revenue fell about N%" where N was the orders' fall; the orders fall by the same share in every state of a family and the revenue does not (mar: 48% and 44%), so a shared alert can only state the orders. Version 2 of every live case — "Daily revenue for D fell sharply: the day counted about N% fewer orders than a usual day." — under new ids, the same worlds and answers, keys copied and frozen anew, the partition moved to them; version 1 kept byte for byte and listed as superseded, since the rehearsals, the integration gate and the stage's precomputed FIX ran on it and no record is rewritten. The chart states the revenue's fall under its own name. Before any final run and before the freeze | APPROVED | APPROVED — the project owner, 23 Sep 2026 | phase 4 |
 
 ## The audit of 23 Sep, before the freeze
 
@@ -514,3 +520,6 @@ finding, what was done, and what the benchmark may therefore claim.
 | 23 Sep 2026 | 5.1 (pilot-paid-v3) | Luna qualified on the burned cases, which no result reports: 6 runs of gpt-6-luna at effort low, every run `submitted` and scored, every tool call OK, no malformed call, every finish `stop`, $0.017 in all; its one refused submission was the protocol — a REPAIR without a patch, told so, then an escalation. No machinery defect. Luna, like Sol, escalated every burned case, quoting the transform's deliberate staging cutoff | |
 | 23 Sep 2026 | the front door (F1, F2) | the record carries the chart: every canonical package writes `alert_series.json`; the runtime records `alert_observed` before the investigation; the validator returns `rebuilt_series` from its rebuild; the record is `adii.run_record/v3`. Proved on the real packages: the runtime's reading shows the drop and is no tool call; the restored staging brings the day back to what was delivered in the validator's own series, and the chart-only fake paints the same day back and is still rejected; guards `D.alert_is_observed_before_the_investigation` and `C.validator_reports_its_rebuilt_series`, killed | |
 | 23 Sep 2026 | the front door | the new page wired to the real backend: the old page archived whole in `03_assets/archive/front-door-v1/`; `web/view.js` projects every word from the record and `web/app.js` only draws, with text nodes; the symptom chart from `alert_observed` above the answer and never among the evidence, "How ADII knows" the cited observations only and "Investigated" everything, "Independent rebuild" from `rebuilt_series` with the validator's checks, a layout per answer, sign-off from the authorities' facts, the "no answer" screens from the termination; fonts and logo served locally (OFL), "ADII — Is it broken?" beside the unchanged mark; the demo server takes `--reasoning-effort`. Building it found one defect in F2, fixed: a patch that reshapes what the series query reads made the validator raise, filing the run as an infrastructure failure — the series now comes back empty and the verdict stands. Tests rewritten: the projections in node over real runtime records, the design rules, the executing payload and the fit at 1440 and 390 in Chrome, and both entry paths in the browser against a stand-in model, the page's record the archive's by digest; guards `D.page_renders_text_never_markup` (moved), `D.how_adii_knows_is_what_was_cited`, `D.a_fix_stands_only_with_both_authorities`, `C.the_series_never_costs_a_verdict`, all killed | |
+| 23 Sep 2026 | the front door (integration gate) | the three answers driven through the browser by the project owner against gpt-6-sol at the final settings, on the demo company's cases: Fix it (16 of 20 turns, $0.104 — proposed, allowed, accepted; the validator's rebuild brings 18 Aug from $2,741.46 to $5,541.40), Leave it (10 turns, $0.052), Escalate it (13 turns, $0.078); each downloaded record byte-identical to the archive's, the downloaded fix equal to the record's patch, every citation minted by the tool layer, the page's projections equal to the record's facts. Sol's stray text after a call recurred, two or three times a run, each refused and recorded — turns it costs, within the registered twenty. The run without an answer was not driven live, by the owner's call: its screens are held by the projection tests over every ending and by the fit test in Chrome. The FIX record is kept as the precomputed stage case | |
+| 23 Sep 2026 | 4 | prices verified on OpenAI's pricing page before the freeze: gpt-4.1 $2/$8, gpt-4.1-mini $0.40/$1.60, gpt-6-sol $2/$10, gpt-6-luna $0.10/$0.50 per million — the tables unchanged. `python -m adii.evaluation.lock` built (the freeze file, `--check`, the four registered packs' terms), the grid's gate on registered packs, `test_the_freeze.py` as the standing rule, and `02_src/scripts/package_submission.py`; guard `C.registered_pack_runs_only_on_the_freeze`, killed | |
+| 23 Sep 2026 | 2 (decision A2) and the front door | a review found the alert's percentage was the orders' under the word revenue, so the page showed 49% above a chart reading 51%; version 2 of the 21 live cases written with an alert that names the orders, keys, grounding keys and oracles copied and frozen, the partition moved, version 1 superseded and kept; the readiness gate proves the new alert matches the orders in every state and version 1 unchanged. And the stage leak: the list showed earlier answers under the neutral samples, so `#new` — what "New investigation" opens — is a launch view with no earlier answer on it, held by the fit test; the history stays one click away. The stage's precomputed FIX (version 1, `revenue-drop-d0888f-20260923T190024-097Z`) stays as it is; a version-2 film case is run only after the freeze | |

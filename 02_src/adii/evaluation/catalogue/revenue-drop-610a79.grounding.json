@@ -1,0 +1,15 @@
+{
+  "schema_version": "1",
+  "answer_key_filename": "revenue-drop-610a79.answer.json",
+  "answer_key_digest": "30f69bb0dcbe9a12656d7783b4d705530149a1ece689fbffe6e62ff4b0a271e0",
+  "required_tool_calls": [
+    {
+      "tool": "get_transform",
+      "argument_contains": "stg_orders"
+    },
+    {
+      "tool": "run_sql",
+      "argument_contains": "raw_orders"
+    }
+  ]
+}

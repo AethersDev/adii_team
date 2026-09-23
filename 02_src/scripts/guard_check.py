@@ -577,6 +577,10 @@ GUARDS = (
           "                                rebuilt_series=self.alerted_series(context.incident_id, "
           "rebuilt))",
           "                                rebuilt_series=())"),
+    # phase 4: a registered final pack runs only on the newest freeze, with its frozen terms
+    Guard("C.registered_pack_runs_only_on_the_freeze", "C", "evaluation/grid.py",
+          '            if freeze is None or moved or pack != freeze["packs"].get(args.pack):\n',
+          "            if False:\n"),
     # a reply cut off at the completion bound is named as cut, never left to read as malformed
     Guard("D.cut_reply_is_named", "D", "provider/openai_compatible.py",
           '        self._cut = finish == "length"\n',

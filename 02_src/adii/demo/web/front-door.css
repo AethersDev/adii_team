@@ -102,6 +102,7 @@ h1, h2, p { margin: 0; }
   border: 1px dashed var(--none); border-radius: 14px; }
 .empty h2 { font-size: 26px; }
 .empty__samples { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.sample[aria-pressed="true"] { border: 2px solid var(--ink); }
 .sample { display: flex; flex-direction: column; gap: 12px; min-height: 190px; padding: 20px;
   text-align: left; border: 1px solid var(--line); border-radius: 12px; background: var(--white);
   cursor: pointer; }

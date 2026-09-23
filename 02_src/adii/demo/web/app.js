@@ -69,7 +69,7 @@ function side() {
     brand(),
     el("button", { type: "button", class: "btn btn--primary side__new",
                    onclick: () => { state.pick = null; state.desc = ""; state.files = [];
-                                    go("#"); } }, "New investigation"),
+                                    go("#new"); } }, "New investigation"),
     el("a", { class: "side__item", href: "#", "aria-current": "page" },
       el("span", { text: "Investigations" }),
       el("span", { class: "side__count", text: String(state.runs.length) })),
@@ -107,7 +107,7 @@ function sparkline(rows, width, height) {
                     class: "spark__dot" }));
 }
 
-function composer() {
+function composer(neutral) {
   const samples = state.incidents.filter((i) => i.sample);
   const ready = state.launch.enabled && (state.pick || (state.desc.trim() && state.files.length));
   const read = (list) => Promise.all([...list].map((file) => file.text().then((text) => (
@@ -144,7 +144,7 @@ function composer() {
     el("p", { class: "composer__pitch", text: "ADII investigates a number that looks wrong in " +
       "your data and decides whether to fix it, leave it alone, or escalate it. The AI that " +
       "proposes a fix can’t approve it." }),
-    samples.length && state.runs.length
+    samples.length && state.runs.length && !neutral
       ? el("div", { class: "samples" }, el("span", { text: "Try a sample incident:" }),
           samples.map((s, i) => el("button", { type: "button", class: "pill", title: s.alert,
             "data-incident": s.incident_id,
@@ -192,6 +192,24 @@ const TABS = [["all", "All"], ["running", "Running"], ["fix", "Fix it"], ["leave
 
 function glyph(key) {
   return el("span", { class: "glyph glyph--" + key, "aria-hidden": "true" });
+}
+
+/* A neutral launch view, for a room: what looks wrong and the samples, and no earlier
+ * answer anywhere on the screen — a sample's past outcome shown before it runs would give
+ * the answer away. The history is one click away, under Investigations. */
+function launch() {
+  const samples = state.incidents.filter((i) => i.sample);
+  page(el("header", { class: "bar" }, el("h1", { class: "serif bar__title", text: "New investigation" })),
+    el("main", { class: "list" }, composer(true),
+      samples.length ? el("section", { class: "empty", "aria-label": "Sample incidents" },
+        el("p", { text: "The same alert over three different states of the data. Is it broken?" }),
+        el("div", { class: "empty__samples" }, samples.map((s, i) =>
+          el("button", { type: "button", class: "sample", "data-incident": s.incident_id,
+                         "aria-pressed": state.pick === s.incident_id ? "true" : "false",
+                         onclick: () => pick(s) },
+            el("span", { class: "tag", text: "Sample " + (i + 1) }),
+            s.series ? sparkline(s.series.rows, 300, 64) : null,
+            el("span", { class: "sample__title", text: s.alert }))))) : null));
 }
 
 function list() {
@@ -293,7 +311,8 @@ function symptom(series) {
       el("h2", { id: "symptom-h", class: "symptom__metric", text: b.metric }),
       el("span", { class: "symptom__value" }, V.money(last[1], b.unit),
          moved !== null ? el("span", { class: "symptom__move",
-           text: (moved > 0 ? " ↑" : " ↓") + Math.abs(moved) + "% against the days before" })
+           text: (moved > 0 ? " ↑" : " ↓") + Math.abs(moved) + "% " + b.metric.toLowerCase() +
+                 " against the " + (b.rows.length - 1) + " days before" })
                         : null)),
     lineChart([{ kind: "before", label: b.metric + ", as the system read it before " +
                  "anything was investigated", rows: b.rows }], b.rows,
@@ -551,7 +570,7 @@ function render() {
   stop();
   const hash = decodeURIComponent(location.hash || "");
   if (hash.startsWith("#r/")) return detail(hash.slice(3));
-  return list();
+  return hash === "#new" ? launch() : list();
 }
 
 async function route() {

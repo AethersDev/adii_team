@@ -1,0 +1,73 @@
+"""Phase 4, the freeze: what the final packs run on is named by digest before any of them
+runs, a change after it is a new freeze version, and a registered pack runs only on it."""
+from __future__ import annotations
+
+import json
+
+import pytest
+from adii.evaluation import grid, lock
+
+
+def test_the_newest_freeze_is_the_tree_the_gate_runs_on():
+    """The rule of phase 4, executable: once a freeze is taken, any change to a frozen file
+    fails here until a new freeze version is taken — never a silent engineering change."""
+    freeze = lock.newest()
+    if freeze is None:
+        pytest.skip("no freeze has been taken yet")
+    assert lock.drift(freeze) == [], f"changed since {freeze['name']}: take a new freeze version"
+    assert freeze["digest"] == lock.digest(freeze["files"])
+    assert freeze["packs"] == {p: lock.terms(p) for p in lock.PACKS}
+
+
+def test_a_freeze_digests_the_system_and_notices_any_change(tmp_path):
+    for path in ("02_src/adii/a.py", "02_src/adii/__pycache__/a.pyc", "01_data/incidents/x/w.sql",
+                 "02_src/adii/evaluation/freezes/f.json", "requirements.txt", "pyproject.toml"):
+        (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / path).write_text("x", encoding="utf-8")
+    frozen = lock.files(tmp_path)
+    assert sorted(frozen) == ["01_data/incidents/x/w.sql", "02_src/adii/a.py", "pyproject.toml",
+                              "requirements.txt"]
+    freeze = {"files": frozen}
+    assert lock.drift(freeze, tmp_path) == []
+    (tmp_path / "02_src/adii/a.py").write_text("y", encoding="utf-8")
+    (tmp_path / "02_src/adii/b.py").write_text("new", encoding="utf-8")
+    assert lock.drift(freeze, tmp_path) == ["02_src/adii/a.py", "02_src/adii/b.py"]
+
+
+def test_the_registered_packs_are_decision_e_and_hold_no_burned_case():
+    assert {p: len(lock.terms(p)["incidents"]) for p in lock.PACKS} == {
+        "final-sol": 12, "final-luna": 12, "final-gpt-4-1": 12, "final-held-out": 6}
+    assert not grid.BURNED & {i for p in lock.PACKS for i in lock.terms(p)["incidents"]}
+    paid = {p: len(t["incidents"]) * sum(a != "always-escalate" for a in t["arms"])
+            for p, t in ((p, lock.terms(p)) for p in lock.PACKS)}
+    assert sum(paid.values()) == 54
+    assert all(abs(lock.terms(p)["pack_cap_usd"] - n * 0.51) < 1e-9 for p, n in paid.items())
+
+
+HELD_OUT = ["--pack", "final-held-out", "--provider", "openai", "--model", "gpt-6-sol",
+            "--reasoning-effort", "low", "--arms", "full", "--repeats", "1",
+            "--partition", "held_out", "--max-turns", "20", "--max-cost-usd", "0.5",
+            "--max-tokens", "4096", "--judge-model", "gpt-4.1-mini", "--pack-cap-usd", "3.06"]
+
+
+def test_a_registered_pack_runs_only_on_the_freeze_with_its_frozen_terms(tmp_path, monkeypatch,
+                                                                          capsys):
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-0123456789abcdefghijklmn")
+    monkeypatch.setattr(grid, "run_cell", lambda *a: 0)
+    where = ["--archive", str(tmp_path / "runs"), "--packs", str(tmp_path / "packs")]
+    monkeypatch.setattr(lock, "newest", lambda: None)
+    assert grid.main([*HELD_OUT, *where]) == 2
+    assert "no freeze has been taken" in capsys.readouterr().out
+    freeze = {"name": "freeze-test", "digest": "d", "files": {},
+              "packs": {p: lock.terms(p) for p in lock.PACKS}}
+    monkeypatch.setattr(lock, "newest", lambda: freeze)
+    monkeypatch.setattr(lock, "drift", lambda f: ["02_src/adii/a.py"])
+    assert grid.main([*HELD_OUT, *where]) == 2
+    assert "1 frozen file(s) changed since freeze-test" in capsys.readouterr().out
+    monkeypatch.setattr(lock, "drift", lambda f: [])
+    assert grid.main([*HELD_OUT[:-1], "3.50", *where]) == 2
+    assert "these terms differ from the frozen ones" in capsys.readouterr().out
+    assert not (tmp_path / "packs").exists()
+    assert grid.main([*HELD_OUT, *where]) == 0
+    receipt = json.loads((tmp_path / "packs" / "final-held-out.json").read_text("utf-8"))
+    assert receipt["freeze"] == {"name": "freeze-test", "digest": "d"}
