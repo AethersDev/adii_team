@@ -24,7 +24,7 @@
  * No innerHTML anywhere. Every string here is model-written the day a live provider runs,
  * and a report that executes what the model wrote is inherited defect D12. Text nodes
  * cannot execute. */
-const SCHEMAS = ["adii.run_record/v2", "adii.run_record/v1"];
+const SCHEMAS = ["adii.run_record/v3", "adii.run_record/v2", "adii.run_record/v1"];
 const CHIP = {
   REPAIR: ["adii-chip--repair", "g-repair"],
   NO_REPAIR: ["adii-chip--no-repair", "g-no-repair"],

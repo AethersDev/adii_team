@@ -45,7 +45,7 @@ def test_the_committed_v1_fixture_loads_under_its_declared_version():
     under the version it declares. Provenance is the only part that legitimately differs."""
     assert json.loads(COMMITTED.read_text(encoding="utf-8"))["schema"] == V1
     committed, fresh = read_record(COMMITTED), walkthrough_record()
-    assert json.loads(fresh.to_json())["schema"] == SCHEMA == "adii.run_record/v2"
+    assert json.loads(fresh.to_json())["schema"] == SCHEMA == "adii.run_record/v3"
     assert replace(committed, provenance={}) == replace(fresh, provenance={})
 
 
@@ -112,7 +112,7 @@ def test_citations_round_trip_and_a_record_never_cites_what_its_trace_never_mint
 
 def test_an_unknown_schema_is_refused_not_guessed():
     doc = json.loads(walkthrough_record().to_json())
-    doc["schema"] = "adii.run_record/v3"
+    doc["schema"] = "adii.run_record/v4"
     with pytest.raises(ValueError, match="unknown record schema"):
         from_json(json.dumps(doc))
 
@@ -212,3 +212,23 @@ def test_a_label_names_one_run_forever(tmp_path):
     assert read_record(path) == record
     with pytest.raises(FileExistsError):
         write_record(record, tmp_path)
+
+
+def test_the_rebuilt_series_round_trips_and_a_v2_record_loads_without_one():
+    """Decision F2: the validator's reading of the alerted series in its rebuild travels in
+    the record; a v2 record predates it and loads with none; a v3 record without it is
+    malformed; and only a rebuild that ran can carry one."""
+    record = walkthrough_record()
+    series = (("2026-03-10", 101.5), ("2026-03-11", 99.0))
+    rebuilt = replace(record, validation=ValidationResult(
+        accepted=True, report="rebuild: held", checks_run=("rebuild",), rebuilt_series=series))
+    assert from_json(rebuilt.to_json()).validation.rebuilt_series == series
+    doc = json.loads(rebuilt.to_json())
+    del doc["validation"]["rebuilt_series"]
+    with pytest.raises(ValueError, match="record is missing 'rebuilt_series'"):
+        from_json(json.dumps(doc))
+    assert from_json(json.dumps({**doc, "schema": "adii.run_record/v2"})) \
+        .validation.rebuilt_series == ()
+    with pytest.raises(ValueError, match="only from a rebuild that ran"):
+        ValidationResult(accepted=False, report="x", checks_run=("invariant",),
+                         rebuilt_series=series)

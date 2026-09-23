@@ -30,7 +30,10 @@ from ..contracts import (
     ValidationResult,
 )
 
-SCHEMA = "adii.run_record/v2"
+SCHEMA = "adii.run_record/v3"
+# v2, written 23 Sep 2026 before decision F2: no validation rebuilt_series. Read as it
+# declares itself, that field empty; a v3 record without it is malformed.
+V2 = "adii.run_record/v2"
 # v1, written before 22 Sep: no evidence_refs, no validation reason_code, no authorization.
 # Read as it declares itself, those fields absent; a v2 record without one is malformed.
 V1 = "adii.run_record/v1"
@@ -149,7 +152,8 @@ class RunRecord:
             "validation": None if validation is None else {
                 "accepted": validation.accepted, "report": validation.report,
                 "checks_run": list(validation.checks_run),
-                "reason_code": validation.reason_code},
+                "reason_code": validation.reason_code,
+                "rebuilt_series": [list(row) for row in validation.rebuilt_series]},
             "authorization": None if authorization is None else {
                 "authorized": authorization.authorized,
                 "checked_paths": list(authorization.checked_paths),
@@ -195,10 +199,10 @@ def from_json(text: str) -> RunRecord:
     it does not know is how an archive drifts from its source without anyone noticing."""
     doc = json.loads(text, parse_constant=_not_json)
     schema = doc.get("schema") if isinstance(doc, dict) else None
-    if schema not in (SCHEMA, V1):
-        raise ValueError(f"unknown record schema {schema!r}: this reader understands {SCHEMA} "
-                         f"and {V1}")
-    v1 = schema == V1
+    if schema not in (SCHEMA, V2, V1):
+        raise ValueError(f"unknown record schema {schema!r}: this reader understands {SCHEMA}, "
+                         f"{V2} and {V1}")
+    v1, v3 = schema == V1, schema == SCHEMA
     try:
         c, d, v, n = doc["context"], doc["decision"], doc["validation"], doc["counters"]
         a = doc.get("authorization") if v1 else doc["authorization"]
@@ -217,7 +221,8 @@ def from_json(text: str) -> RunRecord:
                 evidence_refs=tuple(d.get("evidence_refs", ()) if v1 else d["evidence_refs"])),
             validation=None if v is None else ValidationResult(
                 accepted=v["accepted"], report=v["report"], checks_run=tuple(v["checks_run"]),
-                reason_code=v.get("reason_code") if v1 else v["reason_code"]),
+                reason_code=v.get("reason_code") if v1 else v["reason_code"],
+                rebuilt_series=tuple(tuple(row) for row in v["rebuilt_series"]) if v3 else ()),
             authorization=None if a is None else RepairAuthorization(
                 authorized=a["authorized"], checked_paths=tuple(a["checked_paths"]),
                 denied_paths=tuple(a["denied_paths"]), reason_code=a["reason_code"]),

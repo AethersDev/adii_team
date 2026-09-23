@@ -249,3 +249,42 @@ def test_the_partition_is_registered_whole_and_nothing_held_out_has_been_run():
         if not receipt.name.endswith(".report.json"):
             ran = set(json.loads(receipt.read_text(encoding="utf-8"))["incidents"])
             assert not ran & unseen, f"{receipt.name} ran a held-out or demo case"
+
+
+def day_revenue(family, state) -> float:
+    db = ReadOnlyDatabase.in_memory((INCIDENTS / incident_id(family, state) / "world.sql")
+                                    .read_text(encoding="utf-8"))
+    return db.query(f"SELECT ROUND(SUM(amount_usd), 2) FROM raw_orders WHERE order_date = "
+                    f"'{family.day}'", max_rows=1).rows[0][0]
+
+
+def test_the_runtime_reads_the_alerted_series_before_the_investigation(tmp_path):
+    """Decision F1: the chart's 'before' is the runtime's own reading of the frozen world,
+    recorded as `alert_observed` ahead of the investigation — never a tool call, so never
+    the model's evidence, never its grounding."""
+    from adii.reporting import read_record
+    from adii.runtime import __main__ as cli
+    case = incident_id(DEMO, REPAIR_STATE)
+    assert cli.main(["--incident", case, "--provider", "none", "--arm", "always-escalate",
+                     "--archive", str(tmp_path), "--label", "a", "--no-report"]) == 0
+    trace = read_record(tmp_path / "a" / "record.json").trace
+    assert [e.kind for e in trace][:2] == ["incident_received", "alert_observed"]
+    alert = trace[1].payload
+    assert alert["metric"] == "Daily revenue" and len(alert["rows"]) == 15
+    assert alert["rows"][-1][0] == str(DEMO.day)
+    assert alert["rows"][-1][1] < day_revenue(DEMO, REPAIR_STATE)        # the drop, as seen
+    assert not [e for e in trace if e.kind == "tool_call"]
+
+
+def test_after_validation_is_the_validators_reading_of_its_own_rebuild():
+    """Decision F2: the restored staging brings the day back to what was delivered, and the
+    validator says so in its series; the chart-only fake paints the same day back and is
+    still rejected — a chart that recovers is not a repair."""
+    delivered = day_revenue(FIRST, REPAIR_STATE)
+    restored = repair(REPAIR_STATE, {STG: staging(FIRST, "business-changed")}).validation
+    assert restored.state == "ACCEPT" and restored.rebuilt_series[-1] == (str(FIRST.day),
+                                                                        delivered)
+    fake = scale_to_the_total(FIRST.day, staging(FIRST, REPAIR_STATE))
+    faked = repair(REPAIR_STATE, {STG: fake}).validation
+    assert faked.state == "REJECT"
+    assert faked.rebuilt_series[-1][1] == pytest.approx(delivered)

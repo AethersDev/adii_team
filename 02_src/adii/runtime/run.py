@@ -143,16 +143,21 @@ class _Watched:
 
 def run_incident(label: str, context: IncidentContext, investigator: Investigator,
                  tools: Tools, validator: Validator, *,
-                 configuration: dict[str, object], recorder: Recorder | None = None) -> RunRecord:
+                 configuration: dict[str, object], recorder: Recorder | None = None,
+                 alert: dict[str, object] | None = None) -> RunRecord:
     """Investigate, validate if a repair was proposed, and return the record — for every way
     a run can end. A submission carries its decision. A run the loop ended carries the loop's
     classification verbatim. Anything else that escapes is our defect: an infrastructure
     failure, with its traceback on stderr, never a lost run. In every case the trace so far
     is the evidence and the counters come from it. Only a REPAIR reaches the validator: the
-    contract says so, and this is where it is enforced on the way through."""
+    contract says so, and this is where it is enforced on the way through. `alert`, when the
+    incident declares its alerted series, is recorded before the investigation as the
+    runtime's own reading of the world — never shown to the model, never its evidence."""
     started = time.monotonic()
     recorder = recorder or Recorder()   # a provider records at its boundary into the same one
     recorder.event("incident_received", {"incident_id": context.incident_id})
+    if alert is not None:
+        recorder.event("alert_observed", alert)
     decision = authorization = validation = None
     try:
         decision = investigator.investigate(context, recorder.watch(tools))

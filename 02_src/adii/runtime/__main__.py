@@ -151,6 +151,26 @@ def incident(incident_id: str, max_tool_calls: int | None = None):
 
 
 INCIDENT_FILES = ("incident.json", "world.sql")
+# optional: the alerted metric as a series, which the runtime reads once from the world
+# before the investigation — for the record and the page, never for the model
+ALERT_SERIES = "alert_series.json"
+MAX_SERIES_ROWS = 400
+
+
+def alerted_series(folder: Path | None) -> dict | None:
+    """The package's alerted series, read from its world through the read-only database,
+    or None when the package declares none. ValueError when the declaration is malformed or
+    its query is refused."""
+    if folder is None or not (folder / ALERT_SERIES).is_file():
+        return None
+    spec = json.loads((folder / ALERT_SERIES).read_text(encoding="utf-8"))
+    if not isinstance(spec, dict) or not all(isinstance(spec.get(k), str)
+                                              for k in ("metric", "unit", "query")):
+        raise ValueError(f"{ALERT_SERIES} must hold metric, unit and query as text")
+    world = ReadOnlyDatabase.in_memory((folder / "world.sql").read_text(encoding="utf-8"))
+    read = world.query(spec["query"], max_rows=MAX_SERIES_ROWS)
+    return {"metric": spec["metric"], "unit": spec["unit"], "query": spec["query"],
+            "columns": list(read.columns), "rows": [list(row) for row in read.rows]}
 
 
 def incident_from_dir(folder: Path, max_tool_calls: int | None = None):
@@ -220,6 +240,8 @@ def keep_incident(source: Path, folder: Path) -> None:
         target.write_bytes(path.read_bytes())
     for name in INCIDENT_FILES:
         copy(source / name, folder / name)
+    if (source / ALERT_SERIES).exists() or (source / ALERT_SERIES).is_symlink():
+        copy(source / ALERT_SERIES, folder / ALERT_SERIES)
     for map_name, dir_name in EVIDENCE_BUNDLES:
         if (source / map_name).exists() or (source / map_name).is_symlink():
             copy(source / map_name, folder / map_name)
@@ -488,6 +510,9 @@ def main(argv: list[str] | None = None) -> int:
             keep_incident(source, folder)
             context, tools, world_digest, _, evidence = incident_from_dir(folder, tool_cap)
             tools = armed(args.arm, tools, tool_cap)
+        alert = alerted_series(folder if args.incident_dir else
+                               INCIDENTS / args.incident if LABEL.fullmatch(args.incident)
+                               else None)
         configuration, reason, paid = configure(args, tools.names)
         # The receipt, before anything is spent: written and flushed, kept on every path.
         write_receipt(folder, label=label, artefacts=artefacts(context, world_digest, evidence),
@@ -515,7 +540,7 @@ def main(argv: list[str] | None = None) -> int:
         validator = ValidatorOnLivePath()
 
     record = run_incident(label, context, investigator, tools, validator,
-                          configuration=configuration, recorder=recorder)
+                          configuration=configuration, recorder=recorder, alert=alert)
     if paid:
         # The cost is the ledger's lower bound over the trace — proved usage at nominal
         # prices; a request without usage is counted, not priced, and the renderers say so.

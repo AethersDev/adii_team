@@ -176,7 +176,7 @@ GUARDS = (
           "    doc = json.loads(text, parse_constant=_not_json)\n",
           "    doc = json.loads(text)\n"),
     Guard("D.unknown_schema_refused", "D", "reporting/record.py",
-          "    if schema not in (SCHEMA, V1):\n",
+          "    if schema not in (SCHEMA, V2, V1):\n",
           "    if False:\n"),
     Guard("D.label_is_one_segment", "D", "reporting/record.py",
           "    if not LABEL.fullmatch(label):\n",
@@ -560,6 +560,14 @@ GUARDS = (
     Guard("A.call_then_text_is_named", "A", "investigator/loop.py",
           "                    why = TOOL_CALL_THEN_TEXT\n",
           "                    pass\n"),
+    # decisions F1 and F2: the chart is the record's — the runtime's reading, the validator's
+    Guard("D.alert_is_observed_before_the_investigation", "D", "runtime/run.py",
+          "    if alert is not None:\n",
+          "    if False:\n"),
+    Guard("C.validator_reports_its_rebuilt_series", "C", "validation/validator.py",
+          "                                rebuilt_series=self.alerted_series(context.incident_id, "
+          "rebuilt))",
+          "                                rebuilt_series=())"),
     # a reply cut off at the completion bound is named as cut, never left to read as malformed
     Guard("D.cut_reply_is_named", "D", "provider/openai_compatible.py",
           '        self._cut = finish == "length"\n',
