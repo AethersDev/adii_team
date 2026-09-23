@@ -526,8 +526,11 @@ GUARDS = (
           '    return ToolExecutor(max_calls=max_tool_calls) if arm == "alert-only" else tools\n',
           "    return tools\n"),
     Guard("C.pack_worst_case_within_its_cap", "C", "evaluation/grid.py",
-          "            if args.pack_cap_usd is None or worst > args.pack_cap_usd:\n",
+          "            if args.pack_cap_usd is None or worst > Decimal(str(args.pack_cap_usd)):\n",
           "            if False:\n"),
+    Guard("D.judge_question_within_its_bound", "D", "provider/judge.py",
+          "        if reserve > MAX_COST_USD:\n",
+          "        if False:\n"),
     # a reply cut off at the completion bound is named as cut, never left to read as malformed
     Guard("D.cut_reply_is_named", "D", "provider/openai_compatible.py",
           '        self._cut = finish == "length"\n',

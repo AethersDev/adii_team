@@ -14,8 +14,9 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from decimal import Decimal
 
-from ..reporting.ledger import PRICES, priced
+from ..reporting.ledger import BYTE_LEVEL_TOKENIZERS, PRICES, priced, reserve_for
 from .credential import load_env_local
 from .openai_compatible import endpoint_may_carry_a_credential
 from .worker import transact
@@ -23,13 +24,14 @@ from .worker import transact
 ENDPOINT = "https://api.openai.com/v1"
 MAX_TOKENS = 200          # a verdict word and one sentence of reasoning
 TIMEOUT_S = 60.0
+MAX_COST_USD = Decimal("0.01")   # the most one question may cost: every prompt byte a token
 
 
 class Judge:
     """`judge(prompt) -> reply`, and `calls`: one record per question asked."""
 
     def __init__(self, model: str, endpoint: str = ENDPOINT) -> None:
-        if model not in PRICES:
+        if model not in PRICES or PRICES[model].tokenizer not in BYTE_LEVEL_TOKENIZERS:
             raise ValueError(f"the judge's model must have a nominal price in "
                              f"reporting/ledger.py; priced: {', '.join(sorted(PRICES))}")
         if not endpoint_may_carry_a_credential(endpoint):
@@ -45,7 +47,12 @@ class Judge:
     def __call__(self, prompt: str) -> str:
         body = {"model": self.model, "messages": [{"role": "user", "content": prompt}],
                 "temperature": 0, "max_tokens": MAX_TOKENS}
-        answer = transact({"url": self._url, "body": json.dumps(body), "timeout_s": TIMEOUT_S,
+        sent = json.dumps(body)
+        reserve = reserve_for(len(sent.encode("utf-8")), PRICES[self.model], MAX_TOKENS)
+        if reserve > MAX_COST_USD:
+            raise ValueError(f"the judge's question could cost ${reserve:f}, above its "
+                             f"${MAX_COST_USD:f} bound; it was not asked")
+        answer = transact({"url": self._url, "body": sent, "timeout_s": TIMEOUT_S,
                            "headers": {"Content-Type": "application/json",
                                        "Authorization": f"Bearer {self._credential}"}})
         if not answer["ok"]:
@@ -65,5 +72,6 @@ class Judge:
             "model": self.model,
             "prompt_sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
             "usage": usage, "cost_usd": None if cost is None else format(cost, "f"),
+            "reserve_usd": format(reserve, "f"),
             "price_table": PRICES[self.model].table})
         return text
