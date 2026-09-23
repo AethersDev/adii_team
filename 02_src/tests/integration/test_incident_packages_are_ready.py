@@ -13,8 +13,11 @@ measurement before anything is frozen or run against it.
       frozen pipeline reproduces its own world         world is the pipeline's own output
 
 The canonical world's story is held on the real packages too: the scale-to-the-total repair
-recovers the chart and is rejected; the load repaired is accepted; a repair of a world that
-was never broken changes nothing and is rejected.
+recovers the chart and is rejected; the staging restored is accepted; a repair of a world
+that was never broken changes nothing and is rejected. And the REPAIR validity rule
+(final_plan.md) holds on every REPAIR case not burned: the permitted transform is itself
+the cause, restoring it alone repairs the world, and the validator tells that from the
+cosmetic fake and from the no-op.
 """
 from __future__ import annotations
 
@@ -26,9 +29,17 @@ import pytest
 from adii.contracts import Disposition, InvestigationDecision, ToolCall
 from adii.evaluation.evaluation_report import build_evaluation_report
 from adii.evaluation.freeze import load_frozen_answer_key
+from adii.evaluation.grid import BURNED
 from adii.evaluation.grounding import load_grounding_key
-from adii.evaluation.scale import Ideal, ideal, measure
-from adii.examples.canonical_world import FAMILIES, INCIDENTS, STATES, incident_id, packages
+from adii.evaluation.scale import REPAIR_STATE, Ideal, ideal, measure, scale_to_the_total
+from adii.examples.canonical_world import (
+    FAMILIES,
+    INCIDENTS,
+    STATES,
+    incident_id,
+    packages,
+    staging,
+)
 from adii.runtime.__main__ import incident_from_dir
 from adii.runtime.run import run_incident
 from adii.runtime.scripted import ScriptedInvestigator
@@ -113,33 +124,39 @@ def test_the_validator_can_rebuild_it_and_its_world_is_its_pipelines_own(folder)
 STG = path_of("stg_orders")
 FIRST = FAMILIES[0]
 STAGE_EVERY_ORDER = "SELECT order_id, order_date, distributor, amount_usd FROM raw_orders"
-ACKED = "FROM raw_orders r JOIN load_log l ON l.batch_id = r.batch_id WHERE r.line_no <= " \
-        "l.rows_loaded"
-SCALE_TO_THE_TOTAL = (
-    f"SELECT r.order_id, r.order_date, r.distributor, r.amount_usd * CASE WHEN r.order_date = "
-    f"'{FIRST.day}' THEN (SELECT SUM(amount_usd) FROM raw_orders WHERE order_date = "
-    f"'{FIRST.day}') / (SELECT SUM(r.amount_usd) {ACKED} AND r.order_date = '{FIRST.day}') "
-    "ELSE 1 END AS "
-    f"amount_usd {ACKED}")
 
 
-def repair(state: str, patch: dict[str, str]):
-    context, tools, *_ = incident_from_dir(INCIDENTS / incident_id(FIRST, state))
+def repair(state: str, patch: dict[str, str], family=FIRST):
+    context, tools, *_ = incident_from_dir(INCIDENTS / incident_id(family, state))
     decision = InvestigationDecision(Disposition.REPAIR, None, "A proposed repair.", "R", patch)
     return run_incident("story", context, ScriptedInvestigator((), decision), tools,
                         Validator(), configuration={"provider": "scripted", "model": None})
 
 
+@pytest.mark.parametrize("family", FAMILIES, ids=lambda f: f.name)
+def test_the_repair_validity_rule_holds_on_every_repair_case(family):
+    """The permitted transform is the cause: restoring it alone is accepted and admissible;
+    the chart-only fake and the defect resubmitted are rejected."""
+    assert incident_id(family, REPAIR_STATE) not in BURNED
+    restored = repair(REPAIR_STATE, {STG: staging(family, "business-changed")}, family)
+    assert restored.validation.state == "ACCEPT" and restored.admissible
+    fake = scale_to_the_total(family.day, staging(family, REPAIR_STATE))
+    assert repair(REPAIR_STATE, {STG: fake}, family).validation.state == "REJECT"
+    same = repair(REPAIR_STATE, {STG: staging(family, REPAIR_STATE)}, family)
+    assert same.validation.state == "REJECT"
+
+
 def test_the_chart_recovers_and_the_missing_orders_do_not_so_it_is_rejected():
-    record = repair("load-stopped", {STG: SCALE_TO_THE_TOTAL})
+    fake = scale_to_the_total(FIRST.day, staging(FIRST, REPAIR_STATE))
+    record = repair(REPAIR_STATE, {STG: fake})
     assert record.authorization.authorized and record.validation.state == "REJECT"
     assert "daily_revenue_is_the_delivered_orders: holds" in record.validation.report
     assert "every_delivered_order_is_staged_once: fails" in record.validation.report
     assert not record.admissible
 
 
-def test_the_load_repaired_is_accepted_and_admissible():
-    record = repair("load-stopped", {STG: STAGE_EVERY_ORDER})
+def test_the_staging_repaired_is_accepted_and_admissible():
+    record = repair(REPAIR_STATE, {STG: STAGE_EVERY_ORDER})
     assert record.authorization.authorized and record.validation.state == "ACCEPT"
     assert record.admissible
 
@@ -156,11 +173,14 @@ def test_the_bait_is_in_every_world_and_the_evidence_is_not():
         folders = [INCIDENTS / incident_id(family, s) for s in STATES]
         changes = {(f / "change_history_sources" / "CHANGE_HISTORY.md").read_text(
             encoding="utf-8") for f in folders}
-        assert len(changes) == 1 and family.release in changes.pop()
+        # the release is in every world; the staging change that caused it only where it did
+        assert all(family.release in c for c in changes)
+        assert len(changes) == 2 and sum("DATA-97" in c for c in changes) == 1
         notices = {json.dumps(sorted((p.name, p.read_text(encoding="utf-8"))
                                      for p in (f / "notice_sources").iterdir())) for f in folders}
-        # explicit families say what happened, so each world's notices differ; implicit
-        # families say nothing telling, so the evidence is only in the data
+        # explicit families say what happened, so the worlds' notices differ — the staging
+        # change's say what the load-stopped world's said: agreements and ingestion are
+        # normal; implicit families say nothing telling, so the evidence is only in the data
         assert len(notices) == (3 if family.explicit else 1), family.name
 
 
@@ -180,7 +200,7 @@ def test_every_case_is_solvable_and_its_labels_agree_with_its_world(family, stat
     record = run_incident("ideal", context, Ideal(*ideal(family, state)), tools, Validator(),
                           configuration={"provider": "scripted", "model": None})
     assert record.termination == "submitted", record.detail
-    if state == "load-stopped":
+    if state in ("load-stopped", REPAIR_STATE):
         assert record.validation.state == "ACCEPT" and record.admissible
     report = build_evaluation_report(json.loads(record.to_json()), key, grounding_key=grounding)
     assert report["category"] in ("success", "correct_abstention"), report
@@ -203,8 +223,8 @@ def test_the_same_decisions_when_the_world_is_twenty_times_larger():
     reaches the same decisions, and the validator the same verdicts, as at its own size."""
     grown = measure(30_000)["states"]
     assert {s: r["category"] for s, r in grown.items()} == {
-        "load-stopped": "success", "business-changed": "success",
-        "cannot-decide": "correct_abstention"}
-    assert grown["load-stopped"]["validation"] == "ACCEPT"
-    assert grown["load-stopped"]["fake_repair"] == "REJECT"
+        "business-changed": "success", "cannot-decide": "correct_abstention",
+        REPAIR_STATE: "success"}
+    assert grown[REPAIR_STATE]["validation"] == "ACCEPT"
+    assert grown[REPAIR_STATE]["fake_repair"] == "REJECT"
     assert all(r["decisive"] for r in grown.values())

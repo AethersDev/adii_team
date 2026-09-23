@@ -552,6 +552,19 @@ GUARDS = (
     Guard("C.pack_effort_is_paid_only", "C", "evaluation/grid.py",
           '        if args.reasoning_effort and args.provider != "openai":\n',
           "        if False:\n"),
+    # pilot-paid-v2: a refused tool call is in the runtime's history, and says why
+    Guard("A.refused_call_is_in_the_history", "A", "investigator/loop.py",
+          '                "arguments": call.arguments,\n'
+          '            }, durable=not valid_envelope)\n',
+          '                "arguments": call.arguments,\n            }, durable=False)\n'),
+    Guard("A.call_then_text_is_named", "A", "investigator/loop.py",
+          "                    why = TOOL_CALL_THEN_TEXT\n",
+          "                    pass\n"),
+    # the burned cases: frozen and kept, never in a pack unless named
+    Guard("C.burned_never_in_a_default_pack", "C", "evaluation/grid.py",
+          '                                       if p.name.removesuffix(".answer.json") not in '
+          'BURNED))',
+          '                                       if True))'),
     # a reply cut off at the completion bound is named as cut, never left to read as malformed
     Guard("D.cut_reply_is_named", "D", "provider/openai_compatible.py",
           '        self._cut = finish == "length"\n',

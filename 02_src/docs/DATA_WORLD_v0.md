@@ -153,6 +153,15 @@ Three configurations of that same world, all opening on the same alert — *reve
 | **B** | 56 | 56 | 56 | SUCCESS | promotion ended yesterday | **NO_REPAIR** |
 | **C** | 100 | ? | 55 | SUCCESS | manifest service has a known counting fault; source receipt unavailable | **ESCALATE** |
 
+> **Amended 23 Sep 2026 (final plan, decision B).** Configuration A as written is not a
+> REPAIR case where the permitted path is the staging transform: the loader stopped, the
+> transform stages up to the loader's acknowledged line by design, and the operational
+> repair is a replay no transform change can make. Its generated cases are burned (kept,
+> never in a result). A REPAIR case now holds the validity rule — the permitted change
+> surface is itself the cause, a change within it restores the truth, and the validator
+> tells that repair from a cosmetic and a no-op one: in the generated world, every order
+> arrives and loads, and that morning's staging change leaves live distributors out.
+
 World A is visibly broken: 100 sent, 55 arrived, the loader stopped. World B visibly agrees
 with reality: source and warehouse both fell, and a business event explains it. World C is
 visibly undecidable: *only 55 orders ever existed* and *100 existed and 45 were lost* both

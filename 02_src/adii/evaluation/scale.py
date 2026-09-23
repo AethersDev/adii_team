@@ -34,6 +34,7 @@ from ..validation.patching import path_of
 from ..validation.validator import Validator
 from .evaluation_report import build_evaluation_report
 from .freeze import load_frozen_answer_key
+from .grid import BURNED
 from .grounding import load_grounding_key
 
 CATALOGUE = Path(__file__).resolve().parent / "catalogue"
@@ -41,20 +42,27 @@ STG = path_of("stg_orders")
 STAGE_EVERY_ORDER = "SELECT order_id, order_date, distributor, amount_usd FROM raw_orders"
 
 
-def scale_to_the_total(day) -> str:
-    """The fake: the day's revenue scaled up to what arrived, the missing orders still missing."""
-    acked = ("FROM raw_orders r JOIN load_log l ON l.batch_id = r.batch_id WHERE r.line_no <= "
-             "l.rows_loaded")
-    return (f"SELECT r.order_id, r.order_date, r.distributor, r.amount_usd * CASE WHEN "
-            f"r.order_date = '{day}' THEN (SELECT SUM(amount_usd) FROM raw_orders WHERE "
-            f"order_date = '{day}') / (SELECT SUM(r.amount_usd) {acked} AND r.order_date = "
-            f"'{day}') ELSE 1 END AS amount_usd {acked}")
+REPAIR_STATE = "transform-defect"      # the state whose key says REPAIR, burned ones aside
+
+
+def scale_to_the_total(day, staging: str) -> str:
+    """The fake: the day's revenue scaled up to what arrived, the missing orders still missing
+    — the staging in force, its amounts multiplied on the day."""
+    staged = cw.body(staging)
+    return (f"SELECT s.order_id, s.order_date, s.distributor, s.amount_usd * CASE WHEN "
+            f"s.order_date = '{day}' THEN (SELECT SUM(amount_usd) FROM raw_orders WHERE "
+            f"order_date = '{day}') / (SELECT SUM(amount_usd) FROM ({staged}) WHERE order_date "
+            f"= '{day}') ELSE 1 END AS amount_usd FROM ({staged}) s")
 
 
 def ideal(family: cw.Family, state: str):
     """The calls a careful investigator makes, and the decision the key labels."""
     day, batch = family.day, f"B-{family.day:%m%d}"
     calls = {
+        "transform-defect": [("get_transform", {"transform_id": "stg_orders"}),
+                             ("run_sql", {"query": "SELECT distributor, COUNT(*) FROM raw_orders "
+                                                   f"WHERE order_date = '{day}' GROUP BY "
+                                                   "distributor"})],
         "load-stopped": [("run_sql", {"query": "SELECT batch_id, rows_received, rows_loaded, "
                                                f"status FROM load_log WHERE run_date = '{day}'"}),
                          ("get_transform", {"transform_id": "stg_orders"})],
@@ -66,6 +74,10 @@ def ideal(family: cw.Family, state: str):
                           ("read_reconciliation", {"reconciliation_id": "vendor-receipts"})],
     }[state]
     decision = {
+        "transform-defect": InvestigationDecision(
+            Disposition.REPAIR, "STAGING_CHANGE_EXCLUDES_LIVE_DISTRIBUTORS",
+            "DATA-97 leaves live distributors out of staging.",
+            "RESTORE_STAGING_BEFORE_DATA_97", {STG: cw.STG}),
         "load-stopped": InvestigationDecision(
             Disposition.REPAIR, "LOAD_STOPPED_PARTWAY", "The load stopped part-way.",
             "STAGE_EVERY_DELIVERED_ORDER", {STG: STAGE_EVERY_ORDER}),
@@ -97,12 +109,14 @@ def scored(record, case: str) -> dict:
 
 
 def measure(rows: int) -> dict:
-    """One size, in this process: the first family's three worlds at `rows` orders."""
+    """One size, in this process: the first family's worlds at `rows` orders, burned aside."""
     family = dataclasses.replace(cw.FAMILIES[0], per_day=rows // (cw.HISTORY + 1))
     out: dict = {"rows": rows, "states": {}}
     with tempfile.TemporaryDirectory() as tmp:
         for state in cw.STATES:
             case = cw.incident_id(family, state)
+            if case in BURNED:
+                continue
             folder = Path(tmp) / case
             began = time.perf_counter()
             for name, text in cw.package(family, state).items():
@@ -127,10 +141,11 @@ def measure(rows: int) -> dict:
                    "decisive": report["grounding"]["decisive"]["observed"],
                    "statuses": sorted({e.payload["status"] for e in record.trace
                                        if e.kind == "tool_result"})}
-            if state == "load-stopped":
+            if state == REPAIR_STATE:
                 row["validation"] = record.validation.state
+                fake = scale_to_the_total(family.day, cw.staging(family, state))
                 decision = InvestigationDecision(Disposition.REPAIR, None, "fake", "F",
-                                                 {STG: scale_to_the_total(family.day)})
+                                                 {STG: fake})
                 began = time.perf_counter()
                 row["fake_repair"] = validator.validate(context, decision).state
                 row["validate_s"] = round(time.perf_counter() - began, 2)
@@ -155,7 +170,7 @@ def main(argv: list[str] | None = None) -> int:
         results.append(measure(rows))
         r = results[-1]
         verdicts = {s: v["category"] for s, v in r["states"].items()}
-        a = r["states"]["load-stopped"]
+        a = r["states"][REPAIR_STATE]
         print(f"{rows:>10,} orders  {a['package_mb']:>7} MB  build {a['build_s']:>5}s  "
               f"investigate {a['investigate_s']:>5}s  validate {a['validate_s']:>5}s  "
               f"fix {a['validation']}  fake {a['fake_repair']}  peak {r['peak_rss_mb']} MB  "

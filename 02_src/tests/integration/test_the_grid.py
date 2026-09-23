@@ -114,3 +114,17 @@ def test_a_reasoning_effort_is_a_pack_term_that_reaches_every_paid_cell(tmp_path
                       "--reasoning-effort", "low", "--packs", str(tmp_path / "packs")]) == 2
     assert "--provider openai" in capsys.readouterr().out
     assert not (tmp_path / "packs").exists()
+
+
+def test_a_burned_incident_is_never_in_a_pack_unless_named(tmp_path, monkeypatch):
+    """The load-stopped cases were burned (catalogue/burned.json): their keys stay frozen and
+    their rehearsal records stay, but the default pack — the final one — leaves them out."""
+    assert len(grid.BURNED) == 6
+    asked = []
+    monkeypatch.setattr(grid, "run_cell", lambda pack, *rest: asked.append(pack) or 0)
+    monkeypatch.setattr(grid, "score", lambda *a: {})
+    grid.main(["--pack", "b", "--provider", "local", "--model", "m", "--repeats", "1",
+               "--arms", "always-escalate", "--archive", str(tmp_path / "runs"),
+               "--packs", str(tmp_path / "packs")])
+    promised = json.loads((tmp_path / "packs" / "b.json").read_text(encoding="utf-8"))
+    assert len(promised["incidents"]) == 18 and not grid.BURNED & set(promised["incidents"])
