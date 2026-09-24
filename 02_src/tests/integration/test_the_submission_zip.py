@@ -40,9 +40,13 @@ def test_the_zip_is_the_tag_and_the_evidence_listed_by_digest_the_same_every_tim
     (tmp_path / "01_data" / "runs" / "other-run").mkdir()
     (tmp_path / "01_data" / "runs" / "other-run" / "record.json").write_text("{}", "utf-8")
     committed = {"02_src/adii/x.py": b"print(1)\n", "README.md": b"# ADII\n"}
-    files = {**packager.tree(a_tar(committed)), **packager.evidence(tmp_path, ["p"])}
-    first = packager.package(files, "freeze-x", ["p"])
-    assert first == packager.package(files, "freeze-x", ["p"])          # the same bytes
+    (tmp_path / "01_data" / "runs" / "square-x-not-allowed").mkdir()
+    (tmp_path / "01_data" / "runs" / "square-x-not-allowed" / "record.json").write_text("{}",
+                                                                                     "utf-8")
+    files = {**packager.tree(a_tar(committed)),
+             **packager.evidence(tmp_path, ["p"], ["square-x-not-allowed"])}
+    first = packager.package(files, "freeze-x", ["p"], ["square-x-not-allowed"])
+    assert first == packager.package(files, "freeze-x", ["p"], ["square-x-not-allowed"])
     with zipfile.ZipFile(io.BytesIO(first)) as zipped:
         names = [n.removeprefix(packager.FOLDER + "/") for n in zipped.namelist()]
         assert all(n.startswith(packager.FOLDER + "/") for n in zipped.namelist())
@@ -55,8 +59,12 @@ def test_the_zip_is_the_tag_and_the_evidence_listed_by_digest_the_same_every_tim
                 zipped.read(f"{packager.FOLDER}/{name}")).hexdigest()
     assert set(manifest["files"]) == {"02_src/adii/x.py", "README.md", "01_data/packs/p.json",
                                       "01_data/packs/p.report.md",
-                                      "01_data/runs/p-a-full-r1/record.json"}
-    assert (manifest["ref"], manifest["packs"]) == ("freeze-x", ["p"])
+                                      "01_data/runs/p-a-full-r1/record.json",
+                                      "01_data/runs/square-x-not-allowed/record.json"}
+    assert (manifest["ref"], manifest["packs"], manifest["runs"]) == \
+        ("freeze-x", ["p"], ["square-x-not-allowed"])
+    with pytest.raises(ValueError, match="no run 'other'"):          # a named run, or nothing
+        packager.evidence(tmp_path, [], ["other"])
     with pytest.raises(ValueError, match="no pack 'q'"):
         packager.evidence(tmp_path, ["q"])
 

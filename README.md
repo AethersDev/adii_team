@@ -100,7 +100,8 @@ written from the run records once the final packs have run.
   adii/examples/      the incident generator and the walkthrough
   adii/demo/          the front door: a page over the archive, a starter of runs
   tests/              the suite: contracts, architecture boundaries, units, integration, browser
-  scripts/            environment check, guard pass, syncs, the submission packager
+  scripts/            environment check, guard pass, syncs, the submission packager, the
+                      admissibility square
   docs/               architecture, system map, the final plan and its decisions, glossary
 
 03_assets/
@@ -131,8 +132,8 @@ and watching a test fail.
 
 The deliverable is `ADII_Group05_Code_v1.zip`, one `ADII_Group05_Code_v1/` folder inside,
 built from a tagged commit by `python 02_src/scripts/package_submission.py --ref <tag>
---packs <the final packs>` and qualified by extracting it on clean Windows and macOS machines.
+--packs <the final packs> --runs <the admissibility square's runs>` and qualified by extracting it on clean Windows and macOS machines.
 It holds `01_data/`, `02_src/`, `03_assets/`, `README.md`, `requirements.txt`,
-`pyproject.toml`, the final packs' run folders, and `SUBMISSION.json` listing every file by
+`pyproject.toml`, the final packs' run folders, the admissibility square's four runs, and `SUBMISSION.json` listing every file by
 sha256. The team's working files stay in GitHub and out of the ZIP (`export-ignore` in
 `.gitattributes`): `.github/`, `.claude/`, `CLAUDE.md`, `AGENTS.md`, `TEAM.md`.

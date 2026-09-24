@@ -1,8 +1,8 @@
 # 01_data/demo/csv — the data to bring
 
 Every development specimen's world, as CSV files: one folder per incident, one file per
-table, and the alert in `alert.txt`. This is what to attach under **Your data** on the
-page, with the alert typed under **What looks wrong?** — the product path, rehearsed on a
+table, and the alert in `alert.txt`. This is what to attach with the paperclip on the
+page, with the alert typed in the box above it — the product path, rehearsed on a
 world whose answer is known. Any other CSV works the same way; these are the ones ADII was
 built and tested on.
 

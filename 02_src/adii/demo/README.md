@@ -39,25 +39,24 @@ shape: at rest its unfilled slot breathes, slowly — evidence not yet in; while
 investigates, the three slots rise in turn; with an answer it is still. The system's
 reduced-motion setting always stops it, as does *Keep the mark still*.
 
-**One investigation**, in the order a stranger needs it:
+**One investigation, as a conversation.** Send, and the page stays a chat: what was asked
+sits on the right, and ADII's reply grows beneath it.
 
-1. **The symptom** — the alerted number as a chart, from `alert_observed`: the runtime's
-   own reading of the frozen world before anything was investigated. It is what triggered
-   the run, labelled so, and never evidence.
+1. **While it works** — one line, *Investigating · 12s · turn 3 of 20*, the seconds counted
+   from the moment in the run's label, so a reload keeps the clock. The line opens to the
+   steps as they happen, folded like a model's thinking.
 2. **The answer** — *Yes. Fix it.*, *No. Leave it.*, *Not yet. Escalate it.*, or how a run
-   ended without one — with the investigator's summary, labelled as its words. A REPAIR is
+   ended without one — with the investigator's summary, labelled as its words, and above it
+   *Investigated for 46s · 15 steps*, which opens to every step the run took. A REPAIR is
    *Fix it* only when the authorizer allowed it and the validator accepted it; otherwise
    the page says which authority refused it.
-3. **How ADII knows** (*What ADII found* for an escalation) — the observations the decision
-   cited, and only those, each by a fixed template from its recorded result.
-4. For a fix: **Proposed fix**, the patch against the transformation the run observed, and
-   **Independent rebuild** — the validator's reading of its own rebuild
-   (`ValidationResult.rebuilt_series`) beside the symptom, with each check it ran. A chart
-   that recovers is not yet a repair: the checks decide.
-5. **How ADII investigated** — every step the run took, cited or not, folded away like a
-   model's thinking; open it to read it, including while a run is live.
-6. **Answer, Sign-off, Record** beside it: the three answer slots; who proposed, who
-   permitted, who checked; the record's id, its sha256, the receipt, the model and the spend.
+3. **Show details** — everything behind the answer, one click away and closed by default:
+   the symptom as a chart, from `alert_observed` (what triggered the run, labelled so, never
+   evidence); **How ADII knows**, the observations the decision cited and only those; for a
+   fix, the **Proposed fix** and the **Independent rebuild** — the validator's reading of its
+   own rebuild (`ValidationResult.rebuilt_series`) with each check it ran; then the three
+   answer slots, **Sign-off** (who proposed, who permitted, who checked) and the **Record**
+   (id, sha256, receipt, model, spend).
 
 ## Where each word comes from
 
