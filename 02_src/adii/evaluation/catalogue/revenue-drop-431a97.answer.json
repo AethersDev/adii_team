@@ -1,0 +1,27 @@
+{
+  "schema_version": "1",
+  "incident_id": "revenue-drop-431a97",
+  "authored_by": "the team, labelling its own synthetic data",
+  "authored_at": "2026-09-23",
+  "source_of_truth": "02_src/adii/examples/canonical_world.py: the world was generated knowing what happened in it; a development key, never an unseen one",
+  "frozen": true,
+  "freeze_note": "Frozen on authoring, 23 Sep 2026, before any run against it. A replacement for the burned load-stopped cases, written under the REPAIR validity rule in final_plan.md. A correction is a new key, never an edit. Version 2 of revenue-drop-893219, 23 Sep 2026 (decision A2): the same world and the same answer; only the alert changed, to name the orders it measured.",
+  "purpose": "The development set's label for this generated incident.",
+  "correct_disposition": "REPAIR",
+  "correct_root_cause_id": "STAGING_CHANGE_EXCLUDES_LIVE_DISTRIBUTORS",
+  "root_cause_explanation": "Every order for 2026-07-07 arrived and loaded (80 in raw_orders; load_log SUCCESS, 80 loaded; the vendor receipt and the manifest agree). That morning's change to the staging transform, DATA-97, meant to leave sandbox test orders out, names Kestrel and Osprey and Heron — live distributors with two weeks of normal orders — from 2026-07-07, so their 56 orders never reached the mart. Distributor agreements are unchanged. The release that morning is unrelated.",
+  "repair_must_satisfy": {
+    "description": "Stage every delivered order exactly once again, so the mart counts all of the day's orders; change nothing else.",
+    "reference_repair_id": "RESTORE_STAGING_BEFORE_DATA_97",
+    "reference_patch_effect": "stg_orders as it was before DATA-97: staged up to the loader's acknowledged line, with no distributor left out",
+    "alternative_repairs_are_acceptable_if": [
+      "every order in raw_orders appears in stg_orders exactly once",
+      "daily revenue equals the delivered orders' amounts, day by day",
+      "no amount is scaled, estimated or copied from another day"
+    ],
+    "must_be_validated": true,
+    "validation_requirement": "REPAIR is only correct if the validator accepts it."
+  },
+  "why_not_no_repair": "The mart is wrong relative to its own source: orders that arrived and loaded are missing from it, left out by a staging clause aimed at test orders.",
+  "why_not_escalate": "The cause is in the permitted transform itself, every decisive fact is reachable, and the repair can be made within the permitted path and checked."
+}

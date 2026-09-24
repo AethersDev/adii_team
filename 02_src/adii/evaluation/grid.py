@@ -31,19 +31,21 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 
-from ..examples.canonical_world import cases, incident_id
+from ..examples.canonical_world import incident_id, written
 from ..provider import REASONING_EFFORTS
 from ..provider.judge import MAX_COST_USD as JUDGE_MAX_COST_USD
 from ..provider.judge import Judge
 from ..reporting.record import ARCHIVE, LABEL, REPO, read_record, source_revision
 from ..runtime import __main__ as runtime
+from . import lock
 from .__main__ import NAME as REPORT
 from .__main__ import score, write_report
 from .freeze import load_frozen_answer_key
 
 CATALOGUE = Path(__file__).resolve().parent / "catalogue"
 PACKS = REPO / "01_data" / "packs"
-TIER = {incident_id(f, s): ("explicit" if f.explicit else "implicit") for f, s in cases()}
+TIER = {incident_id(f, s, v): ("explicit" if f.explicit else "implicit")
+        for f, s, v in written()}
 # incidents found invalid as measurements: kept, frozen, never in a pack unless named
 BURNED = frozenset(json.loads((CATALOGUE / "burned.json").read_text(encoding="utf-8"))
                    ["incidents"])
@@ -162,7 +164,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--arms", nargs="+", default=list(runtime.ARMS),
                         choices=list(runtime.ARMS))
     parser.add_argument("--repeats", type=int, default=3)
-    parser.add_argument("--partition", choices=sorted(PARTITION), default="benchmark",
+    # demo is the stage's and superseded is kept only as history: neither is ever a pack
+    parser.add_argument("--partition", choices=("benchmark", "held_out"), default="benchmark",
                         help="the registered set a pack runs (catalogue/partition.json)")
     parser.add_argument("--incidents", nargs="+",
                         help="named incidents instead of a partition: a rehearsal's, never a "
@@ -203,12 +206,25 @@ def main(argv: list[str] | None = None) -> int:
                 # a term only when set, so a pack begun before the term existed resumes
                 **({"reasoning_effort": args.reasoning_effort} if args.reasoning_effort
                    else {})}
+        if args.pack in lock.PACKS:
+            # a registered final pack runs on the newest freeze, as it was frozen, or not at all
+            freeze = lock.newest()
+            moved = lock.drift(freeze) if freeze else None
+            if freeze is None or moved or pack != freeze["packs"].get(args.pack):
+                print(f"{args.pack} is a registered final pack: it runs only on the newest "
+                      "freeze, unchanged, with its frozen terms — " + (
+                          "no freeze has been taken" if freeze is None else
+                          f"{len(moved)} frozen file(s) changed since {freeze['name']}" if moved
+                          else "these terms differ from the frozen ones"))
+                return 2
+            pack["freeze"] = {"name": freeze["name"], "digest": freeze["digest"]}
         paid = sum(arm != "always-escalate" for _, _, arm, _ in cells(pack))
-        if args.provider == "openai":
+        if args.provider == "openai" or args.judge_model:     # a judge is priced either way
             judged = JUDGE_MAX_COST_USD if args.judge_model else Decimal(0)
-            worst = paid * (Decimal(str(args.max_cost_usd)) + judged)
+            per_run = Decimal(str(args.max_cost_usd)) if args.provider == "openai" else Decimal(0)
+            worst = paid * (per_run + judged)
             if args.pack_cap_usd is None or worst > Decimal(str(args.pack_cap_usd)):
-                print(f"the pack's worst case is {paid} paid runs × (${args.max_cost_usd:.2f}"
+                print(f"the pack's worst case is {paid} paid runs × (${per_run:.2f}"
                       f" + a judge's ${judged:.2f}) = ${worst:.2f}; --pack-cap-usd must be at "
                       "least that, or the pack smaller")
                 return 2

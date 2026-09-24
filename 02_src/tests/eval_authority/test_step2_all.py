@@ -14,7 +14,8 @@ from pathlib import Path
 import pytest
 from adii.evaluation.judge import judge_repair
 from adii.evaluation.scoring import score_decision
-from adii.evaluation.validation_wiring import (
+
+from .validation_fakes import (
     fake_validator_accepts_everything_structurally_sound,
     get_validation_for,
 )

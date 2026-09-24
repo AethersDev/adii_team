@@ -29,7 +29,8 @@ def code(script: str) -> str:
     return re.sub(r"/\*.*?\*/", "", (WEB / script).read_text(encoding="utf-8"), flags=re.S)
 
 
-@pytest.mark.parametrize("name", ["adii-lockup-horizontal.svg", "adii-symbol.svg", "favicon.svg"])
+@pytest.mark.parametrize("name", ["adii-lockup-horizontal.svg", "adii-symbol.svg",
+                                  "adii-wordmark.svg", "favicon.svg"])
 def test_the_mark_is_the_handoffs_byte_for_byte(name):
     """The logo does not change (decision W): the page serves a copy that may not drift by a
     byte — run python 02_src/scripts/sync_identity.py after a new delivery."""

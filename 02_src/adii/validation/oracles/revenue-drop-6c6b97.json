@@ -1,0 +1,26 @@
+{
+  "schema": "adii.validation_oracle/v1",
+  "incident_id": "revenue-drop-6c6b97",
+  "pipeline": [
+    {
+      "table": "stg_orders",
+      "transform": "stg_orders"
+    },
+    {
+      "table": "mart_daily_revenue",
+      "transform": "mart_daily_revenue"
+    }
+  ],
+  "invariants": [
+    {
+      "name": "every_delivered_order_is_staged_once",
+      "rebuilt": "SELECT order_id FROM stg_orders ORDER BY order_id",
+      "frozen": "SELECT order_id FROM raw_orders ORDER BY order_id"
+    },
+    {
+      "name": "daily_revenue_is_the_delivered_orders",
+      "rebuilt": "SELECT day, ROUND(revenue_usd, 2) FROM mart_daily_revenue ORDER BY day",
+      "frozen": "SELECT order_date, ROUND(SUM(amount_usd), 2) FROM raw_orders GROUP BY order_date ORDER BY order_date"
+    }
+  ]
+}

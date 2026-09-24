@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
 from collections.abc import Callable, Mapping
 
 from ..contracts import ToolCall, ToolResult
@@ -48,12 +47,12 @@ class ToolExecutor:
     """Registry and dispatcher. One per investigation, so the call budget is per run."""
 
     def __init__(self, *, max_calls: int | None = None) -> None:
-        # CONFORMANCE A6/A7: a public API enforces its own bounds. A negative, boolean, or
-        # non-finite budget would silently disable the limit while looking like one.
+        # CONFORMANCE A6/A7: a public API enforces its own bounds. A negative or boolean
+        # budget would silently disable the limit while looking like one.
         if max_calls is not None:
             if isinstance(max_calls, bool) or not isinstance(max_calls, int):
                 raise ValueError(f"max_calls must be an int or None, got {max_calls!r}")
-            if max_calls < 0 or not math.isfinite(max_calls):
+            if max_calls < 0:
                 raise ValueError(f"max_calls must be non-negative, got {max_calls!r}")
         self.max_calls = max_calls
         self.calls_dispatched = 0

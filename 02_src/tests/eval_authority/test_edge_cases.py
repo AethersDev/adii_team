@@ -29,13 +29,8 @@ def load(name: str) -> dict:
 
 @pytest.fixture(scope="module")
 def key_001():
-    if not (HERE / "demo-learning-001.answer.json").exists():
-        pytest.skip(
-            "blind answer key not present — added post-freeze, kept out of the "
-            "repo so the system under evaluation can never read it (see "
-            "eval_authority OVERVIEW.md)"
-        )
-    return load("demo-learning-001.answer.json")
+    return json.loads((EVALUATION_FIXTURES / "demo-learning-001.answer.json")
+                      .read_text(encoding="utf-8"))
 
 
 @pytest.fixture(scope="module")

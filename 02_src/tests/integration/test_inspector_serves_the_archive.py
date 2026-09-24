@@ -107,20 +107,13 @@ def test_the_server_serves_the_archive_verbatim_uncached_and_nothing_else(tmp_pa
         assert rows[".hidden"]["error"] == "the folder's name is not a label"
         _, body = get("/api/runs/demo-learning-001")
         assert body == (archive / "demo-learning-001" / "record.json").read_bytes()
-        # the evaluation authority's report, when the run has one: listed by category and
-        # served verbatim; absent until then; unreadable when custody would say so
-        assert rows["demo-learning-001"]["evaluation"] is None
+        # the evaluation authority's reports are not the product's (decision R): not listed,
+        # not served — a scored run looks exactly like an unscored one here
+        (archive / "demo-learning-001" / "evaluation_report.json").write_text(
+            '{"category": "success"}\n', encoding="utf-8")
+        rows = {row["label"]: row for row in json.loads(get("/api/runs")[1])}
+        assert "evaluation" not in rows["demo-learning-001"]
         assert get("/api/runs/demo-learning-001/evaluation")[0].status == 404
-        report = archive / "demo-learning-001" / "evaluation_report.json"
-        report.write_text('{"schema": "adii.evaluation_report/v1", "category": "success"}\n',
-                          encoding="utf-8")
-        rows = {row["label"]: row for row in json.loads(get("/api/runs")[1])}
-        assert rows["demo-learning-001"]["evaluation"] == "success"
-        assert get("/api/runs/demo-learning-001/evaluation")[1] == report.read_bytes()
-        report.write_text("{not json", encoding="utf-8")
-        rows = {row["label"]: row for row in json.loads(get("/api/runs")[1])}
-        assert rows["demo-learning-001"]["evaluation"] == "unreadable"
-        report.unlink()
         page, _ = get("/")
         assert page.status == 200 and page.getheader("Cache-Control") == "no-store"
         for path in ("/api/runs/..\\outside", "/api/runs/../outside", "/api/runs/nope",
@@ -172,7 +165,7 @@ def test_a_run_can_be_started_from_the_page_only_when_the_operator_allowed_it(tm
             response = conn.getresponse()
             return response.status, json.loads(response.read() or b"{}")
 
-        status, answer = call("POST", "/api/runs", {"incident": "orders-missing-day"})
+        status, answer = call("POST", "/api/runs", {"incident": "demo-learning-001"})
         assert status == 403 and "read-only" in answer["error"]
         assert call("GET", "/api/launch")[1] == {"enabled": False}
         listed = [i["incident_id"] for i in call("GET", "/api/incidents")[1]]
@@ -185,36 +178,38 @@ def test_a_run_can_be_started_from_the_page_only_when_the_operator_allowed_it(tm
                               "endpoint": f"http://127.0.0.1:{model.server_port}/v1",
                               "model": "test-model-1", "served_as": None, "max_turns": 6})
         launch = call("GET", "/api/launch")[1]
-        assert launch["enabled"] is True and launch["models"] == ["test-model-1"]
+        assert launch["enabled"] is True and launch["model"] == "test-model-1"
         assert call("POST", "/api/runs", {"incident": "nope"})[0] == 400
-        assert call("POST", "/api/runs", {"incident": ["orders-missing-day"]})[0] == 400
-        # requests, not authority: on a local endpoint only the operator's model, a turn
-        # budget at most the operator's, and no cap — nothing is spent here
-        for more in ({"model": "other"}, {"max_turns": 7}, {"max_turns": 0}, {"max_turns": "4"},
-                     {"max_turns": True}, {"max_cost_usd": 0.01}):
-            status, answer = call("POST", "/api/runs", {"incident": "orders-missing-day", **more})
-            assert status == 400 and ("must" in answer["error"] or "only" in answer["error"]), more
+        assert call("POST", "/api/runs", {"incident": ["demo-learning-001"]})[0] == 400
+        # the page starts the samples and the walkthrough and nothing else: a benchmark or
+        # held-out incident's first run is the final pack's (decision E), a specimen is not
+        # the product's — whatever the request asks
+        from adii.evaluation.grid import PARTITION
+        for never in (PARTITION["benchmark"][0], PARTITION["held_out"][0], "orders-missing-day"):
+            status, answer = call("POST", "/api/runs", {"incident": never})
+            assert status == 400 and "not an incident this page starts" in answer["error"]
         # A write this server does not read is answered, never dropped: no body at all, and
         # a JSON-shaped body that is not declared JSON — the shape a form on another site takes.
-        form = ('{"incident": "orders-missing-day"}', {"Content-Type": "text/plain"})
+        form = ('{"incident": "demo-learning-001"}', {"Content-Type": "text/plain"})
         broken = ('{"incident": ', {"Content-Type": "application/json"})
         for body, headers in ((None, {}), form, broken):
             conn = http.client.HTTPConnection("127.0.0.1", httpd.server_port, timeout=10)
             conn.request("POST", "/api/runs", body=body, headers=headers)
             assert conn.getresponse().status == 400, (body, headers)
         # One at a time: while the archive shows a run running, a second is refused.
-        busy = archive / "orders-missing-day-20260101T000000-000Z"
+        busy = archive / "demo-learning-001-20260101T000000-000Z"
         busy.mkdir()
         (busy / "trace.jsonl").write_text("", encoding="utf-8")
         assert call("GET", f"/api/runs/{busy.name}/trace")[1]["running"] is True
-        assert call("POST", "/api/runs", {"incident": "orders-missing-day"})[0] == 409
+        assert call("POST", "/api/runs", {"incident": "demo-learning-001"})[0] == 409
         silent = time.time() - server.STALE_AFTER_S - 1
         for path in (busy, busy / "trace.jsonl"):
             os.utime(path, (silent, silent))
         assert call("GET", f"/api/runs/{busy.name}/trace")[1]["running"] is False
-        status, answer = call("POST", "/api/runs", {"incident": "orders-missing-day",
-                                                    "max_turns": 3})
-        assert status == 200 and answer["label"].startswith("orders-missing-day-")
+        status, answer = call("POST", "/api/runs", {"incident": "demo-learning-001",
+                                                    "max_turns": 3})    # ignored: the page
+        assert status == 200 and answer["label"].startswith("demo-learning-001-")  # chooses
+                                                                                 # nothing else
         label = answer["label"]
         deadline = time.time() + 30
         while time.time() < deadline:
@@ -228,7 +223,7 @@ def test_a_run_can_be_started_from_the_page_only_when_the_operator_allowed_it(tm
         status, record = call("GET", f"/api/runs/{label}")
         assert status == 200 and record["decision"]["disposition"] == "ESCALATE"
         assert record["configuration"]["model"] == "test-model-1"
-        assert record["configuration"]["max_turns"] == 3          # asked for, within 6
+        assert record["configuration"]["max_turns"] == 6          # the server's, always
         receipt = json.loads((archive / label / "receipt.json").read_text(encoding="utf-8"))
         assert "requested from the page, within the ceilings" in receipt["reason"]
         assert "(6 turns)" in receipt["reason"]
@@ -262,7 +257,7 @@ def test_two_requests_in_the_same_moment_start_one_run(tmp_path, monkeypatch):
 
     def post():
         conn = http.client.HTTPConnection("127.0.0.1", httpd.server_port, timeout=30)
-        conn.request("POST", "/api/runs", body=json.dumps({"incident": "orders-missing-day"}),
+        conn.request("POST", "/api/runs", body=json.dumps({"incident": "demo-learning-001"}),
                      headers={"Content-Type": "application/json"})
         statuses.append(conn.getresponse().status)
 
@@ -321,6 +316,10 @@ def test_the_server_refuses_to_start_when_a_run_from_the_page_could_spend_unchec
     assert "OPENAI_API_KEY is not set" in without and "credential wrapper" in without
     assert "nominal price" in start("--provider", "openai", "--model", "no-such-model")
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test-present")
+    # every model the page may pick is checked as the operator's own is
+    assert "nominal price" in start("--provider", "openai", "--model", "gpt-4.1-mini",
+                                    "--models", "no-such-model")
+    assert "the paid path's" in start("--model", "m", "--models", "n")
     assert "local endpoints" in start("--provider", "openai", "--model", "gpt-4.1-mini",
                                       "--served-as", "gpt-4.1-mini")   # even equal: no alias
     assert "cap" in start("--provider", "openai", "--model", "gpt-4.1-mini",
@@ -364,24 +363,24 @@ def test_a_paid_run_from_the_page_keeps_the_credential_off_every_response_and_ar
 
         responses = [call("GET", "/api/launch")[1]]
         launch = json.loads(responses[0])
-        assert launch["provider"] == "openai" and "gpt-4.1-nano" in launch["models"]
+        assert launch["provider"] == "openai" and launch["model"] == "gpt-4.1-mini"
         # every ceiling the runtime has is reported, so the page never runs under bounds it
         # cannot show
         assert (launch["max_tool_calls"], launch["max_model_requests"],
                 launch["max_wall_clock_seconds"]) == (9, 4, 90.0)
-        # requests, not authority: any priced model, a cap and a budget at most the operator's;
-        # refused, never clamped — and Infinity, which json accepts, is above any ceiling
-        for more in ({"model": "gpt-5-imagined"}, {"max_cost_usd": 0.06}, {"max_cost_usd": 0},
-                     {"max_turns": 5}, {"model": "gpt-4.1", "max_cost_usd": True}):
-            status, answer = call("POST", "/api/runs", {"incident": "orders-missing-day", **more})
-            assert status == 400 and "must" in json.loads(answer)["error"], more
+        # a body no strict reader accepts — Infinity, which Python's json takes — is refused
         conn = http.client.HTTPConnection("127.0.0.1", httpd.server_port, timeout=10)
-        conn.request("POST", "/api/runs", body='{"incident": "orders-missing-day", '
+        conn.request("POST", "/api/runs", body='{"incident": "demo-learning-001", '
                                                '"max_cost_usd": Infinity}',
                      headers={"Content-Type": "application/json"})
         assert conn.getresponse().status == 400
-        status, answer = call("POST", "/api/runs", {"incident": "orders-missing-day",
-                                                    "model": "gpt-4.1-nano",
+        # a model the operator did not offer is refused, never substituted
+        status, answer = call("POST", "/api/runs", {"incident": "demo-learning-001",
+                                                    "model": "gpt-4.1-nano"})
+        assert status == 400 and "one the operator offered: gpt-4.1-mini" in answer
+        # what the page asks for beyond the incident and the model is not read: the
+        # operator's flags run
+        status, answer = call("POST", "/api/runs", {"incident": "demo-learning-001",
                                                     "max_cost_usd": 0.02, "max_turns": 2})
         assert status == 200
         label = json.loads(answer)["label"]
@@ -403,15 +402,15 @@ def test_a_paid_run_from_the_page_keeps_the_credential_off_every_response_and_ar
         record = json.loads(call("GET", f"/api/runs/{label}")[1])
         assert record["configuration"]["provider"] == "openai"
         assert record["configuration"]["credential"] == "OPENAI_API_KEY (environment)"
-        # what was asked for is what ran, priced as such; the receipt says where the request
+        # the operator's settings ran, priced as such; the receipt says where the request
         # came from and within what
         assert (record["configuration"]["model"], record["configuration"]["max_cost_usd"],
-                record["configuration"]["max_turns"]) == ("gpt-4.1-nano", 0.02, 2)
+                record["configuration"]["max_turns"]) == ("gpt-4.1-mini", 0.05, 4)
         assert (record["configuration"]["max_tool_calls"],
                 record["configuration"]["max_model_requests"],
                 record["configuration"]["max_wall_clock_seconds"]) == (9, 4, 90.0)  # forwarded
-        assert FakeModel.seen[-1]["model"] == "gpt-4.1-nano"
-        assert record["counters"]["api_cost_usd"] == pytest.approx(100 * 0.10e-6 + 20 * 0.40e-6)
+        assert FakeModel.seen[-1]["model"] == "gpt-4.1-mini"
+        assert record["counters"]["api_cost_usd"] == pytest.approx(100 * 0.40e-6 + 20 * 1.60e-6)
         receipt = json.loads((archive / label / "receipt.json").read_text(encoding="utf-8"))
         assert "requested from the page, within the ceilings the operator set when starting " \
                "the server (4 turns, 9 tool calls, 4 requests, 90 s, up to $0.05); permitted by" \
@@ -451,45 +450,6 @@ def test_a_tab_learns_when_the_code_it_runs_is_stale(tmp_path, monkeypatch):
         httpd.server_close()
     script = (Path(server.__file__).with_name("web") / "app.js").read_text(encoding="utf-8")
     assert 'headers.get("ADII-Code")' in script and "location.reload()" in script
-
-
-def test_feedback_is_kept_beside_the_record_attributed_bounded_and_verbatim(tmp_path,
-                                                                             monkeypatch):
-    archive = tmp_path / "archive"
-    monkeypatch.setattr(server, "ARCHIVE", archive)
-    assert walkthrough(["--archive", str(archive)]) == 0
-    httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
-    threading.Thread(target=httpd.serve_forever, daemon=True).start()
-    try:
-        def call(method, path, body=None):
-            conn = http.client.HTTPConnection("127.0.0.1", httpd.server_port, timeout=10)
-            conn.request(method, path, body=json.dumps(body) if body is not None else None,
-                         headers={"Content-Type": "application/json"} if body is not None else {})
-            response = conn.getresponse()
-            return response.status, json.loads(response.read() or b"{}")
-
-        assert call("GET", "/api/runs/demo-learning-001/feedback") == (200, [])
-        record = archive / "demo-learning-001" / "record.json"
-        archived = record.read_bytes()
-        said = {"useful": "partly", "expected": "<b>why</b> it stopped", "by": " Sam "}
-        status, entry = call("POST", "/api/runs/demo-learning-001/feedback", said)
-        assert status == 200 and entry["by"] == "Sam" and entry["useful"] == "partly"
-        assert entry["expected"] == "<b>why</b> it stopped"   # verbatim; the page renders text
-        assert call("POST", "/api/runs/demo-learning-001/feedback", {"useful": "maybe"})[0] == 400
-        assert call("POST", "/api/runs/demo-learning-001/feedback",
-                    {"useful": "yes", "expected": "x" * 2001})[0] == 400
-        assert call("POST", "/api/runs/nope/feedback", {"useful": "yes"})[0] == 404
-        (archive / "demo-learning-002").mkdir()             # reserved, no record: not finished
-        assert call("POST", "/api/runs/demo-learning-002/feedback", {"useful": "yes"})[0] == 404
-        assert not (archive / "demo-learning-002" / "feedback.jsonl").exists()
-        status, entries = call("GET", "/api/runs/demo-learning-001/feedback")
-        assert [e["by"] for e in entries] == ["Sam"]
-        kept = (archive / "demo-learning-001" / "feedback.jsonl").read_text(encoding="utf-8")
-        assert kept.count("\n") == 1 and '"schema": "adii.feedback/v1"' in kept
-        assert record.read_bytes() == archived          # the record is not what feedback touches
-    finally:
-        httpd.shutdown()
-        httpd.server_close()
 
 
 def test_a_visitor_brings_an_incident_over_their_own_files_and_the_archive_keeps_both(
@@ -538,17 +498,22 @@ def test_a_visitor_brings_an_incident_over_their_own_files_and_the_archive_keeps
                           ({**ask, "files": [{"name": "x.csv", "text": "a,b\r1,2\r"}]},
                            "not a CSV"),
                           ({**ask, "files": [{"name": "sqlite_master.csv", "text": "a\n1\n"}]},
-                           "SQLite's own"),
-                          ({**ask, "max_turns": 7}, "must")):
+                           "SQLite's own")):
             status, answer = call("POST", "/api/investigations", bad)
             assert status == 400 and said in answer["error"], bad
+        conn = http.client.HTTPConnection("127.0.0.1", httpd.server_port, timeout=10)
+        conn.putrequest("POST", "/api/investigations")      # a negative length would read to
+        conn.putheader("Content-Type", "application/json")  # the end, past any bound
+        conn.putheader("Content-Length", "-1")
+        conn.endheaders()
+        assert conn.getresponse().status == 400
         conn = http.client.HTTPConnection("127.0.0.1", httpd.server_port, timeout=30)
         conn.request("POST", "/api/investigations", body=b"{}",
                      headers={"Content-Type": "application/json",
                               "Content-Length": str(server.BROUGHT["body"] + 1)})
         assert conn.getresponse().status == 400
         assert [p.name for p in archive.iterdir()] == []
-        status, answer = call("POST", "/api/investigations", {**ask, "max_turns": 3})
+        status, answer = call("POST", "/api/investigations", ask)
         assert status == 200 and answer["label"].startswith("upload-")
         label = answer["label"]
         deadline = time.time() + 30
@@ -563,7 +528,7 @@ def test_a_visitor_brings_an_incident_over_their_own_files_and_the_archive_keeps
         assert record["context"]["incident_id"] == label.rsplit("-", 2)[0]
         assert record["context"]["permitted_write_paths"] == []
         assert record["decision"]["disposition"] == "NO_REPAIR"
-        assert record["configuration"]["max_turns"] == 3
+        assert record["configuration"]["max_turns"] == 6          # the server's own
         [schema] = [e for e in record["trace"] if e["kind"] == "tool_result"][:1]
         assert [t["name"] for t in schema["payload"]["content"]["tables"]] == ["revenue"]
         assert (archive / label / "world.sql").read_text(encoding="utf-8").startswith(
@@ -582,14 +547,21 @@ def test_a_visitor_brings_an_incident_over_their_own_files_and_the_archive_keeps
         model.server_close()
 
 
-def test_a_reasoning_effort_holds_the_page_to_the_operators_model(monkeypatch):
-    """gpt-6-sol's effort is refused beside another model's request: with an effort set, the
-    page may ask only for the model the operator started the server with."""
-    monkeypatch.setattr(server, "LAUNCH", {"provider": "openai", "model": "gpt-6-sol",
-                                           "reasoning_effort": "low", "max_turns": 20,
-                                           "max_cost_usd": 0.5})
-    assert server.models() == ["gpt-6-sol"]
-    with pytest.raises(ValueError, match="model must be one of gpt-6-sol"):
-        server.requested({"model": "gpt-4.1"})
-    monkeypatch.setitem(server.LAUNCH, "reasoning_effort", None)
-    assert "gpt-4.1" in server.models()
+
+
+def test_the_page_picks_only_a_model_the_operator_offered_and_its_effort_follows_it(
+        monkeypatch):
+    """--models lets the page pick per run among priced models the operator named; the
+    runtime's flags are the operator's with that model, and an effort only reaches a
+    reasoning model — gpt-4.1 takes a temperature, and the runtime refuses it an effort."""
+    monkeypatch.setattr(server, "LAUNCH", {
+        "provider": "openai", "model": "gpt-6-sol", "models": ["gpt-6-sol", "gpt-4.1"],
+        "reasoning_effort": "low", "max_turns": 20})
+    assert server.chosen_model({}) == "gpt-6-sol"
+    assert server.chosen_model({"model": "gpt-4.1"}) == "gpt-4.1"
+    for never in ("gpt-4.1-nano", ["gpt-4.1"], None):
+        with pytest.raises(ValueError, match="one the operator offered"):
+            server.chosen_model({"model": never})
+    assert server.run_settings("gpt-6-sol")["reasoning_effort"] == "low"
+    four = server.run_settings("gpt-4.1")
+    assert four["model"] == "gpt-4.1" and "reasoning_effort" not in four and "models" not in four

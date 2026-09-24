@@ -284,57 +284,67 @@ every cell materialised, and once for real on the local model.
 
 ---
 
-## Phase 4 — Freeze
+## Phase 4 — Freeze A, the evaluation freeze
 
-`python -m adii.freeze --pack <name>` writes `02_src/adii/evaluation/freeze/<name>.json`:
-digests of the protocol, the advertised tool schemas per incident, the bounds
-configuration, the price table id (verified against the provider's page **before** this
-step, the table id bumped if it moved), the validator's source and oracles, the scorer's
-source and semantics v2, every catalogue key and grounding key, the judge model and prompt
-digest, and the code revision. From then on every receipt carries the freeze digest, and a
-test asserts the digests still match. Tag `freeze-<date>`.
+Two freezes, because one commit cannot hold results that do not exist yet (decision F):
+**Freeze A** binds what the benchmark evaluates, before it runs; **Freeze B** (7.5) binds
+what is submitted, after the evidence exists. Feature development ends at Freeze A; from
+then on the work is measure it, prove it, communicate it.
 
-**Windows qualification, once, on the frozen build.** `python 02_src/scripts/package_submission.py`
-(a new script, standard library only: `git archive` of the tagged commit plus the files
-the submission names, written as `adii_submission.zip`, with a manifest of its own
-contents) run on the Mac; the ZIP extracted on a clean Windows machine — a teammate's, the
-Windows rig, or a local VM — and there: `py -3.12 -m venv .venv`, `pip install -r
-requirements.txt`, `python 02_src/scripts/check_env.py`, `pytest`, `python -m
-adii.runtime --incident demo-learning-001 --provider scripted`, `python -m adii.demo`, and
-the browser product path by hand. Anything that fails is fixed and the freeze is taken
-again. This replaces the Windows runner in CI.
+`python -m adii.evaluation.lock --name freeze-<date>` writes
+`02_src/adii/evaluation/freezes/<name>.json`: the sha256 of every file the evaluated system is
+made of — every module under `02_src/adii` (the runtime, the provider adapter and its
+reasoning-model settings, the protocol, the tools, the validator and its oracles, the scorer
+and its semantics, the judge's prompt, the price table, the record schemas, the front door
+and its backend), the pinned requirements, the incident packages and the catalogue (keys,
+grounding keys, the partition with its superseded list, the burned list) — the terms of the
+four registered final packs written out in full (decision E: model, effort, bounds, arms,
+incidents, caps), and the commit it was taken at. Prices are verified against the provider's
+page first (done 23 Sep). The freeze file is committed with the tree it digests and the
+merged commit tagged `freeze-<date>`. From then on `test_the_freeze.py` fails the gate if any
+frozen file changes, and the grid refuses a registered pack unless the tree matches the
+newest freeze with its frozen terms; each pack's receipt names the freeze by digest.
+Nothing frozen changes because of a result.
 
-**Rule.** Any engineering change after this is a new freeze version. A pack scored under
+**Qualification of the frozen commit, on clean macOS and Windows.** `python
+02_src/scripts/package_submission.py --ref freeze-<date>` builds `adii_submission.zip` from
+the tag (standard library only; `SUBMISSION.json` lists every file by sha256; the same
+inputs build the same bytes; it refuses a `.env` file or the configured key's prefix in any
+file). Extracted on each machine, from nothing: `py -3.12 -m venv .venv` (`python3.12` on
+the Mac), `pip install -r requirements.txt`, `python 02_src/scripts/check_env.py`, `pytest`,
+`python -m adii.runtime --incident demo-learning-001 --provider scripted`, `python -m
+adii.demo`, and the launch view in a browser. A failure is fixed and Freeze A is taken again
+under a new name, before any pack runs.
+
+**Rule.** Any engineering change after Freeze A is a new freeze version. A pack scored under
 one version is never re-read under another
 ([inherited/AUTHORITY_LIFECYCLE.md](inherited/AUTHORITY_LIFECYCLE.md)).
 
 ---
 
-## Phase 5 — The benchmark
+## Phase 5 — The benchmark, once
 
 | # | unit | done when |
 |---|---|---|
-| 5.1 | the paid rehearsal, `pilot-paid-v1` (decision P), after the pre-flight: the final pack's exact model, provider, prices, prompt, bounds and judge, on ten incidents — every family, every truth in both tiers — in both paid arms, one repeat, 20 runs | every cell archived and scored; inspected for defects of the machinery only and fixed; excluded from every reported result; then phase 4 |
-| 5.2 | the pre-flight, before 5.1 and again the morning of the paid pack: `python -m adii.provider --check --model gpt-4.1` (free), then `--check --spend` a single time | `completion: succeeded at check time`, the reserve premise holds |
-| 5.3 | the four final packs once (decision E): `final-sol`, `final-luna`, `final-gpt-4-1`, `final-held-out`, one repeat, twenty turns, a 4,096-token completion bound, a $0.50 cap per run, the pack cap in the pack receipt, temperature 0, fingerprints recorded; the judge on the frozen model | every cell archived, scored, attested; `--preserve` to a second location; `MANIFEST.json` committed |
-| 5.4 | the pack read against DECISIVE_TESTS as written | D1–D5 each pass or fail, recorded in a new section of release_evidence.md — appended, never rewritten |
+| 5.1 | the paid rehearsals: `pilot-paid-v1` (gpt-4.1), `pilot-paid-v2` (gpt-6-sol), `pilot-paid-v3` (gpt-6-luna, on the burned cases) | done; machinery only; excluded from every result |
+| 5.2 | the pre-flight the morning of the packs, one per model: `python -m adii.provider --check --spend --model <m> --max-tokens 4096` with `--reasoning-effort low` for gpt-6-sol and gpt-6-luna | `spend_check: PASS` and `reserve_premise: holds` for each |
+| 5.3 | the four registered packs, once, on Freeze A (decision E): `final-sol` (benchmark: full, alert-only, always-escalate), `final-luna` and `final-gpt-4-1` (benchmark, full), `final-held-out` (held-out, full, gpt-6-sol) — 54 paid runs and the free floor; the effort for the reasoning models and temperature 0 for gpt-4.1 as frozen | every cell archived and scored; nothing re-run, nothing tuned; `python -m adii.reporting.manifest` attests the archive; a second copy of the run folders kept off this machine |
+| 5.4 | the packs read against DECISIVE_TESTS as written | D1–D5 each pass or fail, recorded in a new section of release_evidence.md — appended, never rewritten |
 
-This is where the money goes, and nearly all of it: on the order of five dollars for the
-runs and cents for the judge. The canonical run the film shows is one of these records,
-chosen after 5.4, not a separate paid run. The capstone ships whatever 5.4 says.
+Three claims, reported apart and never blended: the architecture across three investigators
+(same 12 incidents); whether the tools add information beyond the alert (Sol full against
+Sol alert-only, with always-escalate as the free floor at 4 of 12); and the declared system
+on six cases nobody tuned on — a demonstration, not a statistic.
 
 ---
 
-## Phase 6 — The evaluation report and the product surface
+## Phase 6 — The evaluation report
 
 | # | unit | done when |
 |---|---|---|
-| 6.1 | `02_src/docs/evaluation_report.md`, generated from `benchmark_report.json`: protocol, denominators, repeats, per-disposition results, control comparison, failure taxonomy, grounding, validation, cost, latency, limitations; the claim boundary updated in release_evidence.md by a new section | every number in it traces to a run label |
-| 6.2 | the benchmark on the page: `GET /api/benchmarks` serves each pack's report; `#b/<pack>` renders the grid as a table, every cell a link to its run; the admissibility square drawn from a record's two facts; new sentences in `phrasing.js` and the demo README together; a browser test | `test_phrasing.py` and the browser tests green; no sentence the record cannot back |
-| 6.3 | one demo configuration, frozen: gpt-4.1, twenty turns, $0.50 per run — the same bounds in the receipts of the runs that are filmed, the runs that are shown live and the runs that were scored | the page's defaults equal the pack's; the filmed run is a pack record by label |
-
-The prototype page is kept only where its code saves time; the front door — what looks
-wrong, over the visitor's own files, Investigate — stays, because it is the product.
+| 6.1 | `02_src/docs/evaluation_report.md`, generated from the packs' `report.json` by a script under `02_src/scripts` (outside Freeze A: it reads records, it is not the evaluated system): protocol, partition, the three claims, per-truth and per-tier results, grounding, validation, the admitted-where-no-repair-was-right count, cost, latency, the failures by name, limitations; the claim boundary updated in release_evidence.md by a new section | every number traces to a run label |
+| 6.2 | the product page does not show benchmark results (decision R): results are evaluation material, and a frozen product is not modified to display what it produced | — |
+| 6.3 | the demo configuration is the final packs': `python -m adii.demo 8000 --provider openai --model gpt-6-sol --reasoning-effort low --max-tokens 4096 --max-cost-usd 0.50 --max-turns 20` | the receipts of the filmed and live runs carry the same bounds as the packs' |
 
 ---
 
@@ -380,34 +390,42 @@ the benchmark report.
 
 ### 7.3 The live script
 
-The incident: configuration A for a REPAIR that ends ACCEPT and admissible, or B for a
-NO_REPAIR that shows restraint; the files from the package exported as CSV, never an
-audience upload. One person speaks, one drives. The spoken line for each ending, including
-the failure line: the sentence on screen came from the record, not from us. Recovery for a
-hung run rehearsed: it ends at the provider timeout, and the page says so.
+From the launch view (`#new`), which shows no earlier answer. The live case is a version-2
+sample of the demo company — LEAVE, the restraint the room does not expect; the FIX is
+precomputed on the frozen build and opened straight after it to show proposal,
+authorization, independent rebuild and sign-off; ESCALATE is held for questions. Never an
+audience upload. One person speaks, one drives. The spoken line for any ending, including a
+failure: the sentence on screen came from the record, not from us. A hung run is rehearsed:
+it ends at its bound, and the page says so.
 
-### 7.4 The film, at D−3
+### 7.4 The film, from Freeze A
 
-From the frozen build only: the finished interface, the final numbers, one canonical run
-with its label on screen, the last line "if it is not in the trace, it did not happen".
-Nothing the film shows changes afterwards; P uses the same build.
+From the frozen build only: the finished interface, one version-2 FIX case run from the page
+with its label on screen, the before chart and the independent rebuild, the sign-off, the
+final numbers from the report; the last line "if it is not in the trace, it did not happen".
+The version-1 FIX kept from the integration gate is not filmed beside a revenue figure: its
+alert predates decision A2.
 
-### 7.5 Submission qualification — against the exact ZIP
+### 7.5 Freeze B, the submission freeze — against the exact ZIP
 
-The artefact the bootcamp receives is what is qualified, never a developer checkout.
+The artefact the bootcamp receives is what is qualified, never a developer checkout. Freeze
+B adds, after the evidence exists: the evaluation report, the refreshed README (architecture,
+how to run, the evaluation's method and results, the deployment limits stated plainly), the
+architecture diagram drawn from the frozen architecture, the screenshots, the film and the
+presentation material. Nothing under Freeze A changes; `test_the_freeze.py` proves it.
 
-1. `python 02_src/scripts/package_submission.py` on the tagged commit `submission`; its
-   content manifest reviewed by the architect: the three top-level folders, the README,
-   the requirements, the preserved run archive the report cites, and nothing else.
-2. No secret: `.env.local` and `.env` absent; the key's prefix absent from every file in
-   the ZIP, checked by the script and by hand.
-3. Extracted on a clean Mac and a clean Windows machine; on each, from nothing: create the
-   environment, install the requirements, `check_env.py` prints `Ready.`, `pytest` green,
-   the scripted runtime archives a run, `python -m adii.reporting.manifest --verify` on the
-   shipped archive prints OK, `python -m adii.demo` serves and the product path works in a
-   browser.
-4. If anything changes after this, the ZIP is rebuilt and step 3 is repeated on both
-   machines. The ZIP that was qualified is the ZIP that is uploaded, by digest.
+1. The merged commit tagged `submission-<date>`; `python 02_src/scripts/package_submission.py
+   --ref submission-<date> --packs final-sol final-luna final-gpt-4-1 final-held-out`; its
+   `SUBMISSION.json` reviewed by the architect: the three top-level folders, the README, the
+   requirements, the packs' receipts, reports and run folders the report cites.
+2. No secret: the packager refuses a `.env` file and the configured key's prefix anywhere;
+   checked by hand as well.
+3. Extracted on a clean Mac and a clean Windows machine; on each, from nothing: the
+   environment, the requirements, `check_env.py` prints `Ready.`, `pytest` green, the
+   scripted runtime archives a run, `python -m adii.demo` serves and the launch view and one
+   archived answer work in a browser.
+4. If anything changes after this, the ZIP is rebuilt and step 3 repeated on both machines.
+   The ZIP that was qualified is the ZIP that is uploaded, by digest.
 
 ### 7.6 Rehearsals
 
@@ -468,6 +486,10 @@ scope cut, the order is: the second rebuildable world, the benchmark view on the
 | F2 | "after validation" is the validator's reading: `ValidationResult.rebuilt_series`, the declared series read from the rebuilt world with the same query, on ACCEPT and REJECT alike, empty when nothing was rebuilt; a contract row, and the record moves to `adii.run_record/v3` (v2 and v1 still load) | APPROVED | APPROVED — the project owner, 23 Sep 2026 | the front door |
 | F3 | "How ADII knows" is built from the investigator's citations: each cited observation rendered by a fixed template from its recorded result — no model wording, no protocol change | APPROVED | APPROVED — the project owner, 23 Sep 2026 | the front door |
 | W | the product's name beside the unchanged logo: **ADII — Is it broken?** The question before the machinery; Fix it · Leave it · Escalate it are the answers, and maker-checker is the reveal. The category line, once understood, elsewhere: "Intervention assurance for consequential data changes." | APPROVED | APPROVED — the project owner, 23 Sep 2026 | the front door |
+| A2 | the alert names the number it measured: version 1 said "revenue fell about N%" where N was the orders' fall; the orders fall by the same share in every state of a family and the revenue does not (mar: 48% and 44%), so a shared alert can only state the orders. Version 2 of every live case — "Daily revenue for D fell sharply: the day counted about N% fewer orders than a usual day." — under new ids, the same worlds and answers, keys copied and frozen anew, the partition moved to them; version 1 kept byte for byte and listed as superseded, since the rehearsals, the integration gate and the stage's precomputed FIX ran on it and no record is rewritten. The chart states the revenue's fall under its own name. Before any final run and before the freeze | APPROVED | APPROVED — the project owner, 23 Sep 2026 | phase 4 |
+| F | two freezes: Freeze A binds the evaluated system before the benchmark runs; Freeze B binds the submission after the evidence exists; feature development ends at Freeze A | APPROVED | APPROVED — the project owner, 24 Sep 2026 | phases 4 and 7 |
+| R | no benchmark result on the product page: the front door shows alert, investigation, answer, evidence, proposal, sign-off and record; results live in the report and the deck | APPROVED | APPROVED — the project owner, 24 Sep 2026 | phase 6 |
+| CL | the claim: "ADII is a complete, locally running reference implementation. We engineered and qualified the authority boundaries as if they mattered in production; we have not deployed it into a production customer environment." — industry-grade engineering discipline, never "production-grade deployment" (no HA, SSO, secret management, connectors, operations, residency or workload history is claimed) | APPROVED | APPROVED — the project owner, 24 Sep 2026 | phase 7 |
 
 ## The audit of 23 Sep, before the freeze
 
@@ -514,3 +536,7 @@ finding, what was done, and what the benchmark may therefore claim.
 | 23 Sep 2026 | 5.1 (pilot-paid-v3) | Luna qualified on the burned cases, which no result reports: 6 runs of gpt-6-luna at effort low, every run `submitted` and scored, every tool call OK, no malformed call, every finish `stop`, $0.017 in all; its one refused submission was the protocol — a REPAIR without a patch, told so, then an escalation. No machinery defect. Luna, like Sol, escalated every burned case, quoting the transform's deliberate staging cutoff | |
 | 23 Sep 2026 | the front door (F1, F2) | the record carries the chart: every canonical package writes `alert_series.json`; the runtime records `alert_observed` before the investigation; the validator returns `rebuilt_series` from its rebuild; the record is `adii.run_record/v3`. Proved on the real packages: the runtime's reading shows the drop and is no tool call; the restored staging brings the day back to what was delivered in the validator's own series, and the chart-only fake paints the same day back and is still rejected; guards `D.alert_is_observed_before_the_investigation` and `C.validator_reports_its_rebuilt_series`, killed | |
 | 23 Sep 2026 | the front door | the new page wired to the real backend: the old page archived whole in `03_assets/archive/front-door-v1/`; `web/view.js` projects every word from the record and `web/app.js` only draws, with text nodes; the symptom chart from `alert_observed` above the answer and never among the evidence, "How ADII knows" the cited observations only and "Investigated" everything, "Independent rebuild" from `rebuilt_series` with the validator's checks, a layout per answer, sign-off from the authorities' facts, the "no answer" screens from the termination; fonts and logo served locally (OFL), "ADII — Is it broken?" beside the unchanged mark; the demo server takes `--reasoning-effort`. Building it found one defect in F2, fixed: a patch that reshapes what the series query reads made the validator raise, filing the run as an infrastructure failure — the series now comes back empty and the verdict stands. Tests rewritten: the projections in node over real runtime records, the design rules, the executing payload and the fit at 1440 and 390 in Chrome, and both entry paths in the browser against a stand-in model, the page's record the archive's by digest; guards `D.page_renders_text_never_markup` (moved), `D.how_adii_knows_is_what_was_cited`, `D.a_fix_stands_only_with_both_authorities`, `C.the_series_never_costs_a_verdict`, all killed | |
+| 23 Sep 2026 | the front door (integration gate) | the three answers driven through the browser by the project owner against gpt-6-sol at the final settings, on the demo company's cases: Fix it (16 of 20 turns, $0.104 — proposed, allowed, accepted; the validator's rebuild brings 18 Aug from $2,741.46 to $5,541.40), Leave it (10 turns, $0.052), Escalate it (13 turns, $0.078); each downloaded record byte-identical to the archive's, the downloaded fix equal to the record's patch, every citation minted by the tool layer, the page's projections equal to the record's facts. Sol's stray text after a call recurred, two or three times a run, each refused and recorded — turns it costs, within the registered twenty. The run without an answer was not driven live, by the owner's call: its screens are held by the projection tests over every ending and by the fit test in Chrome. The FIX record is kept as the precomputed stage case | |
+| 23 Sep 2026 | 4 | prices verified on OpenAI's pricing page before the freeze: gpt-4.1 $2/$8, gpt-4.1-mini $0.40/$1.60, gpt-6-sol $2/$10, gpt-6-luna $0.10/$0.50 per million — the tables unchanged. `python -m adii.evaluation.lock` built (the freeze file, `--check`, the four registered packs' terms), the grid's gate on registered packs, `test_the_freeze.py` as the standing rule, and `02_src/scripts/package_submission.py`; guard `C.registered_pack_runs_only_on_the_freeze`, killed | |
+| 23 Sep 2026 | 2 (decision A2) and the front door | a review found the alert's percentage was the orders' under the word revenue, so the page showed 49% above a chart reading 51%; version 2 of the 21 live cases written with an alert that names the orders, keys, grounding keys and oracles copied and frozen, the partition moved, version 1 superseded and kept; the readiness gate proves the new alert matches the orders in every state and version 1 unchanged. And the stage leak: the list showed earlier answers under the neutral samples, so `#new` — what "New investigation" opens — is a launch view with no earlier answer on it, held by the fit test; the history stays one click away. The stage's precomputed FIX (version 1, `revenue-drop-d0888f-20260923T190024-097Z`) stays as it is; a version-2 film case is run only after the freeze | |
+| 24 Sep 2026 | before Freeze A (the audit) | a production-readiness audit of every file, by five read-only reviewers, each finding verified against the code before acting. Fixed on the evaluated path: a tool call or decision carrying NaN, Infinity or a 5,000-digit number crashed the run instead of being refused; the database misfiled an unbound placeholder as "one statement per call" and a closed connection as the model's mistake, and did not escape a quoted table name; a refused or over-long declared series escaped the runtime after its label was claimed; the provider worker leaked on an unexpected exception and the trace file was never closed; the pre-flight's model listing followed a redirect carrying the credential; the manifest did not keep `alert_series.json`; the newest freeze was chosen by name; `--partition` offered demo and superseded; a judge on a local pack was uncapped; the packager took run folders by prefix; the 48 scored keys were not schema-checked. The page and server: the page may start only the samples and the walkthrough (a held-out case could have been run from it); an older record's accepted repair was shown as rejected; check marks were read from prose; spend was shown as spent, not as a lower bound; a dead run looked alive; a slow answer could redraw another screen; a negative Content-Length bypassed the body bound. Removed as unused or superseded: feedback, page-chosen run settings and the evaluation endpoint (decision R), and the evaluation modules `failure_signal`, `receipt_artefacts`, `commitment`, `exposure`; the fake validator moved into the tests. One reported defect was not one: a judge-settled "incorrect" repair filed as a rejection is the team's pinned decision, and only its comment was wrong. A correction to this log's 23 Sep row "13 skipped (the blind-key tests, kept out on purpose)": they skipped on a stale path; they run now. Docs and docstrings brought to the system as it is; the ZIP holds only what a judge needs (`export-ignore`), named `ADII_Group05_Code_v1.zip` | |

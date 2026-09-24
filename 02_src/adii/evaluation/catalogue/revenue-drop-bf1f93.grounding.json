@@ -1,0 +1,15 @@
+{
+  "schema_version": "1",
+  "answer_key_filename": "revenue-drop-bf1f93.answer.json",
+  "answer_key_digest": "7395b5d57537f26d43d74db0604fee493714afc07cc83bd19b5dda349ae7a8ca",
+  "required_tool_calls": [
+    {
+      "tool": "run_sql",
+      "argument_contains": "delivery_manifest"
+    },
+    {
+      "tool": "read_reconciliation",
+      "argument_contains": "vendor-receipts"
+    }
+  ]
+}

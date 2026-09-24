@@ -58,8 +58,8 @@ def build_grounding_key(answer_key_path: Path, required_tool_calls: list[dict]) 
 
     required_tool_calls: a list of {"tool": str, "argument_contains": str}
     predicates. A decision's trace satisfies one predicate if it contains
-    a tool_requested call for that tool whose arguments (stringified)
-    contain that substring.
+    a `tool_call` event for that tool, answered OK, whose text arguments
+    contain that substring (check_grounding).
 
     Raises FileNotFoundError if the named answer key is not itself frozen
     yet — grounding is authored against a stable answer key, never a

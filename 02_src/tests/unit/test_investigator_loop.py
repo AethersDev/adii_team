@@ -1549,3 +1549,35 @@ def test_a_call_followed_by_more_text_is_refused_said_why_and_recorded_in_the_hi
     assert first.content["error"] == TOOL_CALL_THEN_TEXT
     assert second.content["error"] == INVALID_TOOL_CALL
     assert [k for k, _ in sink.events] == ["tool_call", "tool_result"] * 2
+
+
+
+@pytest.mark.parametrize("body", [
+    '{"name": "fake_tool", "arguments": {"a": NaN}}',
+    '{"name": "fake_tool", "arguments": {"a": Infinity}}',
+    '{"name": "fake_tool", "arguments": {}, "n": ' + "9" * 5000 + "}",
+])
+def test_a_tool_call_no_strict_sink_can_record_is_refused_and_the_run_goes_on(body):
+    """The audit of 24 Sep: NaN and Infinity parse under Python's json but no record may hold
+    them, and a 5,000-digit integer raises ValueError, not JSONDecodeError. Each is the
+    model's malformed call — refused, returned, and the loop continues — never a crash that
+    files the run as the model's failure."""
+    class StrictSink:
+        def event(self, kind, payload):
+            json.dumps(payload, allow_nan=False)
+
+    executor = FakeToolExecutor()
+    decision, trace = run(incident(), ScriptedProvider([TOOL_CALL_PREFIX + body, END]), executor,
+                          max_turns=2, sink=StrictSink())
+    assert decision == ENDED and executor.calls == []
+    assert trace[1].payload["status"] == "REJECTED"
+
+
+@pytest.mark.parametrize("value", ["NaN", "-Infinity", "9" * 5000])
+def test_a_decision_no_record_can_hold_is_rejected_as_malformed(value):
+    malformed = DECISION_PREFIX + '{"disposition": "ESCALATE", "root_cause_summary": "x", ' \
+        f'"root_cause_id": null, "repair_id": null, "patch": {{}}, "n": {value}}}'
+    decision, trace = run(incident(), ScriptedProvider([malformed, END]), FakeToolExecutor(),
+                          max_turns=2)
+    assert decision == ENDED
+    assert trace[0].kind == "decision_rejected" and "valid JSON" in trace[0].payload["reason"]

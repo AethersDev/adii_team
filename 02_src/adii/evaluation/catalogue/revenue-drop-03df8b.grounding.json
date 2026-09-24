@@ -1,0 +1,11 @@
+{
+  "schema_version": "1",
+  "answer_key_filename": "revenue-drop-03df8b.answer.json",
+  "answer_key_digest": "455227b8dc5395dc11b3d292915b05eb00bee90b123e3723b0d1c6191b997a71",
+  "required_tool_calls": [
+    {
+      "tool": "run_sql",
+      "argument_contains": "distributor"
+    }
+  ]
+}

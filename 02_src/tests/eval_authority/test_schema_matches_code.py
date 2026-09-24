@@ -112,7 +112,8 @@ class TestPublishedSchemaAndCodeAgree:
         # OVERVIEW.md) so only the public fixtures are checked here; they
         # are added back post-freeze and picked up automatically.
         real_files = (list(EVALUATION_DIR.glob("*.answer.json"))
-                      + list(EVALUATION_DIR.glob("fixtures/*.answer.json")))
+                      + list(EVALUATION_DIR.glob("fixtures/*.answer.json"))
+                      + list(EVALUATION_DIR.glob("catalogue/*.answer.json")))   # what is scored
         assert real_files, "expected at least one real answer key file to check"
         for path in real_files:
             with open(path, encoding="utf-8") as f:

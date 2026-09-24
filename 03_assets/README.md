@@ -10,7 +10,7 @@ identity/       the identity and design-system handoff: tokens, components, spec
                 the logo family, and its own checks (python3 tools/check_specimen.py)
 ```
 
-Nothing in `02_src/` imports from here. The inspector runs on a *copy* of `identity/css/`,
+Nothing in `02_src/` imports from here. The front door serves a *copy* of the logo from `identity/assets/logo/`,
 made by `python 02_src/scripts/sync_identity.py` and held byte-identical by a test — so the
 handoff stays exactly as delivered and the system needs nothing from this folder to run.
 If a file in this folder had to be correct for the system to work, it would be in the

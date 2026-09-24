@@ -22,9 +22,8 @@ at the full input rate — a bound, not a discount. Each price names the encodin
 bills by: the provider's input bound counts bytes, which is conservative for a byte-level
 BPE and for nothing else, so a model priced here with another tokenizer may not run capped.
 
-Where usage lands in the trace is trace-contract row 1, still open; this reads the spike's
-placement (`usage` on `model_responded`, matched to `model_requested` by turn), and moves
-with the vocabulary when the row is decided.
+Usage is read where the trace carries it (`usage` on `model_responded`, matched to
+`model_requested` by turn; docs/trace_event_contract.md).
 """
 from __future__ import annotations
 
@@ -40,6 +39,7 @@ class Price:
     output_per_token: Decimal
     table: str
     tokenizer: str       # the encoding the model bills by, as the provider documents it
+    reasoning: bool = False   # takes a reasoning effort in place of a temperature
 
 
 # Encodings in which a token covers at least one byte, so a byte count bounds a token count.
@@ -65,8 +65,8 @@ PRICES: dict[str, Price] = {
     "gpt-4.1-nano": Price(_per_million("0.10"), _per_million("0.40"), _TABLE, "o200k_base"),
     "gpt-4.1": Price(_per_million("2.00"), _per_million("8.00"), _TABLE, "o200k_base"),
     "gpt-4o": Price(_per_million("2.50"), _per_million("10.00"), _TABLE, "o200k_base"),
-    "gpt-6-sol": Price(_per_million("2.00"), _per_million("10.00"), _TABLE_6, GPT_6),
-    "gpt-6-luna": Price(_per_million("0.10"), _per_million("0.50"), _TABLE_6, GPT_6),
+    "gpt-6-sol": Price(_per_million("2.00"), _per_million("10.00"), _TABLE_6, GPT_6, True),
+    "gpt-6-luna": Price(_per_million("0.10"), _per_million("0.50"), _TABLE_6, GPT_6, True),
 }
 
 

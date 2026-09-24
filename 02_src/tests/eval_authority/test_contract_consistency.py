@@ -9,27 +9,12 @@ this file is the one that goes red, not eval_authority's own
 scoring.py, which has no import-time dependency on the rest of
 adii_team at all (and must not gain one — see scoring.py/judge.py's
 docstrings on staying independent of A/B's code).
-
-Skipped, not failed, if contracts/core.py cannot be found — this
-test's only job is to catch drift when both sides are actually present
-to compare.
 """
-from pathlib import Path
-
 import pytest
-
-_CONTRACTS_CORE = Path(__file__).resolve().parents[2] / "adii" / "contracts" / "core.py"
-
-if not _CONTRACTS_CORE.exists():
-    pytest.skip(
-        "adii.contracts.core not found in 02_src — skipping contract consistency check",
-        allow_module_level=True,
-    )
-
-from adii.contracts import Disposition, InvestigationDecision, ValidationResult  # noqa: E402
-from adii.evaluation.judge import build_judge_prompt  # noqa: E402
-from adii.evaluation.outcome_classification import classify_outcome  # noqa: E402
-from adii.evaluation.scoring import score_decision  # noqa: E402
+from adii.contracts import Disposition, InvestigationDecision, ValidationResult
+from adii.evaluation.judge import build_judge_prompt
+from adii.evaluation.outcome_classification import classify_outcome
+from adii.evaluation.scoring import score_decision
 
 
 def decision_to_dict(decision: InvestigationDecision) -> dict:

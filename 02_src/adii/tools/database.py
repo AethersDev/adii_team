@@ -10,8 +10,8 @@ file the tool was never given.
 CONFORMANCE B2: every result is bounded. Rows are capped, long cells are cut, and a query
 that runs too long is interrupted and sent back as the model's mistake to narrow.
 
-CONFORMANCE B3: the file path, when there is one, is runtime configuration handed to
-`ReadOnlyDatabase.from_file` by whoever runs the incident. It is never a tool argument.
+CONFORMANCE B3: there is no file path at all — every world is built in memory from its
+package's script by the runtime — so none can ever be a tool argument.
 
 This module is the only reason this package imports `sqlite3`. Nothing else in `adii/`
 may — `test_only_the_tool_layer_touches_the_outside_world` says so.
@@ -22,7 +22,6 @@ import hashlib
 import math
 import sqlite3
 from dataclasses import dataclass
-from pathlib import Path
 
 from .errors import Denied, Rejected
 
@@ -138,24 +137,14 @@ class ReadOnlyDatabase:
             raise ValueError(f"the world's build script is not one SQLite accepts: {bad}") \
                 from None
         connection.commit()
-        held = sum(connection.execute(f'SELECT count(*) FROM "{name}"').fetchone()[0]
+        held = sum(connection.execute(
+            'SELECT count(*) FROM "{}"'.format(name.replace('"', '""'))).fetchone()[0]
                    for (name,) in connection.execute(
                        "SELECT name FROM sqlite_master WHERE type = 'table'").fetchall())
         limits.setdefault("max_progress_ticks", max(QUERY_TICKS_FLOOR, held // ROWS_PER_TICK))
         database = cls(connection, **limits)
         database.build_ticks = ticks
         return database
-
-    @classmethod
-    def from_file(cls, path: str | Path, **limits: int) -> ReadOnlyDatabase:
-        """Open an existing database file read-only at the driver level too, so even a
-        defect in the authorizer could not write it. `path` is configuration: it comes
-        from the runtime, never from a `ToolCall`."""
-        target = Path(path).resolve()
-        if not target.is_file():
-            raise FileNotFoundError(f"no database file at {target}")
-        connection = sqlite3.connect(f"{target.as_uri()}?mode=ro", uri=True)
-        return cls(connection, **limits)
 
     def close(self) -> None:
         self._connection.close()
@@ -218,7 +207,14 @@ class ReadOnlyDatabase:
             cursor = self._connection.execute(sql, parameters)
             consumed = consume(cursor)
         except sqlite3.ProgrammingError as problem:
-            raise Rejected(f"one statement per call: {problem}") from None
+            # the model's SQL — two statements, or a placeholder with nothing bound — is
+            # rejected with SQLite's own words; any other misuse (a closed connection) is
+            # ours, and propagates to be filed as ERROR, never as the model's mistake
+            if "one statement at a time" in str(problem):
+                raise Rejected(f"one statement per call: {problem}") from None
+            if "bindings" in str(problem):
+                raise Rejected(f"SQL error: {problem}") from None
+            raise
         except sqlite3.DatabaseError as problem:
             if self._denied:
                 raise Denied(self._denied) from None

@@ -6,11 +6,11 @@ exact code, but the reasoning here stands on its own.
 
 ## What this is
 
-This is Person C's part of ADII: the **evaluation authority** — the code that
-decides whether the investigator (A) got an incident right, and the code that
-guarantees that decision itself can be trusted. It lives outside the `adii_team`
-repository on purpose (see "Why a separate directory" below) and has zero
-import-time dependency on A's or B's code.
+This is ADII's **evaluation authority**: the code that decides whether the investigator
+got an incident right, and the code that guarantees that decision itself can be trusted.
+It lives in `02_src/adii/evaluation/`, and the investigator may never import it — a test
+in `tests/architecture/test_boundaries.py` fails the build if it does (see "Where it lives"
+below). These tests are in `02_src/tests/eval_authority/`.
 
 ## The one idea that explains everything else
 
@@ -51,15 +51,15 @@ safe to trust — each assumes the other has already done its job.
                            │  outcome_classification.py     │
                            └──────────────┬─────────────────┘
                                           │
-                          ┌───────────────┼───────────────┐
-                          ▼               ▼               ▼
-                  failure_signal.py  evaluation_report.py  receipt_artefacts.py
-                  (→ D's grid runner) (→ D's M10 report)   (→ D's spend receipt)
+                                          ▼
+                                  evaluation_report.py
+                                  (beside each run's record; the grid
+                                   runner reads these to report a pack)
 ```
 
 ## Domain 1 — is this decision correct?
 
-**Files:** `scoring.py`, `judge.py`, `validation_wiring.py`; the model call is `provider/judge.py`
+**Files:** `scoring.py`, `judge.py`; the model call is `provider/judge.py`
 
 **The flow for one decision:**
 
@@ -98,11 +98,11 @@ Exact-string matching would fail those as "wrong" when they're actually fine.
 The judge's only job is telling a genuine error apart from a valid
 alternative — it never re-opens whether the answer key itself is right.
 
-**`validation_wiring.py`** is the seam where the real `validation/` package
-(built by whoever owns it) plugs in later — today it's a fake that checks
-patch text structurally. The real model behind the judge is
-`02_src/adii/provider/judge.py`, standard library only, wired into
-`python -m adii.evaluation --judge-model ID` (final plan, decision J).
+The validation verdict comes from the record: the runtime hands every REPAIR to the real
+validator and records its result. For tests that score decisions held as plain dicts,
+`validation_fakes.py` here holds a stand-in validator and an adapter from the real one. The
+real model behind the judge is `02_src/adii/provider/judge.py`, standard library only,
+wired into `python -m adii.evaluation --judge-model ID` (final plan, decision J).
 
 ## Domain 2 — can I trust the answer key and the rules?
 
@@ -140,49 +140,25 @@ decision here is its own artifact, hash-bound to whatever it depends on.
    load either file if a single byte changed — no silent drift, ever
 ```
 
-## The output layer — handing results to D
+## The output layer
 
-**Files:** `outcome_classification.py`, `failure_signal.py`, `evaluation_report.py`,
-`receipt_artefacts.py`
+**Files:** `outcome_classification.py`, `evaluation_report.py`
 
-Domain 1's raw verdict (`correct`/`incorrect`/`unresolved`) is too coarse for
-the final report the team agreed on (`build_plan.md` M10 / `plan_telemetry.md`
-D-19): *success, failure, false repair, correct abstention, unnecessary
-escalation, repair rejection.* `outcome_classification.py` is the one place
-that turns a verdict into one of those six names — every other module in this
-layer calls it rather than re-deriving the mapping:
+Domain 1's raw verdict (`correct`/`incorrect`/`unresolved`) is too coarse for the final
+report: *success, failure, false repair, correct abstention, unnecessary escalation,
+repair rejection.* `outcome_classification.py` is the one place that turns a verdict into
+one of those six names. `evaluation_report.py` builds one `adii.evaluation_report/v1`
+document from a real run record and a frozen key, written beside `record.json`; the grid
+runner (`grid.py`) reads those reports to report a whole pack.
 
-```
-outcome_classification.classify_outcome()
-        │
-        ├──▶ failure_signal.py        one JSON record per (incident, repeat),
-        │                             for D's grid runner (D-17)
-        │
-        ├──▶ evaluation_report.py     one adii.evaluation_report/v1 document
-        │                             built from a real RunRecord + an answer
-        │                             key — sits BESIDE record.json, does not
-        │                             modify D's RunRecord schema (D-19)
-        │
-        └──▶ receipt_artefacts.py     {"kind": "answer_key", "digest": ...}
-                                      entries D's receipts.py names before
-                                      any irreversible model call (D-15)
-```
+## Where it lives
 
-Each of these three is a thin, separately-testable adapter aimed at one named
-integration point D owns — none of them duplicate `classify_outcome`'s logic,
-and none of them touch A's or B's code.
-
-## Why a separate directory, not inside `adii_team`
-
-`01_data/README.md` (in `adii_team`) states answer keys must never ship inside
-the ADII repository itself — if they did, the system under evaluation could
-read its own answer key. `eval_authority/` is a sibling directory
-(`adii-practice/eval_authority`, next to `adii-practice/adii_team`), not a
-subfolder, not tracked by `adii_team`'s git history, and no file in this
-directory imports anything from `adii_team` at import time. The one exception
-is `test_contract_consistency.py`, which deliberately reads `adii_team`'s real
-`contracts/core.py` at test time to catch drift early — it skips itself
-cleanly if `adii_team` isn't present on the machine.
+The evaluation authority and its catalogue of keys live in this repository, as the
+bootcamp brief allows for a team-generated, team-labelled development set: the keys are
+under `02_src/adii/evaluation/catalogue/`, frozen by digest, and the investigator is kept
+from them by the tool layer (its only door to the world is a read-only database built from
+an incident's own package) and by the boundary tests. Nothing in `adii/investigator/`
+imports `adii/evaluation/` or `adii/validation/`.
 
 ## File-by-file map
 
@@ -190,7 +166,6 @@ cleanly if `adii_team` isn't present on the machine.
 Domain 1 — per-decision scoring
   scoring.py                    the deterministic router (decide_route, score_decision)
   judge.py                      the model-backed tiebreaker for ambiguous cases
-  validation_wiring.py          fake independent-validator seam (real one: validation/)
 
 Domain 2 — trusting the answer key and the rules
   freeze.py                     C2: hash-freeze / verified-load for any JSON file
@@ -201,31 +176,29 @@ Domain 2 — trusting the answer key and the rules
   scoring_semantics.json        C6: frozen definition of what "correct" means, by rule id
   test_independent_validation.py C1: proves independent validation ignores rehearsal claims
 
-Output layer — handing results to D
+Output layer
   outcome_classification.py     verdict → one of the six M10/D-19 category names
-  failure_signal.py             per-repeat record for D's grid runner (D-17)
-  evaluation_report.py          per-run report built from a real RunRecord (D-19)
-  receipt_artefacts.py          digest entries for D's spend receipt (D-15)
+  evaluation_report.py          per-run report built from a real run record (D-19)
 
 Cross-cutting
   test_contract_consistency.py  checks Domain 1 against A/B's real contracts/core.py
 
-Answer keys and fixtures
-  demo-learning-001.answer.json (+ .sha256, + .grounding.json)  the real, frozen walkthrough case
-  demo-learning-002-mismatch-drill.answer.json                  hand-built judge-routing drill
-  fixtures/synthetic-no-repair-001.answer.json                  covers the NO_REPAIR path
-  fixtures/synthetic-escalate-001.answer.json                   covers the ESCALATE path
+Answer keys and fixtures (02_src/adii/evaluation/)
+  fixtures/demo-learning-001.answer.json (+ .sha256)   the frozen walkthrough case
+  fixtures/demo-learning-002-mismatch-drill.answer.json a hand-built judge-routing drill
+  fixtures/synthetic-no-repair-001.answer.json          covers the NO_REPAIR path
+  fixtures/synthetic-escalate-001.answer.json           covers the ESCALATE path
+  catalogue/                                            the development set's keys, grounding
+                                                        keys, partition and burned list
 
-Docs
-  OVERVIEW.md                   this file
-  RECEIPT_ARTEFACTS.md           integration guide for D-15, aimed at whoever builds receipts.py
+Test helpers
+  validation_fakes.py           a stand-in validator and the real validator's dict adapter
 ```
 
 ## How to verify all of this yourself
 
 ```bash
-cd eval_authority
-pytest -q          # 195 tests, all of Domain 1 + Domain 2 + the output layer
+python -m pytest 02_src/tests/eval_authority -q
 ```
 
 Every claim above has a test behind it — if something here turns out wrong,

@@ -10,13 +10,13 @@ produced, not assembled, and its observations are what the tools actually return
     python -m adii.runtime --incident orders-missing-day --provider local \
         --endpoint http://127.0.0.1:11434/v1 --model llama3.1
 
-`local` (SPIKE) drives A's real investigator loop with a model behind an OpenAI-compatible
+`local` drives A's real investigator loop with a model behind an OpenAI-compatible
 endpoint on this machine — Ollama, LM Studio, mlx_lm.server — over the real tool layer,
 against the walkthrough world or a development specimen's. Nothing is paid for; the receipt
 is written all the same, before the investigator runs, on every path.
 
-    OPENAI_API_KEY=... python -m adii.runtime --incident revenue-after-deploy --provider openai \
-        --model gpt-4.1-mini --max-cost-usd 0.25
+    python -m adii.runtime --incident demo-learning-001 --provider openai --model gpt-6-sol \
+        --reasoning-effort low --max-tokens 4096 --max-cost-usd 0.50
 
 `openai` is the same loop against a paid endpoint. Every precondition is checked before
 the label is claimed: the model has a nominal price in reporting/ledger.py, the cap is
@@ -29,9 +29,9 @@ receipt names the cap and who permitted the spend. The cap is hard: before each 
 provider reserves its worst case — every byte of the messages as a token at the input rate,
 `max_tokens` at the output rate — and a request whose reserve would cross the cap is not
 sent; the record's cost is the ledger's lower bound, proved usage at nominal prices, with
-the unknown rows counted. The validator (M6) is not yet wired into the live path, so a live
-REPAIR carries a verdict that says exactly that: not checked, therefore not accepted, and no
-finding about the repair.
+the unknown rows counted. Every REPAIR goes to the validator (runtime/live.py,
+ValidatorOnLivePath): ACCEPT or REJECT from a rebuild where the incident has one, and
+NOT_CHECKABLE, said in structure, where it has none.
 
 Six bounds, each its own resource, each named in the `bound_hit` it causes: `--max-turns`
 (A's model turns), `--max-tool-calls` (the executor's), `--max-model-requests` (the
@@ -77,7 +77,9 @@ from ..reporting.receipts import digest_of, write_receipt
 from ..reporting.record import ARCHIVE, LABEL, reserve
 from ..tools import (
     EVIDENCE_BUNDLES,
+    Denied,
     ReadOnlyDatabase,
+    Rejected,
     ToolExecutor,
     build_sql_tools,
     canonical_json,
@@ -168,7 +170,12 @@ def alerted_series(folder: Path | None) -> dict | None:
                                               for k in ("metric", "unit", "query")):
         raise ValueError(f"{ALERT_SERIES} must hold metric, unit and query as text")
     world = ReadOnlyDatabase.in_memory((folder / "world.sql").read_text(encoding="utf-8"))
-    read = world.query(spec["query"], max_rows=MAX_SERIES_ROWS)
+    try:
+        read = world.query(spec["query"], max_rows=MAX_SERIES_ROWS)
+    except (Denied, Rejected) as refused:          # the package's declaration, not a run's
+        raise ValueError(f"{ALERT_SERIES}: its query was refused: {refused}") from None
+    if read.truncated:
+        raise ValueError(f"{ALERT_SERIES}: the series is longer than {MAX_SERIES_ROWS} rows")
     return {"metric": spec["metric"], "unit": spec["unit"], "query": spec["query"],
             "columns": list(read.columns), "rows": [list(row) for row in read.rows]}
 
@@ -384,7 +391,7 @@ def main(argv: list[str] | None = None) -> int:
                         choices=["scripted", "local", "openai", "none"],
                         help="scripted: a scripted investigator and validator over the real "
                              "tool layer — no model, no cost. local: A's loop with a model "
-                             "behind a local OpenAI-compatible endpoint (SPIKE). openai: the "
+                             "behind a local OpenAI-compatible endpoint. openai: the "
                              "same loop against a paid endpoint, credential from OPENAI_API_KEY")
     parser.add_argument("--endpoint", default=None,
                         help="the OpenAI-compatible base URL (default: Ollama's for local, "
@@ -472,6 +479,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.reasoning_effort and args.provider != "openai":
         print("--reasoning-effort is a paid reasoning model's setting: --provider openai only")
         return 2
+    if args.reasoning_effort and args.model in PRICES and not PRICES[args.model].reasoning:
+        print(f"--reasoning-effort: {args.model} is not a reasoning model and takes a "
+              "temperature instead")
+        return 2
     if args.provider == "openai":
         try:
             load_env_local()
@@ -531,7 +542,7 @@ def main(argv: list[str] | None = None) -> int:
     elif args.provider == "scripted":
         investigator, _, validator = replay(recorded)
     else:
-        from .live import LoopInvestigator, ValidatorOnLivePath  # the spike
+        from .live import LoopInvestigator, ValidatorOnLivePath
         investigator = LoopInvestigator(endpoint=args.endpoint, model=args.model,
                                         max_turns=args.max_turns, recorder=recorder,
                                         served_as=args.served_as,
@@ -539,8 +550,11 @@ def main(argv: list[str] | None = None) -> int:
                                         max_wall_clock_s=args.max_wall_clock_seconds, **paid)
         validator = ValidatorOnLivePath()
 
-    record = run_incident(label, context, investigator, tools, validator,
-                          configuration=configuration, recorder=recorder, alert=alert)
+    try:
+        record = run_incident(label, context, investigator, tools, validator,
+                              configuration=configuration, recorder=recorder, alert=alert)
+    finally:
+        recorder.close()
     if paid:
         # The cost is the ledger's lower bound over the trace — proved usage at nominal
         # prices; a request without usage is counted, not priced, and the renderers say so.

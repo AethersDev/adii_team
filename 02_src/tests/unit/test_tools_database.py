@@ -134,24 +134,6 @@ class TestSchema:
             db.query("SELECT * FROM customers", max_rows=5)
 
 
-class TestFromFile:
-    def test_b3_the_path_is_configuration_and_the_file_opens_read_only(self, tmp_path):
-        path = tmp_path / "world.db"
-        con = sqlite3.connect(path)
-        con.executescript(BUILD)
-        con.close()
-        db = ReadOnlyDatabase.from_file(path)
-        assert count(db) == 3
-        with pytest.raises(Denied):
-            db.query("DELETE FROM orders", max_rows=1)
-        db.close()
-        assert sqlite3.connect(path).execute("SELECT count(*) FROM orders").fetchone() == (3,)
-
-    def test_a_missing_file_is_an_error_at_construction_not_at_query_time(self, tmp_path):
-        with pytest.raises(FileNotFoundError):
-            ReadOnlyDatabase.from_file(tmp_path / "nope.db")
-
-
 class TestBuild:
     """A world is built once, in memory, and the build is not a door either."""
 
@@ -195,3 +177,22 @@ def test_a_fingerprint_counts_and_digests_rows_as_a_multiset():
     assert a.fingerprint("SELECT x FROM t") != c.fingerprint("SELECT x FROM t")
     with pytest.raises(Denied):
         a.fingerprint("DELETE FROM t")
+
+
+
+def test_a_table_name_with_a_quote_builds_and_programming_errors_are_told_apart():
+    """The audit of 24 Sep: a quoted name in the build script is escaped when rows are counted;
+    a placeholder with nothing bound is the model's SQL, said in SQLite's words; a closed
+    connection is ours, and is not dressed up as the model's mistake."""
+    import sqlite3
+
+    db = ReadOnlyDatabase.in_memory('CREATE TABLE "a""b" (x INTEGER); '
+                                    'INSERT INTO "a""b" VALUES (1);')
+    assert db.query('SELECT x FROM "a""b"', max_rows=5).rows == ((1,),)
+    with pytest.raises(Rejected, match="SQL error: Incorrect number of bindings"):
+        db.query("SELECT ?", max_rows=5)
+    with pytest.raises(Rejected, match="one statement per call"):
+        db.query("SELECT 1; SELECT 2", max_rows=5)
+    db.close()
+    with pytest.raises(sqlite3.ProgrammingError):
+        db.query("SELECT 1", max_rows=5)

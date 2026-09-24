@@ -22,6 +22,7 @@ body gone. Any 3xx is the endpoint's refusal to answer, reported as `http` with 
 """
 from __future__ import annotations
 
+import http.client
 import json
 import sys
 import urllib.error
@@ -53,6 +54,8 @@ def transact(request: dict) -> dict:
         return {"ok": False, "kind": kind}
     except TimeoutError:                       # a read that stalled past the timeout
         return {"ok": False, "kind": "timeout"}
+    except (OSError, http.client.HTTPException):   # the connection broke mid-body
+        return {"ok": False, "kind": "unreachable"}
     except UnicodeDecodeError:
         return {"ok": False, "kind": "malformed"}
 

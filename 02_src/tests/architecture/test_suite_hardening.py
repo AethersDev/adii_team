@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import ast
 import re
+import subprocess
 import sys
 import time
 import tomllib
@@ -40,8 +41,22 @@ def files_named_as_tests() -> set[Path]:
     """Every file on disk that pytest would treat as a test, wherever it is. Only the
     repository's own build output is ignored — never a name pytest happens to skip, or the
     check could not notice a test hidden in one."""
-    return {p.resolve() for p in ROOT.rglob("test_*.py")
-            if not IGNORED & set(p.parts) and not any(b in p.parents for b in BUILD_OUTPUT)}
+    found = {p.resolve() for p in ROOT.rglob("test_*.py")
+             if not IGNORED & set(p.parts) and not any(b in p.parents for b in BUILD_OUTPUT)}
+    return found - git_ignored(found)
+
+
+def git_ignored(paths: set[Path]) -> set[Path]:
+    """What .gitignore keeps out of the repository — a working folder, never shipped or
+    tested. Outside a git checkout (an extracted submission ZIP) nothing is ignored."""
+    try:
+        answer = subprocess.run(["git", "check-ignore", "--stdin"], cwd=ROOT, text=True,
+                                input="\n".join(str(p) for p in paths), capture_output=True)
+    except FileNotFoundError:                     # no git on this machine
+        return set()
+    if answer.returncode not in (0, 1):           # 128: not a repository
+        return set()
+    return {Path(line).resolve() for line in answer.stdout.splitlines() if line}
 
 
 def name(spec: str) -> str:

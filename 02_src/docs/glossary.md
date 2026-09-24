@@ -66,7 +66,7 @@ The ordered record of what actually happened in a run. The source for every coun
 behaviour is not in the trace, nobody can prove it happened.
 
 **Run record**
-The persisted, public record of one investigation, `adii.run_record/v1`: context, trace,
+The persisted, public record of one investigation, `adii.run_record/v3` (v2 and v1 still load): context, trace,
 how the run ended, decision, validation, counters, configuration, provenance. One strict
 JSON document per run under `01_data/runs/<label>/record.json`; the inspector reads nothing
 else. Also called the run artifact.

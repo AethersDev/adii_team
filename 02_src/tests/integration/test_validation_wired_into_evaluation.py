@@ -6,8 +6,8 @@ docstring promises actually holds.
 from __future__ import annotations
 
 from adii.contracts import IncidentContext
-from adii.evaluation.validation_wiring import get_validation_for
-from adii.validation.validator import as_dict_validator
+
+from ..eval_authority.validation_fakes import as_dict_validator, get_validation_for
 
 TRANSFORM = "transforms/stg_orders.sql"
 CORRECT = {TRANSFORM: "SELECT order_id, order_date, amount_cents / 100.0 AS amount_usd "

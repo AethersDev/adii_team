@@ -1,3 +1,5 @@
+> **Superseded, 24 Sep 2026.** This was the demo script as the tree stood on 17 September: the old page, gpt-4.1 as the investigator, and a Run settings panel that no longer exists. The live script is now `final_plan.md` §7.3 (the launch view, gpt-6-sol, the demo company's samples). Kept as the record of what the demo was.
+
 # The demo
 
 Four minutes, one incident, one screen, one reveal. The machinery is shown only once it

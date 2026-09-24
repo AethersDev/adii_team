@@ -1,0 +1,4 @@
+{
+  "stg_orders": "stg_orders.sql",
+  "mart_daily_revenue": "mart_daily_revenue.sql"
+}

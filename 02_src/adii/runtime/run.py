@@ -6,7 +6,7 @@ cannot flatter its own efficiency because it never reports a number: it only mak
 and the runtime records each one on the way through.
 
 It knows A, B and C only as the three protocols below. Anything that satisfies them runs:
-the scripted components in `scripted.py` today, the real packages when they exist.
+the scripted components in `scripted.py`, and the live loop and validator in `live.py`.
 """
 from __future__ import annotations
 
@@ -83,9 +83,9 @@ class Terminated(Exception):
 class Recorder:
     """The harness-owned trace.
 
-    The five event kinds written here are the walkthrough's — the only vocabulary that
-    exists. docs/trace_event_contract.md proposes their successors; when that is agreed,
-    this class is the one place that changes.
+    Every event a run has lands here, in order, from the boundary where it happened: the
+    runtime's own, the tool layer's through `watch`, the provider's and the loop's through
+    `event`. docs/trace_event_contract.md is the vocabulary.
     """
 
     def __init__(self, sink: Path | None = None) -> None:
@@ -102,6 +102,12 @@ class Recorder:
             self._sink.write(json.dumps({"sequence": event.sequence, "kind": kind,
                                          "payload": payload}, allow_nan=False) + "\n")
             self._sink.flush()
+
+    def close(self) -> None:
+        """The live trace is complete: release its file. The events stay readable here."""
+        if self._sink:
+            self._sink.close()
+            self._sink = None
 
     @property
     def trace(self) -> tuple[TraceEvent, ...]:
@@ -196,8 +202,8 @@ def run_incident(label: str, context: IncidentContext, investigator: Investigato
         detail=detail, decision=decision, validation=validation, authorization=authorization,
         tool_calls=recorder.tool_calls,
         # Turns are counted from the model events the provider boundary recorded — zero when
-        # no model ran. Cost stays 0.0: only local endpoints run here, and a paid provider
-        # waits for the receipt and the ledger (plan D-15, D-12).
+        # no model ran. A paid run's cost is the ledger's, set by the caller from this trace
+        # (plan D-12); here it starts at 0.0, what a run without a paid model cost.
         model_turns=recorder.model_turns, api_cost_usd=0.0,
         latency_ms=int((time.monotonic() - started) * 1000),
         configuration=dict(configuration), provenance=provenance("runtime")))

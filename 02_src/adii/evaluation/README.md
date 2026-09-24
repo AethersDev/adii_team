@@ -139,27 +139,3 @@ pytest 02_src/tests -k "evaluation or scoring"
 
 Consumes `contracts/`. Consumed by offline analysis only.
 Six-question summary in [system_map.md](../../docs/system_map.md#evaluation).
-
-## Private exposure inventory
-
-`python -m adii.evaluation.exposure --corpus PRIVATE/candidates.jsonl
---research-root PRIVATE/research --expected-sha256 DIGEST --expected-count 9095
---out PRIVATE/exposure-inventory.json` (one command).
-
-This offline collector preserves the campaign's exact `custom_id`. It reads the existing
-v1/v2 unblinded selections and quota-cache fixture receipt, requiring their corpus bindings.
-It records source hashes and field pointers for each exposed candidate. The semantic sample
-and historical first-model-exposure receipt are retained as context, not used to invent a
-candidate mapping. Optional `--model-exposure FILE` receipts must explicitly contain
-`custom_id`, `corpus_sha256`, `model` and `timestamp`; none is inferred from a filename.
-Missing or incompatible required sources fail the run, rather than silently reducing coverage.
-
-No matching exposure evidence means `UNKNOWN_EXPOSURE`. This collector has no positive
-non-exposure authority and therefore never emits `KNOWN_UNEXPOSED`. Establishing that status
-would require candidate-bound custody/access evidence covering the relevant actors and time
-interval, with a stated exposure scope and review of known exposure and derivative records.
-Neither sample membership nor its complement supplies that evidence. Generation by the source
-model is not counted as subsequent investigation/research exposure. This inventory reports
-recorded exact-candidate exposure only; it does not certify family-level blindness or select a
-reserve. Keep the real inventory and evidence outside the team repository; tests use synthetic
-fixtures only. Output is deterministic, contains no proposal content, and refuses overwrite.

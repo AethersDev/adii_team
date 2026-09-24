@@ -54,6 +54,17 @@ class EventSink(Protocol):
     def event(self, kind: str, payload: dict[str, object]) -> None: ...
 
 
+def _refuse(constant: str) -> object:
+    raise ValueError(f"{constant} is not JSON")
+
+
+def _json(text: str) -> object:
+    """Strict JSON: NaN and Infinity are refused, as every sink downstream refuses them; an
+    integer too long to convert is a ValueError too. Either is the model's malformed
+    submission, rejected and returned — never an exception that ends the run."""
+    return json.loads(text, parse_constant=_refuse)
+
+
 def _body(response: str, prefix: str) -> str:
     """The JSON after a protocol tag. Chat models close the tag they opened —
     `<DECISION>{...}</DECISION>` — and a closing tag is not part of the JSON, so a
@@ -235,12 +246,12 @@ def run(
             call_id = f"tool-call-{turn_index}"
             why = INVALID_TOOL_CALL
             try:
-                intent = json.loads(_body(response, TOOL_CALL_PREFIX))
+                intent = _json(_body(response, TOOL_CALL_PREFIX))
             except json.JSONDecodeError as bad:
                 intent = None
                 if bad.msg == "Extra data":     # a call, then more text after it
                     why = TOOL_CALL_THEN_TEXT
-            except RecursionError:
+            except (ValueError, RecursionError):     # NaN, Infinity, a 5,000-digit number
                 intent = None
 
             name = intent.get("name") if isinstance(intent, dict) else None
@@ -318,8 +329,8 @@ def run(
 
 def _parse_decision(payload: str) -> InvestigationDecision:
     try:
-        submission = json.loads(payload)
-    except (json.JSONDecodeError, RecursionError):
+        submission = _json(payload)
+    except (ValueError, RecursionError):
         raise ValueError("decision must be valid JSON") from None
 
     if not isinstance(submission, dict):

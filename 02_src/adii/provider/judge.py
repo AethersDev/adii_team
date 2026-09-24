@@ -46,7 +46,7 @@ class Judge:
 
     def __call__(self, prompt: str) -> str:
         body = {"model": self.model, "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0, "max_tokens": MAX_TOKENS}
+                "temperature": 0, "max_completion_tokens": MAX_TOKENS}
         sent = json.dumps(body)
         reserve = reserve_for(len(sent.encode("utf-8")), PRICES[self.model], MAX_TOKENS)
         if reserve > MAX_COST_USD:

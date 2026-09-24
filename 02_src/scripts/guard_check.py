@@ -204,9 +204,8 @@ GUARDS = (
           "    if args.provider == \"local\" and not endpoint_is_local(args.endpoint):\n",
           "    if False:\n"),
     Guard("D.server_starts_paid_only_past_the_preconditions", "D", "demo/__main__.py",
-          "        why = (refused_paid(args.model, args.max_cost_usd, args.endpoint, "
-          "args.served_as,\n                            args.max_tokens)\n",
-          "        why = (None\n"),
+          "                                  for m in (args.model, *args.models))), None)\n",
+          "                                  for m in ())), None)\n"),
     Guard("D.paid_server_carries_no_alias", "D", "demo/__main__.py",
           "               or (args.served_as and ",
           "               or (False and "),
@@ -231,16 +230,14 @@ GUARDS = (
     Guard("D.page_launch_needs_operator", "D", "demo/server.py",
           "        if not LAUNCH:\n",
           "        if False:\n"),
-    Guard("D.page_launch_known_incident", "D", "demo/server.py",
-          "                if not isinstance(incident, str) \\\n"
-          "                        or incident not in {i[\"incident_id\"] for i in incidents()}:\n",
-          "                if False:\n"),
-    Guard("D.page_model_is_one_the_server_offers", "D", "demo/server.py",
-          "    if model not in models():\n",
+    Guard("D.page_starts_only_samples_and_the_walkthrough", "D", "demo/server.py",
+          "                if not isinstance(incident, str) or incident not in STARTABLE:\n",
+          "                if not isinstance(incident, str):\n"),
+    Guard("D.page_picks_only_an_offered_model", "D", "demo/server.py",
+          "    if model not in offered:\n",
           "    if False:\n"),
-    Guard("D.page_turns_within_the_ceiling", "D", "demo/server.py",
-          "    if not (isinstance(turns, int) and not isinstance(turns, bool)\n"
-          "            and 1 <= turns <= int(LAUNCH[\"max_turns\"])):\n",
+    Guard("D.page_effort_only_for_a_reasoning_model", "D", "demo/server.py",
+          "    if model in PRICES and not PRICES[model].reasoning:\n",
           "    if False:\n"),
     # ── a visitor's own incident: what the page takes, bounded, and what the archive keeps ─
     Guard("D.brought_needs_a_description", "D", "demo/server.py",
@@ -250,7 +247,8 @@ GUARDS = (
           "    if not (isinstance(files, list) and 1 <= len(files) <= LIMITS[\"files\"] and all(\n",
           "    if not (isinstance(files, list) and all(\n"),
     Guard("D.body_is_bounded_before_it_is_read", "D", "demo/server.py",
-          "        if length > limit:\n",
+          "        if not 0 <= length <= limit:              # a negative length would read "
+          "to the end\n",
           "        if False:\n"),
     Guard("B.csv_row_matches_its_header", "D", "tools/user_world.py",
           "        if len(row) != len(header):\n",
@@ -262,8 +260,9 @@ GUARDS = (
           "        return \"INTEGER\" if all(_INTEGER.fullmatch(v) and len(v.lstrip(\"-\")) <= 19\n"
           "                                for v in present) else \"TEXT\"\n"),
     Guard("B.csv_real_is_exact_or_text", "D", "tools/user_world.py",
-          "        return Decimal(value) == Decimal(repr(float(value)))\n",
-          "        return True\n"),
+          "    return Decimal(value) == Decimal(repr(float(value)))     # _REAL has made it a "
+          "number\n",
+          "    return True\n"),
     Guard("B.csv_rows_are_bounded", "D", "tools/user_world.py",
           "    if len(body) > LIMITS[\"rows\"]:\n",
           "    if False:\n"),
@@ -284,13 +283,6 @@ GUARDS = (
     Guard("D.evidence_bundles_are_attested", "D", "reporting/manifest.py",
           "    if len(parts) == 3 and parts[1] in SOURCE_DIRS:\n",
           "    if False:\n"),
-    Guard("D.page_cap_is_paid_only", "D", "demo/server.py",
-          "    elif \"max_cost_usd\" in body:\n",
-          "    elif False:\n"),
-    Guard("D.page_cap_within_the_ceiling", "D", "demo/server.py",
-          "        if not (isinstance(cost, (int, float)) and not isinstance(cost, bool)\n"
-          "                and 0 < cost <= ceiling):\n",
-          "        if False:\n"),
     Guard("D.page_launch_one_at_a_time", "D", "demo/server.py",
           "        if any(row.get(\"running\") for row in index(ARCHIVE)) "
           "or not RUNNING.acquire(blocking=False):\n",
@@ -304,17 +296,6 @@ GUARDS = (
           "        if self.headers.get(\"Content-Type\", \"\").split(\";\")[0].strip() "
           "!= \"application/json\":\n",
           "        if False:\n"),
-    Guard("D.feedback_useful_enumerated", "D", "demo/server.py",
-          "    if useful not in FEEDBACK_LIMITS[\"useful\"]:\n",
-          "    if False:\n"),
-    Guard("D.feedback_bounded", "D", "demo/server.py",
-          "    if len(expected) > FEEDBACK_LIMITS[\"expected\"] "
-          "or len(by) > FEEDBACK_LIMITS[\"by\"]:\n",
-          "    if False:\n"),
-    Guard("D.feedback_needs_record", "D", "demo/server.py",
-          "            if not LABEL.fullmatch(label) "
-          "or not (ARCHIVE / label / \"record.json\").is_file():\n",
-          "            if not LABEL.fullmatch(label) or not (ARCHIVE / label).is_dir():\n"),
     # ── the seam between the record and the evaluation authority ──────────────────
     Guard("D.reader_refuses_a_patch_that_is_not_text", "D", "reporting/record.py",
           "    if not isinstance(patch, dict) or not all(\n",
@@ -451,44 +432,6 @@ GUARDS = (
     Guard("C.report_never_overwritten", "C", "evaluation/__main__.py",
           "    if path.exists():\n        raise FileExistsError(f\"{path} exists",
           "    if False:\n        raise FileExistsError(f\"{path} exists"),
-    Guard("C.partition_assigns_one_of_two_classes", "C", "evaluation/commitment.py",
-          "        if assigned not in CLASSES:\n",
-          "        if False:\n"),
-    Guard("C.commitment_made_once", "C", "evaluation/commitment.py",
-          "        if out.exists():\n",
-          "        if False:\n"),
-    Guard("C.exposure_identity", "C", "evaluation/exposure.py",
-          '        if not isinstance(identity, str) or not identity.strip() '
-          'or identity in candidates:\n',
-          '        if False:\n'),
-    Guard("C.exposure_membership", "C", "evaluation/exposure.py",
-          '        if item["custom_id"] not in candidates:\n',
-          '        if False:\n'),
-    Guard("C.exposure_selection_binding", "C", "evaluation/exposure.py",
-          '        if (doc["source_corpus_sha256"] != corpus_hash\n          '
-          '      or not doc["evidence_class"].startswith("UNBLINDED_AI_ASSIS'
-          'TED")):\n',
-          '        if False:\n'),
-    Guard("C.exposure_fixture_binding", "C", "evaluation/exposure.py",
-          '    if doc["source"]["corpus_sha256"] != corpus_hash:\n',
-          '    if False:\n'),
-    Guard("C.exposure_model_receipt", "C", "evaluation/exposure.py",
-          '        if doc.get("corpus_sha256") != corpus_hash or not all(\n  '
-          '              isinstance(doc.get(k), str) and doc[k].strip()\n    '
-          '               for k in ("custom_id", "model", "timestamp")):\n',
-          '        if False:\n'),
-    Guard("C.exposure_corpus_digest", "C", "evaluation/exposure.py",
-          '    if hashlib.sha256(corpus).hexdigest() != args.expected_sha256:\n',
-          '    if False:\n'),
-    Guard("C.exposure_corpus_count", "C", "evaluation/exposure.py",
-          '    if len(result["candidates"]) != args.expected_count:\n',
-          '    if False:\n'),
-    Guard("C.exposure_unknown_default", "C", "evaluation/exposure.py",
-          '"KNOWN_EXPOSED" if refs else "UNKNOWN_EXPOSURE"',
-          '"KNOWN_EXPOSED" if refs else "KNOWN_UNEXPOSED"'),
-    Guard("C.exposure_write_once", "C", "evaluation/exposure.py",
-          'args.out.open("x",',
-          'args.out.open("w",'),
     Guard("D.repair_target_must_be_readable", "D", "runtime/__main__.py",
           "    missing = [p for p in context.permitted_write_paths\n",
           "    missing = [p for p in ()\n"),
@@ -558,6 +501,10 @@ GUARDS = (
     Guard("D.effort_is_paid_only", "D", "runtime/__main__.py",
           '    if args.reasoning_effort and args.provider != "openai":\n',
           "    if False:\n"),
+    Guard("D.effort_is_a_reasoning_models_only", "D", "runtime/__main__.py",
+          "    if args.reasoning_effort and args.model in PRICES and not PRICES[args.model]"
+          ".reasoning:\n",
+          "    if False:\n"),
     Guard("C.pack_effort_is_paid_only", "C", "evaluation/grid.py",
           '        if args.reasoning_effort and args.provider != "openai":\n',
           "        if False:\n"),
@@ -577,6 +524,30 @@ GUARDS = (
           "                                rebuilt_series=self.alerted_series(context.incident_id, "
           "rebuilt))",
           "                                rebuilt_series=())"),
+    # phase 4: a registered final pack runs only on the newest freeze, with its frozen terms
+    Guard("C.registered_pack_runs_only_on_the_freeze", "C", "evaluation/grid.py",
+          '            if freeze is None or moved or pack != freeze["packs"].get(args.pack):\n',
+          "            if False:\n"),
+    # the audit of 24 Sep: what a model sends is refused, never a crash; the credential never
+    # follows a redirect; a freeze is chosen by date; a package's bad series is named
+    Guard("A.loop_json_is_strict", "A", "investigator/loop.py",
+          "    return json.loads(text, parse_constant=_refuse)\n",
+          "    return json.loads(text)\n"),
+    Guard("D.pre_flight_follows_no_redirect", "D", "provider/__main__.py",
+          "        with NO_REDIRECT.open(request, timeout=TIMEOUT_S) as response:\n",
+          "        with urllib.request.urlopen(request, timeout=TIMEOUT_S) as response:\n"),
+    Guard("C.newest_freeze_by_date", "C", "evaluation/lock.py",
+          '    found = sorted((p for p in root.glob("*.json") if NAME.fullmatch(p.stem)), '
+          'key=order)\n',
+          '    found = sorted(p for p in root.glob("*.json") if NAME.fullmatch(p.stem))\n'),
+    Guard("D.declared_series_refusal_is_named", "D", "runtime/__main__.py",
+          '        raise ValueError(f"{ALERT_SERIES}: its query was refused: {refused}") '
+          'from None\n',
+          "        raise\n"),
+    Guard("D.check_marked_only_in_the_validators_form", "D", "demo/web/view.js",
+          '  if (!v.report.startsWith("rebuild: ")) return [{ name: "report", said: v.report, '
+          'held: null }];\n',
+          ""),
     # a reply cut off at the completion bound is named as cut, never left to read as malformed
     Guard("D.cut_reply_is_named", "D", "provider/openai_compatible.py",
           '        self._cut = finish == "length"\n',

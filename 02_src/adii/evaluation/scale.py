@@ -34,7 +34,6 @@ from ..validation.patching import path_of
 from ..validation.validator import Validator
 from .evaluation_report import build_evaluation_report
 from .freeze import load_frozen_answer_key
-from .grid import BURNED
 from .grounding import load_grounding_key
 
 CATALOGUE = Path(__file__).resolve().parent / "catalogue"
@@ -113,10 +112,8 @@ def measure(rows: int) -> dict:
     family = dataclasses.replace(cw.FAMILIES[0], per_day=rows // (cw.HISTORY + 1))
     out: dict = {"rows": rows, "states": {}}
     with tempfile.TemporaryDirectory() as tmp:
-        for state in cw.STATES:
+        for state in cw.LIVE:
             case = cw.incident_id(family, state)
-            if case in BURNED:
-                continue
             folder = Path(tmp) / case
             began = time.perf_counter()
             for name, text in cw.package(family, state).items():

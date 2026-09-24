@@ -36,11 +36,12 @@ from adii.examples.canonical_world import (
     DEMO,
     FAMILIES,
     INCIDENTS,
-    STATES,
+    LIVE,
     cases,
     incident_id,
     packages,
     staging,
+    written,
 )
 from adii.runtime.__main__ import incident_from_dir
 from adii.runtime.run import run_incident
@@ -172,7 +173,7 @@ def test_a_repair_of_a_world_that_was_never_broken_here_changes_nothing(state):
 
 def test_the_bait_is_in_every_world_and_the_evidence_is_not():
     for family in FAMILIES:
-        folders = [INCIDENTS / incident_id(family, s) for s in STATES]
+        folders = [INCIDENTS / incident_id(family, s) for s in LIVE]
         changes = {(f / "change_history_sources" / "CHANGE_HISTORY.md").read_text(
             encoding="utf-8") for f in folders}
         # the release is in every world; the staging change that caused it only where it did
@@ -190,9 +191,10 @@ def test_the_bait_is_in_every_world_and_the_evidence_is_not():
 CATALOGUE = Path(__file__).resolve().parents[2] / "adii" / "evaluation" / "catalogue"
 
 
-@pytest.mark.parametrize(("family", "state"), cases(), ids=lambda c: getattr(c, "name", c))
-def test_every_case_is_solvable_and_its_labels_agree_with_its_world(family, state):
-    case = incident_id(family, state)
+@pytest.mark.parametrize(("family", "state", "version"), written(),
+                         ids=lambda c: getattr(c, "name", str(c)))
+def test_every_case_is_solvable_and_its_labels_agree_with_its_world(family, state, version):
+    case = incident_id(family, state, version)
     key_path = CATALOGUE / f"{case}.answer.json"
     key = load_frozen_answer_key(key_path)
     grounding = load_grounding_key(CATALOGUE / f"{case}.grounding.json")
@@ -299,3 +301,28 @@ def test_a_patch_that_reshapes_the_series_keeps_its_verdict_and_draws_no_rebuild
                                    mart: "SELECT order_date AS d FROM stg_orders"})
     assert record.termination == "submitted"
     assert record.validation.state == "REJECT" and record.validation.rebuilt_series == ()
+
+
+def test_the_alert_names_the_number_it_measured_the_same_in_every_state():
+    """Decision A2: version 2's alert states the orders' fall, which every state of a family
+    shares; the revenue's fall differs between states, so it is the chart's, never the
+    alert's. Version 1 stays as it was, for the runs made on it."""
+    import sqlite3
+    for family in (*FAMILIES, DEMO):
+        states = [s for f, s in cases() if f is family]
+        told = {json.loads((INCIDENTS / incident_id(family, s) / "incident.json")
+                           .read_text(encoding="utf-8"))["alert"] for s in states}
+        [alert] = told
+        fell = int(alert.split("about ")[1].split("%")[0])
+        assert "fewer orders" in alert and "fell about" not in alert
+        for state in states:
+            db = sqlite3.connect(":memory:")
+            db.executescript((INCIDENTS / incident_id(family, state) / "world.sql")
+                             .read_text(encoding="utf-8"))
+            *before, (_, today) = db.execute(
+                "SELECT day, orders FROM mart_daily_revenue ORDER BY day").fetchall()
+            usual = sum(n for _, n in before) / len(before)
+            assert abs(round(100 * (1 - today / usual)) - fell) <= 1, (family.name, state)
+        old = json.loads((INCIDENTS / incident_id(family, states[0], 1) / "incident.json")
+                         .read_text(encoding="utf-8"))["alert"]
+        assert "fell about" in old                       # version 1, as the rehearsals saw it

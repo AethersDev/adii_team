@@ -1,6 +1,6 @@
 # ADII — briefing for Claude Code
 
-A four-person project on a six-week clock. Code arrives faster than it can be reviewed,
+A four-person project, now in its final phase. Code arrives faster than it can be reviewed,
 so the constraints below are load-bearing rather than stylistic.
 
 **The block between the BEGIN/END markers is generated from
@@ -161,8 +161,9 @@ python -m adii.demo 8000 --model <id> --endpoint http://127.0.0.1:8090/v1 --serv
 - The browser tests find Chrome through `ADII_CHROME` or on PATH; without it they skip.
   Run the gate with Chrome present. They occasionally flake in a full local run and pass alone; rerun
   the file by itself before blaming a change.
-- `02_src/tests/eval_authority/test_step1_all.py` and `test_step2_all.py` are gitignored on
-  purpose: they need blind answer keys that are not in the repository.
+- `02_src/tests/eval_authority/` scores against the frozen keys under
+  `02_src/adii/evaluation/fixtures/` and `catalogue/`; nothing there is skipped for a
+  missing key.
 
 ## Generated files — edit the source, run the sync
 

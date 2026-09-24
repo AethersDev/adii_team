@@ -1,32 +1,55 @@
 {
   "schema": "adii.partition/v1",
   "registered_on": "2026-09-23",
-  "rule": "before any final run and before the freeze. held_out: every live case of the two companies no pack had run when the partition was registered, jul (explicit) and sep (implicit) \u2014 one case per truth and tier, run once by the declared production investigator in the final pack and never before. benchmark: the other four companies' live cases \u2014 two per truth and tier \u2014 run by every model arm. demo: the seventh company, generated for the stage, run in no pack. Burned cases: burned.json",
+  "rule": "before any final run and before the freeze. held_out: every live case of the two companies no pack had run when the partition was registered, jul (explicit) and sep (implicit) \u2014 one case per truth and tier, run once by the declared production investigator in the final pack and never before. benchmark: the other four companies' live cases \u2014 two per truth and tier \u2014 run by every model arm. demo: the seventh company, generated for the stage, run in no pack. Burned cases: burned.json. Version 2, 23 Sep 2026 (decision A2), before any final run: every live case regenerated with an alert that names the orders it measured; the same companies in the same sets; the version-1 cases are superseded \u2014 kept, never in a result",
   "benchmark": [
+    "revenue-drop-03df8b",
+    "revenue-drop-18b88d",
+    "revenue-drop-2c077d",
+    "revenue-drop-4c1f15",
+    "revenue-drop-594c0f",
+    "revenue-drop-610a79",
+    "revenue-drop-6fb41f",
+    "revenue-drop-70d601",
+    "revenue-drop-70e933",
+    "revenue-drop-8e68f4",
+    "revenue-drop-982e8e",
+    "revenue-drop-d22c8a"
+  ],
+  "held_out": [
+    "revenue-drop-244c4a",
+    "revenue-drop-2a9cdc",
+    "revenue-drop-431a97",
+    "revenue-drop-88ca63",
+    "revenue-drop-bf1f93",
+    "revenue-drop-ef9687"
+  ],
+  "demo": [
+    "revenue-drop-6c6b97",
+    "revenue-drop-716c81",
+    "revenue-drop-929623"
+  ],
+  "superseded": [
+    "revenue-drop-22a5df",
     "revenue-drop-230847",
     "revenue-drop-29c766",
+    "revenue-drop-38ee43",
     "revenue-drop-3ca544",
     "revenue-drop-49f86f",
+    "revenue-drop-4a37da",
     "revenue-drop-5eb8d3",
     "revenue-drop-6014f7",
     "revenue-drop-683cd5",
     "revenue-drop-68c0c2",
-    "revenue-drop-84a4e4",
-    "revenue-drop-8d2dab",
-    "revenue-drop-96e69b",
-    "revenue-drop-df8351"
-  ],
-  "held_out": [
-    "revenue-drop-22a5df",
-    "revenue-drop-38ee43",
     "revenue-drop-69fba1",
+    "revenue-drop-84a4e4",
     "revenue-drop-87cba0",
     "revenue-drop-88ef0e",
-    "revenue-drop-893219"
-  ],
-  "demo": [
-    "revenue-drop-4a37da",
+    "revenue-drop-893219",
+    "revenue-drop-8d2dab",
+    "revenue-drop-96e69b",
     "revenue-drop-d0888f",
+    "revenue-drop-df8351",
     "revenue-drop-df8905"
   ]
 }

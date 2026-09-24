@@ -1000,6 +1000,9 @@ def test_a_reasoning_model_is_asked_with_its_effort_and_no_temperature(tmp_path,
                      "--endpoint", endpoint, "--archive", str(tmp_path),
                      "--reasoning-effort", "low"]) == 2
     assert "--provider openai only" in capsys.readouterr().out
+    assert cli.main([*argv[:5], "gpt-4.1", *argv[6:], "--label", "four"]) == 2
+    assert "gpt-4.1 is not a reasoning model" in capsys.readouterr().out
+    assert not (tmp_path / "four").exists()                  # refused before any receipt
 
 
 def test_the_active_pre_flight_asks_in_the_runs_own_shape(endpoint, monkeypatch, capsys):
@@ -1015,3 +1018,32 @@ def test_the_active_pre_flight_asks_in_the_runs_own_shape(endpoint, monkeypatch,
     [request] = [r for r in FakeModel.seen if "messages" in r]
     assert request["reasoning_effort"] == "low" and "temperature" not in request
     assert request["max_completion_tokens"] == 4096
+
+
+def test_the_pre_flight_follows_no_redirect_with_the_credential(endpoint):
+    """The audit of 24 Sep: the model listing used urllib's default opener, which follows a
+    redirect and carries the bearer header to the new host. It now uses the run's own
+    opener: a redirect is a refusal, and the credential never reaches the second host."""
+    from http.server import BaseHTTPRequestHandler
+
+    from adii.provider.__main__ import listing
+
+    class Redirect(BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802
+            self.send_response(302)
+            self.send_header("Location", endpoint + "/models")
+            self.end_headers()
+
+        def log_message(self, *args):
+            pass
+
+    hop = ThreadingHTTPServer(("127.0.0.1", 0), Redirect)
+    threading.Thread(target=hop.serve_forever, daemon=True).start()
+    before = list(FakeModel.authorization)
+    try:
+        seen = listing(f"http://127.0.0.1:{hop.server_port}/v1", "gpt-4.1-mini", KEY)
+    finally:
+        hop.shutdown()
+        hop.server_close()
+    assert (seen["credential"], seen["status"]) == ("refused", 302)
+    assert FakeModel.authorization == before          # the second host was never asked

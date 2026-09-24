@@ -43,10 +43,9 @@ identity handoff.
 | file | lines | role |
 |---|---:|---|
 | `demo/web/index.html` | 59 | the shell: masthead, glyph sprite, one `#view`, one script tag |
-| `demo/web/app.js` | 566 | three routed screens from the URL hash — the front door (`#`), an incident's runs (`#i/<id>`), a run as a story or two side by side (`#r/<label>[,<label>]`); one renderer for `adii.run_record/v1` and refusals for anything else; no `innerHTML` |
-| `demo/web/phrasing.js` | 130 | every sentence the page adds, each a deterministic projection of record fields; product copy |
-| `demo/web/inspector.css` | 76 | layout only; no colour |
-| `tokens.css`, `base.css`, `components.css` | 1,485 | the identity handoff's, copied by `scripts/sync_identity.py`, held byte-identical by a test |
+| `demo/web/view.js` | — | every word and number the page shows about a run, each a pure projection of the record, evaluated in node by the tests |
+| `demo/web/app.js` | — | the front door (`#`, `#new`) and a run (`#r/<label>`), drawn with text nodes only, never `innerHTML` |
+| `demo/web/front-door.css`, `fonts/`, `logo/` | — | the page's one stylesheet; fonts served locally under the OFL; the logo copied from the identity handoff |
 
 **Rules the tests enforce:** dispositions are peers; verdict colour only in the validator's
 row; endings and absence achromatic; every token declared; no colour literal in our sheet;
@@ -79,7 +78,7 @@ and the models it offers (every priced one on the paid path); a credential is ne
 | `architecture/` | 158 | the boundaries; the briefing and status page in sync; every test collected, every import declared, every dependency chosen, a hung test fails |
 | `contract/` | 8 | the eight types pinned |
 | `unit/` | 185 | the loop, the tools, the record, the environment check |
-| `integration/` | 106 | the walkthrough, the runtime, every ending, the specimens, the live path against a scripted stand-in endpoint, the inspector's API and design rules, the phrasing dictionary, the browser checks |
+| `integration/` | 106 | the walkthrough, the runtime, every ending, the specimens, the live path against a scripted stand-in endpoint, the page's API, design rules and projections, the browser checks |
 
 Gates, all green on Windows, macOS and Ubuntu: `python -m ruff check 02_src` and `pytest`.
 And the guard-removal pass, `python 02_src/scripts/guard_check.py`: twenty registered

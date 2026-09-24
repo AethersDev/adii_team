@@ -97,10 +97,12 @@ def classify_outcome(decision: dict, validation: dict | None, answer_key: dict, 
         if not root_cause_matches:
             return result("false_repair", None)
 
-        # Root cause matched, disposition matched REPAIR, yet the verdict
-        # is incorrect: the only remaining reason decide_route rejects a
-        # REPAIR with a matching root cause is a validation that never
-        # accepted it (see scoring.score_repair_validation).
+        # Root cause matched, disposition matched REPAIR, yet the verdict is
+        # incorrect: the right diagnosis whose fix did not stand. Either no
+        # validator accepted it, or it was accepted and the judge ruled it does
+        # not satisfy the key (test_judge_rejecting_an_alternative_repair_is_
+        # repair_rejection). Which authority it was is `settled_by`: "judge"
+        # for the second, never to be read as the validator's rejection.
         return result("repair_rejection", None)
 
     # actual_disposition == "NO_REPAIR" and verdict == "incorrect":

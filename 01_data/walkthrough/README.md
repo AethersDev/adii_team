@@ -40,7 +40,7 @@ python -m adii.examples.walkthrough --step
 | `validation.json` | the independent verdict |
 | `transform_map.json`, `transform_sources/stg_orders.sql` | the transform the incident permits the investigator to change, as it is before the repair — served through `get_transform("stg_orders")`, so a repair is never written blind; applied as-is it reproduces the defect, and the committed patch is what fixes it |
 | `expected_report.txt` | what the telemetry layer renders — a committed regression test |
-| `record.json` | the same run as one `adii.run_record/v1` document — what `--archive` writes and the inspector renders; a committed fixture of the v1 shape |
+| `record.json` | the same run as one `adii.run_record/v1` document — what `--archive` writes and the front door renders; a committed fixture of the v1 shape, which still loads |
 | `endings/` | the same incident ended every other way — a rejected repair, a model failure, a bound, an infrastructure failure — each a record the runtime produced and the report it renders to; `python -m adii.examples.endings` regenerates them |
 
 ## What this run establishes

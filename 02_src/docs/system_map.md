@@ -238,7 +238,7 @@ a visitor may ask for); `tools/user_world.py` to turn the visitor's CSV text int
 build script (pure text; the world itself is built by the runtime, behind the tool layer);
 `runtime/` to start a run when the operator allowed it. Its
 stylesheet is the
-identity handoff's, copied from `03_assets/identity/css/` by `scripts/sync_identity.py`
+identity handoff's logo, copied from `03_assets/identity/assets/logo/` by `scripts/sync_identity.py`
 and held byte-identical by a test.
 
 **CALLED BY** `python -m adii.demo`. Nothing in the implementation.

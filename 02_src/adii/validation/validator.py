@@ -22,7 +22,7 @@ import json
 import re
 from pathlib import Path
 
-from adii.contracts import Disposition, IncidentContext, InvestigationDecision, ValidationResult
+from adii.contracts import IncidentContext, InvestigationDecision, ValidationResult
 from adii.reporting.record import REPO
 from adii.tools import ReadOnlyDatabase, load_transform_sources
 from adii.tools.errors import Rejected
@@ -116,7 +116,8 @@ class Validator:
             return ()
         query = json.loads(spec.read_text(encoding="utf-8"))["query"]
         try:
-            return rebuilt.query(query, max_rows=MAX_SERIES_ROWS).rows
+            read = rebuilt.query(query, max_rows=MAX_SERIES_ROWS)
+            return () if read.truncated else read.rows     # a cut series is drawn nowhere
         except Rejected:        # the patch reshaped what the query reads: no series to draw,
             return ()           # and the verdict — already decided by the checks — stands
 
@@ -125,21 +126,3 @@ def validate(context: IncidentContext, decision: InvestigationDecision) -> Valid
     """The default validator's verdict: the oracles beside this module, the incidents'
     frozen inputs where the repository keeps them."""
     return Validator().validate(context, decision)
-
-
-def as_dict_validator(context: IncidentContext):
-    """Adapt `validate()` to `evaluation/validation_wiring.py`'s `ValidatorProvider` shape
-    (`decision: dict -> {"accepted", "report", "checks_run", "reason_code"}`), for offline
-    scoring over decisions held as dicts; the runtime path uses `Validator` directly."""
-    def provider(decision: dict) -> dict:
-        real_decision = InvestigationDecision(
-            disposition=Disposition(decision["disposition"]),
-            root_cause_id=decision.get("root_cause_id"),
-            root_cause_summary=decision.get("root_cause_summary", ""),
-            repair_id=decision.get("repair_id"),
-            patch=decision.get("patch") or {},
-        )
-        result = validate(context, real_decision)
-        return {"accepted": result.accepted, "report": result.report,
-                "checks_run": list(result.checks_run), "reason_code": result.reason_code}
-    return provider

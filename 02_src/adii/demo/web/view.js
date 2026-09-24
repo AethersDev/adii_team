@@ -60,11 +60,15 @@ function verdict(record) {
         "A fix was proposed, it is within what ADII may change here, and an independent " +
         "rebuild accepted it. The AI that proposed it didn't approve it." };
     }
-    const why = record.authorization && !record.authorization.authorized
+    const a = record.authorization, v = record.validation;
+    const why = a && !a.authorized
       ? "It touches something outside what ADII may change for this incident."
-      : record.validation && record.validation.reason_code
+      : validatorState(v) === "UNCHECKED" ? "No validator checked it."
+      : validatorState(v) === "NOT_CHECKABLE"
         ? "There was no world to rebuild, so it could not be checked."
-        : "The independent rebuild rejected it.";
+      : validatorState(v) === "REJECT" ? "The independent rebuild rejected it."
+      : "The rebuild accepted it, but this record predates the authorization check, so it " +
+        "was never admitted.";
     return { ...answer, headline: "A fix was proposed. It was not approved.", summary,
              lead: why + " Nothing was changed." };
   }
@@ -82,6 +86,15 @@ function slots(record) {
   return SLOTS.map(([key, label]) => ({ key, label, landed: key === landed }));
 }
 
+/* The validator's state as the contract derives it (contracts/core.py ValidationResult.state):
+ * ACCEPT, REJECT, NOT_CHECKABLE, or UNCHECKED — the legacy no-checks shape of old records. */
+function validatorState(v) {
+  if (!v) return null;
+  if (v.accepted) return "ACCEPT";
+  if (v.reason_code) return "NOT_CHECKABLE";
+  return (v.checks_run || []).length ? "REJECT" : "UNCHECKED";
+}
+
 /* Who did what: the investigator proposes, the authorizer permits, the validator checks —
  * each line from that authority's own fact in the record. */
 function signoff(record) {
@@ -94,8 +107,10 @@ function signoff(record) {
           d ? "Decided no change should be made." : "Ended without a decision.",
     tone: "plain",
   }];
-  lines.push(!a ? { who: "Authorizer", mark: "AU", status: "Not needed", tone: "quiet",
-                    note: "Checks whether a proposed change is permitted." }
+  lines.push(!a && proposed ? { who: "Authorizer", mark: "AU", status: "Not recorded",
+                               tone: "quiet", note: "This record predates the authorization check." }
+    : !a ? { who: "Authorizer", mark: "AU", status: "Not needed", tone: "quiet",
+             note: "Checks whether a proposed change is permitted." }
     : a.authorized
       ? { who: "Authorizer", mark: "AU", status: "Allowed", tone: "good",
           note: "Within what ADII may change here: " + a.checked_paths.join(", ") + "." }
@@ -105,12 +120,14 @@ function signoff(record) {
     lines.push({ who: "Validator", mark: "VA", status: "Not needed", tone: "quiet",
                  note: "Independently rebuilds the data to check a proposed change." });
   } else {
-    const state = v.accepted ? "ACCEPT" : v.reason_code ? "NOT_CHECKABLE" : "REJECT";
+    const state = validatorState(v);
     lines.push({
       who: "Validator", mark: "VA",
-      status: { ACCEPT: "Accepted", REJECT: "Rejected", NOT_CHECKABLE: "Couldn't check" }[state],
-      tone: { ACCEPT: "good", REJECT: "bad", NOT_CHECKABLE: "quiet" }[state],
+      status: { ACCEPT: "Accepted", REJECT: "Rejected", NOT_CHECKABLE: "Couldn't check",
+                UNCHECKED: "Not checked" }[state],
+      tone: { ACCEPT: "good", REJECT: "bad", NOT_CHECKABLE: "quiet", UNCHECKED: "quiet" }[state],
       note: state === "NOT_CHECKABLE" ? "There was no world to rebuild."
+        : state === "UNCHECKED" ? "No validator checked this repair."
         : "Rebuilt the data from a frozen copy, with the change applied, and ran " +
           v.checks_run.length + " checks.",
     });
@@ -118,15 +135,19 @@ function signoff(record) {
   return lines;
 }
 
-/* The validator's own report, one check per line, as it wrote it. */
+/* The validator's own report, one check per line, as it wrote it. A mark is drawn only for
+ * the validator's own form — "rebuild: …; name: holds — …; name: fails — …" — and a report
+ * in any other form is shown whole, unmarked: nothing is inferred from prose. */
 function checks(record) {
   const v = record.validation;
   if (!v || !v.report) return [];
-  return v.report.split("; ").map((line) => {
+  if (!v.report.startsWith("rebuild: ")) return [{ name: "report", said: v.report, held: null }];
+  return v.report.split(/; (?=[a-z_]+: )/).map((line) => {
     const cut = line.indexOf(": ");
-    const name = cut < 0 ? line : line.slice(0, cut);
-    const said = cut < 0 ? "" : line.slice(cut + 2);
-    return { name, said, held: !/^(fails|patch rejected)/.test(said) };
+    const name = line.slice(0, cut), said = line.slice(cut + 2);
+    const held = name === "rebuild" ? !said.startsWith("patch rejected")
+      : said.startsWith("holds") ? true : said.startsWith("fails") ? false : null;
+    return { name, said, held };
   });
 }
 
@@ -136,20 +157,11 @@ function series(record) {
   const [alert] = events(record, "alert_observed");
   const rebuilt = record.validation && record.validation.rebuilt_series;
   return {
-    before: alert ? { metric: alert.metric, unit: alert.unit, rows: alert.rows } : null,
+    before: alert && alert.rows.length ? { metric: alert.metric, unit: alert.unit,
+                                           rows: alert.rows } : null,
     rebuilt: rebuilt && rebuilt.length ? { metric: alert ? alert.metric : "", rows: rebuilt }
                                        : null,
   };
-}
-
-/* Points for a polyline in a box: x by position, y from zero to a tenth above the peak. */
-function chart(rows, width, height, pad) {
-  const values = rows.map((r) => Number(r[1]));
-  const top = Math.max(...values) * 1.1 || 1;
-  const step = (width - 2 * pad) / Math.max(rows.length - 1, 1);
-  const pts = values.map((v, i) => [pad + i * step, height - pad - (v / top) * (height - 2 * pad)]);
-  return { points: pts.map(([x, y]) => x.toFixed(1) + "," + y.toFixed(1)).join(" "),
-           last: pts[pts.length - 1], top };
 }
 
 function money(value, unit) {
@@ -281,17 +293,26 @@ function proposal(record) {
   });
 }
 
+/* What a paid run cost, as the ledger can prove it: a lower bound, with every request whose
+ * usage was never reported counted rather than priced at zero (inherited D15). */
 function spend(record) {
   const c = record.configuration || {};
-  if (!c.provider || c.provider === "none" || c.provider === "scripted") return "No model was asked";
   if (c.provider === "local") return "Nothing spent: a local model";
+  if (c.provider !== "openai") return "Nothing spent: no model was asked";
+  const asked = events(record, "model_requested").length;
+  const priced = events(record, "model_responded").filter((r) => r.usage &&
+    Number.isInteger(r.usage.prompt_tokens) && Number.isInteger(r.usage.completion_tokens)).length;
   const cost = Number((record.counters || {}).api_cost_usd || 0);
-  return "$" + cost.toFixed(4) + " of $" + Number(c.max_cost_usd).toFixed(2);
+  const cap = Number(c.max_cost_usd);
+  return "at least $" + cost.toFixed(4) + (Number.isFinite(cap) ? " of a $" + cap.toFixed(2) +
+    " cap" : "") + (asked > priced ? "; " + (asked - priced) + " request(s) without usage" : "");
 }
 
 /* A row of the investigations list, from the server's index. */
 function row(entry, now) {
   const answer = entry.running ? { key: "running", label: "Investigating" }
+    : entry.error ? { key: "none", label: entry.error.includes("did not finish")
+                                           ? "Did not finish" : "Unreadable" }
     : entry.disposition ? ANSWERS[entry.disposition]
     : { key: "none", label: "No answer" };
   const changed = entry.changed || [];
@@ -301,8 +322,8 @@ function row(entry, now) {
     change: entry.running ? "Pending" : !changed.length ? "Nothing"
       : entry.admissible ? changed.length + (changed.length === 1 ? " file" : " files")
       : "Proposed, not approved",
-    when: entry.written_at ? ago(entry.written_at, now) : "Just now",
-    broken: Boolean(entry.error && !entry.running),
+    when: entry.written_at ? ago(entry.written_at, now) : entry.running ? "Just now" : "",
+    error: entry.running ? null : entry.error || null,
   };
 }
 
@@ -315,6 +336,6 @@ function ago(iso, now) {
   return d === 1 ? "Yesterday" : d + " days ago";
 }
 
-const VIEW = { verdict, slots, signoff, checks, series, chart, money, change, cited,
-               investigated, proposal, diff, spend, row, ago, admissible };
+const VIEW = { verdict, slots, signoff, checks, series, money, change, cited,
+               investigated, proposal, diff, spend, row, ago, admissible, validatorState };
 if (typeof module !== "undefined") module.exports = VIEW;

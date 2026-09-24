@@ -62,12 +62,6 @@ class Family:
         """How many orders arrive on the day, in all three worlds of this family."""
         return sum(round(self.per_day * s) for n, s in self.shares if n not in self.leaving)
 
-    @property
-    def alert(self) -> str:
-        fell = round(100 * (1 - self.kept / self.per_day))
-        return (f"Daily revenue for {self.day} fell about {fell}% against the previous two "
-                "weeks. A release went out that morning, and product wants it rolled back.")
-
 
 FAMILIES = (
     Family("mar", date(2026, 3, 11), 100, (("Northwind", .27), ("Harbor", .18),
@@ -87,6 +81,12 @@ FAMILIES = (
            ("Wick", .25)), ("Lumen", "Pyre"), "release v5.1.4: wishlist sharing", False),
 )
 STATES = ("load-stopped", "business-changed", "cannot-decide", "transform-defect")
+LIVE = ("business-changed", "cannot-decide", "transform-defect")
+# Version 2 (final plan, decision A2): the alert names the number it measured. Version 1 put
+# the drop in orders under the word revenue; the orders fall by the same share in every state
+# of a family and the revenue does not, so only the orders can stand in a shared alert. The
+# version-1 packages are still written, byte for byte: rehearsals and the stage ran on them.
+VERSION = 2
 # a seventh company, generated after the burn, for the stage: the three live states only
 DEMO = Family("aug", date(2026, 8, 18), 110, (("Juniper", .30), ("Kiln", .20), ("Larch", .25),
               ("Mistral", .25)), ("Juniper", "Kiln"), "release v6.0.1: saved carts", True)
@@ -151,10 +151,21 @@ def seed(family: Family) -> int:
     return int(hashlib.sha256(family.name.encode()).hexdigest()[:8], 16)
 
 
-def incident_id(family: Family, state: str) -> str:
-    """Opaque: nothing in it says which family or which state of the evidence it holds."""
-    return "revenue-drop-" + hashlib.sha256(
-        f"{seed(family)}:{family.name}:{state}".encode()).hexdigest()[:6]
+def incident_id(family: Family, state: str, version: int = VERSION) -> str:
+    """Opaque: nothing in it says which family, state or version of the evidence it holds."""
+    named = f"{seed(family)}:{family.name}:{state}" + (f":v{version}" if version > 1 else "")
+    return "revenue-drop-" + hashlib.sha256(named.encode()).hexdigest()[:6]
+
+
+def alert(family: Family, version: int = VERSION) -> str:
+    """What the investigator is told, the same in every state of a family."""
+    fell = round(100 * (1 - family.kept / family.per_day))
+    if version == 1:
+        return (f"Daily revenue for {family.day} fell about {fell}% against the previous two "
+                "weeks. A release went out that morning, and product wants it rolled back.")
+    return (f"Daily revenue for {family.day} fell sharply: the day counted about {fell}% fewer "
+            "orders than a usual day. A release went out that morning, and product wants it "
+            "rolled back.")
 
 
 def orders_by_day(family: Family, state: str) -> list[tuple[date, list[str]]]:
@@ -265,14 +276,14 @@ def changes(family: Family, state: str) -> str:
             "staged orders |\n")
 
 
-def package(family: Family, state: str) -> dict[str, str]:
+def package(family: Family, state: str, version: int = VERSION) -> dict[str, str]:
     """Every file of one incident package, by its path inside the package."""
     notices = say(family, state)
     def as_json(value: object) -> str:
         return json.dumps(value, indent=2) + "\n"
     return {
-        "incident.json": as_json({"incident_id": incident_id(family, state),
-                                  "alert": family.alert,
+        "incident.json": as_json({"incident_id": incident_id(family, state, version),
+                                  "alert": alert(family, version),
                                   "as_of": f"{family.day + timedelta(days=1)}T07:00:00Z",
                                   "permitted_write_paths": PERMITTED}),
         "world.sql": world(family, state),
@@ -296,13 +307,20 @@ def package(family: Family, state: str) -> dict[str, str]:
 
 
 def cases() -> list[tuple[Family, str]]:
-    """Every (family, state) this module writes."""
-    return [(f, s) for f in FAMILIES for s in STATES] + [(DEMO, s) for s in DEMO_STATES]
+    """The current version's cases: every live state of every family, and the demo's."""
+    return [(f, s) for f in FAMILIES for s in LIVE] + [(DEMO, s) for s in DEMO_STATES]
+
+
+def written() -> list[tuple[Family, str, int]]:
+    """Every package this module writes: version 1 whole — the burned state included — and
+    the current version's cases."""
+    return [*((f, s, 1) for f in FAMILIES for s in STATES), *((DEMO, s, 1) for s in DEMO_STATES),
+            *((f, s, VERSION) for f, s in cases())]
 
 
 def packages() -> dict[str, dict[str, str]]:
     """Every package, by incident id, in id order — which says nothing about the states."""
-    return dict(sorted((incident_id(f, s), package(f, s)) for f, s in cases()))
+    return dict(sorted((incident_id(f, s, v), package(f, s, v)) for f, s, v in written()))
 
 
 def main(argv: list[str] | None = None) -> int:
