@@ -6,7 +6,9 @@
 The ZIP is what is qualified on clean Windows and macOS machines (final plan, decision CI,
 7.5), so it is built from the tag and never from the working copy: `git archive` of `--ref`,
 plus, for each named pack, its receipt and report under 01_data/packs and every run folder
-it archived under 01_data/runs — the evidence, which git ignores. Inside, SUBMISSION.json
+it archived under 01_data/runs — the evidence, which git ignores. A ZIP holding a `.env`
+file, or the first characters of the configured OpenAI key anywhere, is refused, naming only
+the files. Inside, SUBMISSION.json
 lists every file with its sha256, the ref and the packs. Timestamps are fixed, so the same
 inputs build the same bytes. Standard library only; it reads the repository and writes
 adii_submission.zip, nothing else.
@@ -17,6 +19,7 @@ import argparse
 import hashlib
 import io
 import json
+import os
 import subprocess
 import tarfile
 import zipfile
@@ -46,6 +49,27 @@ def evidence(root: Path, packs: list[str]) -> dict[str, bytes]:
             for path in sorted(p for p in folder.rglob("*") if p.is_file()):
                 found[path.relative_to(root).as_posix()] = path.read_bytes()
     return found
+
+
+def configured_key(root: Path) -> str | None:
+    """The OpenAI key this machine is configured with — the environment's, else the one line
+    of `.env.local` that names it — used only to look for its prefix, never printed."""
+    key = os.environ.get("OPENAI_API_KEY")
+    env_local = root / ".env.local"
+    if not key and env_local.is_file():
+        for line in env_local.read_text(encoding="utf-8").splitlines():
+            if line.startswith("OPENAI_API_KEY="):
+                key = line.split("=", 1)[1].strip().strip('"')
+    return key or None
+
+
+def leaks(files: dict[str, bytes], key: str | None) -> list[str]:
+    """The files a submission must not carry: any .env file, and any file holding the key's
+    first sixteen characters."""
+    found = [p for p in files if Path(p).name in (".env", ".env.local")]
+    if key and len(key) >= 20:
+        found += [p for p, data in files.items() if key[:16].encode() in data]
+    return sorted(set(found))
 
 
 def package(files: dict[str, bytes], ref: str, packs: list[str]) -> bytes:
@@ -80,6 +104,10 @@ def main(argv: list[str] | None = None) -> int:
         files = {**tree(tar), **evidence(ROOT, args.packs)}
     except ValueError as missing:
         print(missing)
+        return 2
+    refused = leaks(files, configured_key(ROOT))
+    if refused:
+        print("not written: a secret would ship in " + ", ".join(refused))
         return 2
     data = package(files, args.ref, args.packs)
     Path(args.out).write_bytes(data)

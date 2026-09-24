@@ -53,3 +53,16 @@ def test_the_zip_is_the_tag_and_the_evidence_listed_by_digest_the_same_every_tim
     assert (manifest["ref"], manifest["packs"]) == ("freeze-x", ["p"])
     with pytest.raises(ValueError, match="no pack 'q'"):
         packager.evidence(tmp_path, ["q"])
+
+
+def test_a_zip_carrying_an_env_file_or_the_keys_prefix_is_refused(tmp_path, monkeypatch):
+    key = "sk-proj-" + "a1b2c3d4e5f6g7h8i9j0k1l2"
+    files = {"02_src/x.py": b"print(1)", "01_data/runs/r/record.json": key[:16].encode(),
+             "sub/.env.local": b"X=1"}
+    assert packager.leaks(files, key) == ["01_data/runs/r/record.json", "sub/.env.local"]
+    assert packager.leaks({"02_src/x.py": b"print(1)"}, key) == []
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    (tmp_path / ".env.local").write_text(f"OPENAI_API_KEY={key}\n", encoding="utf-8")
+    assert packager.configured_key(tmp_path) == key
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-from-the-environment-0000")
+    assert packager.configured_key(tmp_path) == "sk-from-the-environment-0000"
