@@ -154,7 +154,7 @@ EXPECTED = {
     "": ("What looks wrong in your data?", "Attach CSV files", "Sample 1", "Sample 2", "Sample 3"),
     "new": ("What looks wrong in your data?", "Attach CSV files", "Sample 1"),
     "r/fix": ("Yes. Fix it.", "How ADII knows", "Proposed fix", "Independent rebuild",
-              "Sign-off", "Record", "How ADII investigated"),
+              "Sign-off", "Record", "Investigated for", "Show details"),
     "r/leave": ("No. Leave it.", "How ADII knows", "No change proposed", "Sign-off"),
     "r/ended": ("The run couldn't finish.", "Nothing was changed.", "The record says"),
 }

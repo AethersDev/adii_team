@@ -1,3 +1,5 @@
+> **Read with [final_plan.md](final_plan.md), which governs where the two differ (24 Sep 2026).** The milestones below are the build's record and the source of `current_status.md`. The final phases — the registered evaluation, the two freezes, the submission — are the final plan's; M10's blind run is not planned: no unseen evaluation is claimed (final plan, `UNSEEN-EVALUATED` stays HOLD).
+
 # Build plan
 
 The canonical roadmap. Milestones, not people — a milestone is a piece of working system,

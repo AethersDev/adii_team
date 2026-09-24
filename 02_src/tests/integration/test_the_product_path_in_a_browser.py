@@ -39,7 +39,7 @@ const tick = setInterval(async () => {
   const doc = frame.contentDocument;
   if (!doc || !doc.body) return;
   const text = doc.body.textContent;
-  if (text.includes("Investigating · turn")) seen.add("running");
+  if (text.includes("Investigating · ")) seen.add("running");
   if (step === "boot") {
     ENTER
   } else if (step === "picked") {

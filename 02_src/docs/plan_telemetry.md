@@ -1,3 +1,5 @@
+> **Historical, 24 Sep 2026.** The D track's plan as written in week 2: its six-week clock, its blind run and its dates were replaced by [final_plan.md](final_plan.md) (decisions E and F). Kept as the record of what was planned; read the final plan for what holds.
+
 # Plan: telemetry, integration and hardening — the D assignment
 
 **Scope.** The D row of the assignments table in [inherited/CONFORMANCE.md](inherited/CONFORMANCE.md):

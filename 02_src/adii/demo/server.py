@@ -349,8 +349,10 @@ def main(port: int = 8000, launch: dict[str, object] | None = None) -> int:
     print(f"ADII — http://127.0.0.1:{port}")
     print(f"  {len(runs)} archived run(s) in {ARCHIVE.relative_to(REPO)}.", end=" ")
     if LAUNCH.get("provider") == "openai":
-        print(f"Runs may be started from the page, against {LAUNCH['model']} by default — any "
-              f"priced model on request — at {LAUNCH['endpoint']}, a paid provider, up to "
+        others = [m for m in LAUNCH.get("models", []) if m != LAUNCH["model"]]
+        print(f"Runs may be started from the page, against {LAUNCH['model']} by default"
+              + (f" — or {', '.join(others)}, on the page's pick —" if others else "")
+              + f" at {LAUNCH['endpoint']}, a paid provider, up to "
               f"${LAUNCH['max_cost_usd']:.2f} per run at nominal prices, a hard cap; the "
               "credential is this process's, from its environment.")
     elif LAUNCH:

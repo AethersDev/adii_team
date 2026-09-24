@@ -17,7 +17,7 @@ const state = { launch: { enabled: false }, incidents: [], runs: [],
                 side: stored("side", window.innerWidth > 900), still: stored("still", false),
                 stepsOpen: stored("stepsOpen", false),
                 pick: null, desc: "", files: [], note: "", timer: null, code: null,
-                gen: 0, problem: null };
+                gen: 0, problem: null, asked: {}, detailsOpen: false };
 
 function el(tag, attrs, ...kids) {
   const node = document.createElement(tag);
@@ -131,7 +131,8 @@ function newInvestigation() {
 /* The history: titles and when, never answers — an answer is read by opening it, so the
  * sidebar can stay on show in a room without giving a sample's outcome away. */
 function side(current) {
-  const rows = state.runs.map((r) => V.row(r, Date.now()));
+  const rows = state.runs.map((r) => V.row({ ...r, alert: r.alert || asked(r.label) },
+                                           Date.now()));
   return el("nav", { class: "side", "aria-label": "Investigations" },
     el("div", { class: "side__top" },
       el("a", { class: "side__brand", href: "#", "aria-label": "ADII, home" },
@@ -225,11 +226,15 @@ function topbar(...items) {
 
 function page(header, main, current) {
   const root = document.getElementById("app");
+  const was = root.querySelector(".pane__scroll");
+  const top = was && root.dataset.current === String(current) ? was.scrollTop : 0;
+  root.dataset.current = String(current);
   root.replaceChildren(el("div", { class: "app" + (state.side ? " is-side-open" : "") +
                                           (state.still ? " is-still" : "") },
     state.side ? side(current) : rail(),
     state.side ? el("div", { class: "scrim", "aria-hidden": "true", onclick: toggleSide }) : null,
     el("div", { class: "pane" }, header, el("div", { class: "pane__scroll" }, main))));
+  root.querySelector(".pane__scroll").scrollTop = top;
   // what the fit test reads: the document's width against the viewport's — reading them
   // lays the page out, so the measurement is of what was just drawn
   const doc = document.documentElement;
@@ -358,6 +363,7 @@ async function investigate() {
       state.note = "Say what looks wrong and attach the CSV files behind it, or pick a sample.";
       return render();
     }
+    state.asked[started.label] = state.desc.trim();
     state.pick = null; state.desc = ""; state.files = []; state.note = "";
     go("#r/" + encodeURIComponent(started.label));
   } catch (why) {
@@ -506,19 +512,13 @@ function rebuild(record, series) {
 function steps(looked, summary) {
   return el("details", { class: "looked", open: state.stepsOpen,
                          ontoggle: (e) => { state.stepsOpen = e.target.open; } },
-    el("summary", null, summary),
+    el("summary", { class: "looked__head" }, summary),
     looked.length ? el("ol", null, looked.map((i) => el("li", null,
       el("span", { class: "looked__title", text: i.title }),
       i.what ? el("span", { class: "mono looked__what", text: i.what }) : null,
       i.status !== "OK" ? el("span", { class: "looked__status", text: i.status }) : null)))
       : el("p", { class: "muted", text: "Starting: the receipt is written before the first " +
                                         "request to the model." }));
-}
-
-function lookedAt(record) {
-  const all = V.investigated(record);
-  return steps(all, "How ADII investigated · " + all.length +
-                    (all.length === 1 ? " step" : " steps"));
 }
 
 function slots(record) {
@@ -591,64 +591,82 @@ function crumbs(title) {
   return topbar(el("span", { class: "bar__title", text: title }));
 }
 
+/* What a run in progress was asked, before its record can say: the words typed in this tab,
+ * or the sample's alert — its label begins with the incident's id. */
+function asked(label) {
+  const known = state.incidents.find((i) => label.startsWith(i.incident_id + "-"));
+  return state.asked[label] || (known ? known.alert : "");
+}
+
+/* When a run from the page started: its label carries the moment, to the millisecond, so
+ * the clock survives a reload. A run named any other way shows no clock. */
+function startedAt(label) {
+  const m = /(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})-(\d{3})Z$/.exec(label);
+  return m ? Date.UTC(m[1], m[2] - 1, m[3], m[4], m[5], m[6], m[7]) : null;
+}
+
+function clock(ms) {
+  const s = Math.max(0, Math.round(ms / 1000));
+  return s < 60 ? s + "s" : Math.floor(s / 60) + "m " + String(s % 60).padStart(2, "0") + "s";
+}
+
+/* One investigation as a conversation: what was asked, on the right; ADII's reply beneath —
+ * while it works, a line that says so and counts the seconds, the steps folded inside it;
+ * then the answer, plain, and everything behind it one click away. */
+function thread(label, asked, reply) {
+  page(crumbs(asked), el("main", { class: "thread" },
+    el("div", { class: "ask" }, el("p", { class: "ask__text", text: asked })),
+    el("section", { class: "reply", "aria-label": "ADII’s answer" }, reply)), label);
+}
+
 function answer(record, label, fingerprint, receipt) {
   const v = V.verdict(record), series = V.series(record);
-  const secs = Math.round(Number((record.counters || {}).latency_ms || 0) / 1000);
-  const main = el("main", { class: "detail" },
-    el("div", { class: "detail__intro" },
-      el("h1", { class: "serif detail__title", text: record.context.alert }),
-      el("div", { class: "detail__meta" },
-        el("span", { class: "mono", text: record.context.incident_id }),
-        el("span", { text: "Investigated in " + secs + " s" }))),
-    el("div", { class: "detail__grid" },
-      el("div", { class: "detail__main" },
+  const all = V.investigated(record);
+  const took = clock(Number((record.counters || {}).latency_ms || 0));
+  thread(label, record.context.alert, [
+    steps(all, [mark("still", 20), el("span", { text: "Investigated for " + took + " · " +
+      all.length + (all.length === 1 ? " step" : " steps") })]),
+    el("article", { class: "verdict verdict--" + v.key, "aria-labelledby": "verdict-h" },
+      el("div", { class: "verdict__band", "aria-hidden": "true" }),
+      el("h2", { id: "verdict-h", class: "serif verdict__headline", text: v.headline }),
+      el("p", { class: "verdict__lead", text: v.lead }),
+      v.summary ? el("div", { class: "verdict__words" },
+        el("span", { class: "verdict__who", text: "In the investigator’s words" }),
+        el("p", { text: v.summary })) : null,
+      v.key === "none" && v.detail ? el("p", { class: "verdict__detail mono",
+                                               text: "The record says: " + v.detail }) : null),
+    el("details", { class: "more", open: state.detailsOpen,
+                    ontoggle: (e) => { state.detailsOpen = e.target.open; } },
+      el("summary", { class: "more__toggle" },
+        el("span", { class: "more__show", text: "Show details" }),
+        el("span", { class: "more__hide", text: "Hide details" }), icon("down")),
+      el("div", { class: "more__body" },
         symptom(series),
-        el("article", { class: "verdict verdict--" + v.key, "aria-labelledby": "verdict-h" },
-          el("div", { class: "verdict__band", "aria-hidden": "true" }),
-          el("h2", { id: "verdict-h", class: "serif verdict__headline", text: v.headline }),
-          el("p", { class: "verdict__lead", text: v.lead }),
-          v.summary ? el("div", { class: "verdict__words" },
-            el("span", { class: "verdict__who", text: "In the investigator’s words" }),
-            el("p", { text: v.summary })) : null,
-          v.key === "none" && v.detail ? el("p", { class: "verdict__detail mono",
-                                                   text: "The record says: " + v.detail }) : null),
         v.key === "none" ? null : knows(record, v),
         v.key === "fix" ? [fix(record), rebuild(record, series)]
           : v.key === "none" ? null
           : el("p", { class: "nochange", text: "No change proposed. Nothing was touched." }),
-        lookedAt(record)),
-      el("aside", { class: "aside" }, slots(record), signoff(record),
-         recordPanel(record, label, fingerprint, receipt, v))));
-  page(crumbs(record.context.alert), main, label);
+        el("div", { class: "aside" }, slots(record), signoff(record),
+           recordPanel(record, label, fingerprint, receipt, v)))),
+  ]);
 }
 
 function running(label, trace) {
   const events = trace.events || [];
   const pseudo = { trace: events.map((e) => ({ kind: e.kind, payload: e.payload })) };
-  const series = V.series(pseudo);
-  const received = events.find((e) => e.kind === "incident_received");
-  const incident = received ? received.payload.incident_id : "";
-  const known = state.incidents.find((i) => i.incident_id === incident);
   const turns = events.filter((e) => e.kind === "model_requested").length;
   const most = state.launch.max_turns;
+  const since = startedAt(label);
   const looked = V.investigated(pseudo);
-  const main = el("main", { class: "detail" },
-    el("div", { class: "detail__intro" },
-      el("h1", { class: "serif detail__title", text: known ? known.alert : "Your investigation" }),
-      el("div", { class: "detail__meta" }, el("span", { class: "mono", text: incident }),
-         el("span", { text: trace.running === false ? "Not running" : "Investigating" }))),
-    el("div", { class: "detail__grid" },
-      el("div", { class: "detail__main" }, symptom(series),
-        el("p", { class: "working", role: "status" }, mark("working", 22),
-          "Investigating · " + (most ? "turn " + turns + " of " + most : "turn " + turns)),
-        steps(looked, "Show the investigation as it happens · " + looked.length +
-                      (looked.length === 1 ? " step" : " steps"))),
-      el("aside", { class: "aside" }, slots(null))));
-  page(crumbs(known ? known.alert : "Your investigation"), main, label);
+  thread(label, asked(label) || "Your investigation", [
+    steps(looked, [mark("working", 20), el("span", { class: "reply__status", role: "status",
+      text: "Investigating" + (since ? " · " + clock(Date.now() - since) : "") +
+            " · turn " + turns + (most ? " of " + most : "") })]),
+  ]);
 }
 
 function problem(label, text) {
-  page(crumbs(label), el("main", { class: "detail" },
+  page(crumbs(label), el("main", { class: "thread" },
     el("p", { class: "problem", role: "alert", text })), label);
 }
 
@@ -690,7 +708,7 @@ async function detail(label, gen, waited = 0) {
   }
   if (!current()) return;
   if (!SCHEMAS.includes(record.schema)) {
-    return page(crumbs(label), el("main", { class: "detail" }, el("p", { class: "problem",
+    return page(crumbs(label), el("main", { class: "thread" }, el("p", { class: "problem",
       role: "alert", text: "This record is in a shape this page does not read: it declares " +
       record.schema + " and this page reads " + SCHEMAS.join(", ") + ". Nothing is interpreted." })));
   }

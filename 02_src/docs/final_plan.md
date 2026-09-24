@@ -307,7 +307,7 @@ newest freeze with its frozen terms; each pack's receipt names the freeze by dig
 Nothing frozen changes because of a result.
 
 **Qualification of the frozen commit, on clean macOS and Windows.** `python
-02_src/scripts/package_submission.py --ref freeze-<date>` builds `adii_submission.zip` from
+02_src/scripts/package_submission.py --ref freeze-<date>` builds `ADII_Group05_Code_v1.zip` from
 the tag (standard library only; `SUBMISSION.json` lists every file by sha256; the same
 inputs build the same bytes; it refuses a `.env` file or the configured key's prefix in any
 file). Extracted on each machine, from nothing: `py -3.12 -m venv .venv` (`python3.12` on
@@ -315,6 +315,20 @@ the Mac), `pip install -r requirements.txt`, `python 02_src/scripts/check_env.py
 `python -m adii.runtime --incident demo-learning-001 --provider scripted`, `python -m
 adii.demo`, and the launch view in a browser. A failure is fixed and Freeze A is taken again
 under a new name, before any pack runs.
+
+**The admissibility square, from the frozen commit (4.5).** The deck's first proof object
+(7.1) is four archived runs, never a slide's claim: `python
+02_src/scripts/admissibility_square.py` sends four scripted proposals on the demo company's
+fix case through the real runtime, authorizer and validator — the correct patch (permitted ·
+ACCEPT), a patch that hides the symptom (permitted · REJECT by the oracle), the correct patch
+plus the mart, outside the permitted paths (denied · ACCEPT: works, but not allowed), and a
+patch the data cannot take (REJECT by the rebuild). It refuses unless the tree matches the
+newest freeze, labels each run `square-<freeze>-<cell>`, and says in every receipt that the
+proposal was scripted. No model, $0. It lives outside the frozen trees, so it was built and
+tested before Freeze A (`test_the_admissibility_square.py`) and is run once after it. No
+archived run carried the works-but-not-allowed cell before: the mechanism test proved it on
+a temporary package, no model had proposed an out-of-path patch since the authorizer landed,
+and every archived REJECT predates the authorizer.
 
 **Rule.** Any engineering change after Freeze A is a new freeze version. A pack scored under
 one version is never re-read under another
@@ -415,9 +429,10 @@ architecture diagram drawn from the frozen architecture, the screenshots, the fi
 presentation material. Nothing under Freeze A changes; `test_the_freeze.py` proves it.
 
 1. The merged commit tagged `submission-<date>`; `python 02_src/scripts/package_submission.py
-   --ref submission-<date> --packs final-sol final-luna final-gpt-4-1 final-held-out`; its
-   `SUBMISSION.json` reviewed by the architect: the three top-level folders, the README, the
-   requirements, the packs' receipts, reports and run folders the report cites.
+   --ref submission-<date> --packs final-sol final-luna final-gpt-4-1 final-held-out --runs
+   <the four square-freeze-… labels>`; its `SUBMISSION.json` reviewed by the architect: the
+   three top-level folders, the README, the requirements, the packs' receipts, reports and
+   run folders the report cites, and the admissibility square's four runs the deck shows.
 2. No secret: the packager refuses a `.env` file and the configured key's prefix anywhere;
    checked by hand as well.
 3. Extracted on a clean Mac and a clean Windows machine; on each, from nothing: the
@@ -540,3 +555,4 @@ finding, what was done, and what the benchmark may therefore claim.
 | 23 Sep 2026 | 4 | prices verified on OpenAI's pricing page before the freeze: gpt-4.1 $2/$8, gpt-4.1-mini $0.40/$1.60, gpt-6-sol $2/$10, gpt-6-luna $0.10/$0.50 per million — the tables unchanged. `python -m adii.evaluation.lock` built (the freeze file, `--check`, the four registered packs' terms), the grid's gate on registered packs, `test_the_freeze.py` as the standing rule, and `02_src/scripts/package_submission.py`; guard `C.registered_pack_runs_only_on_the_freeze`, killed | |
 | 23 Sep 2026 | 2 (decision A2) and the front door | a review found the alert's percentage was the orders' under the word revenue, so the page showed 49% above a chart reading 51%; version 2 of the 21 live cases written with an alert that names the orders, keys, grounding keys and oracles copied and frozen, the partition moved, version 1 superseded and kept; the readiness gate proves the new alert matches the orders in every state and version 1 unchanged. And the stage leak: the list showed earlier answers under the neutral samples, so `#new` — what "New investigation" opens — is a launch view with no earlier answer on it, held by the fit test; the history stays one click away. The stage's precomputed FIX (version 1, `revenue-drop-d0888f-20260923T190024-097Z`) stays as it is; a version-2 film case is run only after the freeze | |
 | 24 Sep 2026 | before Freeze A (the audit) | a production-readiness audit of every file, by five read-only reviewers, each finding verified against the code before acting. Fixed on the evaluated path: a tool call or decision carrying NaN, Infinity or a 5,000-digit number crashed the run instead of being refused; the database misfiled an unbound placeholder as "one statement per call" and a closed connection as the model's mistake, and did not escape a quoted table name; a refused or over-long declared series escaped the runtime after its label was claimed; the provider worker leaked on an unexpected exception and the trace file was never closed; the pre-flight's model listing followed a redirect carrying the credential; the manifest did not keep `alert_series.json`; the newest freeze was chosen by name; `--partition` offered demo and superseded; a judge on a local pack was uncapped; the packager took run folders by prefix; the 48 scored keys were not schema-checked. The page and server: the page may start only the samples and the walkthrough (a held-out case could have been run from it); an older record's accepted repair was shown as rejected; check marks were read from prose; spend was shown as spent, not as a lower bound; a dead run looked alive; a slow answer could redraw another screen; a negative Content-Length bypassed the body bound. Removed as unused or superseded: feedback, page-chosen run settings and the evaluation endpoint (decision R), and the evaluation modules `failure_signal`, `receipt_artefacts`, `commitment`, `exposure`; the fake validator moved into the tests. One reported defect was not one: a judge-settled "incorrect" repair filed as a rejection is the team's pinned decision, and only its comment was wrong. A correction to this log's 23 Sep row "13 skipped (the blind-key tests, kept out on purpose)": they skipped on a stale path; they run now. Docs and docstrings brought to the system as it is; the ZIP holds only what a judge needs (`export-ignore`), named `ADII_Group05_Code_v1.zip` | |
+| 24 Sep 2026 | 4.5, before Freeze A | the admissibility square's generator, `02_src/scripts/admissibility_square.py`: four scripted proposals on the demo company's fix case through the real runtime, authorizer and validator, archived only from the frozen commit; each cell proved in a test (permitted · ACCEPT, permitted · REJECT by the oracle, denied · ACCEPT, REJECT by the rebuild); two guards, killed |

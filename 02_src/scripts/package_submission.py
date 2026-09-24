@@ -1,12 +1,14 @@
 """Build the submission ZIP from a tagged commit, and the evidence the commit cannot hold.
 
     python 02_src/scripts/package_submission.py --ref freeze-2026-09-24 \\
-        --packs final-sol final-luna final-gpt-4-1 final-held-out
+        --packs final-sol final-luna final-gpt-4-1 final-held-out \\
+        --runs square-freeze-2026-09-24-admissible square-freeze-2026-09-24-not-allowed ...
 
 The ZIP is what is qualified on clean Windows and macOS machines (final plan, decision CI,
 7.5), so it is built from the tag and never from the working copy: `git archive` of `--ref`,
 plus, for each named pack, its receipt and report under 01_data/packs and every run folder
-it archived under 01_data/runs — the evidence, which git ignores. A ZIP holding a `.env`
+it archived under 01_data/runs — the evidence, which git ignores — and each run named by
+`--runs` (the admissibility square's, the filmed ones), by exact label. A ZIP holding a `.env`
 file, or the first characters of the configured OpenAI key anywhere, is refused, naming only
 the files. Inside, SUBMISSION.json
 lists every file with its sha256, the ref and the packs. Timestamps are fixed, so the same
@@ -45,9 +47,16 @@ def cells(receipt: dict) -> list[str]:
             for arm in receipt["arms"] for k in range(1, receipt["repeats"] + 1)]
 
 
-def evidence(root: Path, packs: list[str]) -> dict[str, bytes]:
-    """Each pack's receipt and reports, and every run folder its receipt names a cell of."""
+def evidence(root: Path, packs: list[str], runs: list[str] = ()) -> dict[str, bytes]:
+    """Each pack's receipt and reports, every run folder its receipt names a cell of, and
+    every run named by its exact label."""
     found: dict[str, bytes] = {}
+    for label in runs:
+        folder = root / "01_data" / "runs" / label
+        if not (folder / "record.json").is_file():
+            raise ValueError(f"no run {label!r}: {folder.relative_to(root)} holds no record")
+        for path in sorted(p for p in folder.rglob("*") if p.is_file()):
+            found[path.relative_to(root).as_posix()] = path.read_bytes()
     for pack in packs:
         receipt = root / "01_data" / "packs" / f"{pack}.json"
         if not receipt.is_file():
@@ -82,9 +91,9 @@ def leaks(files: dict[str, bytes], key: str | None) -> list[str]:
     return sorted(set(found))
 
 
-def package(files: dict[str, bytes], ref: str, packs: list[str]) -> bytes:
+def package(files: dict[str, bytes], ref: str, packs: list[str], runs: list[str] = ()) -> bytes:
     """The ZIP: every file at a fixed time, in path order, and the manifest of them."""
-    manifest = {"schema": "adii.submission/v1", "ref": ref, "packs": packs,
+    manifest = {"schema": "adii.submission/v1", "ref": ref, "packs": packs, "runs": list(runs),
                 "files": {p: hashlib.sha256(b).hexdigest() for p, b in sorted(files.items())}}
     out = io.BytesIO()
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zipped:
@@ -102,6 +111,7 @@ def main(argv: list[str] | None = None) -> int:
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--ref", required=True, help="the tag the ZIP is built from")
     parser.add_argument("--packs", nargs="*", default=[], help="packs whose evidence to include")
+    parser.add_argument("--runs", nargs="*", default=[], help="further runs to include, by label")
     parser.add_argument("--out", default=str(ROOT / f"{FOLDER}.zip"))
     args = parser.parse_args(argv)
     try:
@@ -111,7 +121,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"git archive {args.ref} failed: {refused.stderr.decode(errors='replace').strip()}")
         return 2
     try:
-        files = {**tree(tar), **evidence(ROOT, args.packs)}
+        files = {**tree(tar), **evidence(ROOT, args.packs, args.runs)}
     except ValueError as missing:
         print(missing)
         return 2
@@ -119,7 +129,7 @@ def main(argv: list[str] | None = None) -> int:
     if refused:
         print("not written: a secret would ship in " + ", ".join(refused))
         return 2
-    data = package(files, args.ref, args.packs)
+    data = package(files, args.ref, args.packs, args.runs)
     Path(args.out).write_bytes(data)
     print(f"wrote {args.out}: {len(files)} files, {len(data) / 1e6:.1f} MB, "
           f"sha256 {hashlib.sha256(data).hexdigest()[:12]}")
