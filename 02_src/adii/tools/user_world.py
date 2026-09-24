@@ -17,7 +17,7 @@ import csv
 import io
 import math
 import re
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 
 LIMITS = {"files": 8, "columns": 64, "rows": 20_000, "chars": 2_000_000}
 # ASCII digits only, no leading zeros, within SQLite's 64-bit integer, finite: a value that
@@ -56,10 +56,7 @@ def _exact_real(value: str) -> bool:
     is not 3.141592653589793."""
     if not _REAL.fullmatch(value) or not math.isfinite(float(value)):
         return False
-    try:
-        return Decimal(value) == Decimal(repr(float(value)))
-    except InvalidOperation:
-        return False
+    return Decimal(value) == Decimal(repr(float(value)))     # _REAL has made it a number
 
 
 def _typed(values: list[str]) -> str:

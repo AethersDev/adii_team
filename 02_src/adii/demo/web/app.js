@@ -13,8 +13,11 @@
 const V = VIEW;   // view.js, loaded first
 const SVG = "http://www.w3.org/2000/svg";
 const SCHEMAS = ["adii.run_record/v3", "adii.run_record/v2", "adii.run_record/v1"];
-const state = { launch: { enabled: false }, incidents: [], runs: [], filter: "all",
-                query: "", pick: null, desc: "", files: [], note: "", timer: null, code: null };
+const state = { launch: { enabled: false }, incidents: [], runs: [],
+                side: stored("side", window.innerWidth > 900), still: stored("still", false),
+                stepsOpen: stored("stepsOpen", false),
+                pick: null, desc: "", files: [], note: "", timer: null, code: null,
+                gen: 0, problem: null };
 
 function el(tag, attrs, ...kids) {
   const node = document.createElement(tag);
@@ -45,7 +48,12 @@ async function json(url, options) {
   const served = answer.headers.get("ADII-Code");
   if (served && state.code && served !== state.code) location.reload();
   state.code = state.code || served;
-  const body = await answer.json().catch(() => ({ error: "the server's answer was not JSON" }));
+  let body;
+  try {
+    body = await answer.json();
+  } catch (notJson) {
+    throw new Error("the server's answer was not JSON (" + answer.status + ")");
+  }
   if (!answer.ok) throw new Error(body.error || "the server refused: " + answer.status);
   return body;
 }
@@ -55,36 +63,172 @@ function stop() {
   state.timer = null;
 }
 
-/* ── the shell ─────────────────────────────────────────────────────────────────────── */
-
-function brand() {
-  return el("a", { class: "brand", href: "#", "aria-label": "ADII — Is it broken?" },
-    el("span", { class: "brand__mark", role: "img", "aria-label": "ADII" }),
-    el("span", { class: "brand__question", text: "Is it broken?" }));
+/* ── the mark, alive ──────────────────────────────────────────────────────────────────
+ * The identity's symbol, drawn from its own geometry (IDENTITY.md, "Geometry"), unchanged in
+ * shape: a riser crossing a rule, and support slots below, one of them unfilled. At rest the
+ * unfilled slot breathes — evidence not yet in; while ADII investigates the slots rise in
+ * turn; it is still when there is an answer, and still for anyone who asks for less motion. */
+function mark(mode, size) {
+  const rect = (x, y, w, h, cls) => svg("rect", { x, y, width: w, height: h, class: cls || "" });
+  return svg("svg", { viewBox: "0 0 32 32", width: size, height: size, role: "img",
+                      "aria-label": "ADII", class: "mark mark--" + mode },
+    rect(4, 4, 4, 24), rect(4, 12, 24, 4),
+    rect(12, 20, 4, 8, "mark__slot mark__slot--1"),
+    rect(18, 24, 4, 4, "mark__slot mark__slot--open"),
+    rect(24, 20, 4, 8, "mark__slot mark__slot--3"));
 }
 
-function side() {
+/* Icons, drawn as strokes: a panel, a plus, a gear, a cross. */
+const ICONS = {
+  panel: ["M4 5h16v14H4z", "M9 5v14"],
+  plus: ["M12 5v14", "M5 12h14"],
+  gear: ["M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z",
+         "M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2-1.2L14.2 3h-4l-.4 2.6a7 7 0 0 " +
+         "0-2 1.2l-2.3-.9-2 3.4 2 1.5a7 7 0 0 0 0 2.4l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 2 1.2l.4 " +
+         "2.6h4l.4-2.6a7 7 0 0 0 2-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z"],
+  close: ["M6 6l12 12", "M18 6L6 18"],
+  clip: ["M20 11.5l-8.2 8.2a5 5 0 0 1-7.1-7.1l8.9-8.9a3.4 3.4 0 0 1 4.8 4.8l-8.9 8.9a1.7 1.7 " +
+         "0 0 1-2.4-2.4l8.2-8.2"],
+  up: ["M12 19V5", "M6 11l6-6 6 6"],
+  down: ["M7 10l5 5 5-5"],
+  check: ["M5 12.5l4.5 4.5L19 7.5"],
+};
+
+function icon(name) {
+  return svg("svg", { viewBox: "0 0 24 24", width: 20, height: 20, "aria-hidden": "true",
+                      class: "icon" },
+    ICONS[name].map((d) => svg("path", { d })));
+}
+
+/* ── preferences: kept per browser, never needed for the page to work ─────────────── */
+
+function stored(key, fallback) {
+  try {
+    const kept = localStorage.getItem("adii." + key);
+    return kept === null ? fallback : kept === "true";
+  } catch (blocked) { return fallback; }          // storage refused: the default stands
+}
+
+function keep(key, value) {
+  state[key] = value;
+  try { localStorage.setItem("adii." + key, String(value)); }
+  catch (blocked) { /* the choice lasts this visit only */ }
+}
+
+function toggleSide() {
+  keep("side", !state.side);
+  render();
+}
+
+/* ── the sidebar: past investigations, as a chat app keeps past conversations ──────── */
+
+function newInvestigation() {
+  state.pick = null; state.desc = ""; state.files = []; state.note = "";
+  if (window.innerWidth <= 900 && state.side) keep("side", false);
+  go("#");
+}
+
+/* The history: titles and when, never answers — an answer is read by opening it, so the
+ * sidebar can stay on show in a room without giving a sample's outcome away. */
+function side(current) {
+  const rows = state.runs.map((r) => V.row(r, Date.now()));
+  return el("nav", { class: "side", "aria-label": "Investigations" },
+    el("div", { class: "side__top" },
+      el("a", { class: "side__brand", href: "#", "aria-label": "ADII, home" },
+        el("span", { class: "side__wordmark", role: "img", "aria-label": "ADII" })),
+      el("button", { type: "button", class: "icon-btn", "aria-label": "Close sidebar",
+                     title: "Close sidebar", onclick: toggleSide }, icon("panel"))),
+    el("button", { type: "button", class: "side__new", onclick: newInvestigation },
+      icon("plus"), "New investigation"),
+    el("h2", { class: "side__h", text: "Recent" }),
+    rows.length ? el("ul", { class: "history" }, rows.map((r) => el("li", null,
+      el("a", { class: "history__item", href: "#r/" + encodeURIComponent(r.label),
+                title: r.error || r.title,
+                "aria-current": r.label === current ? "page" : null },
+        el("span", { class: "history__title", text: r.title }),
+        el("span", { class: "history__when" },
+          r.answer === "running" ? el("span", { class: "history__live", text: "Investigating · " })
+            : r.error ? el("span", { class: "history__live", text: r.answerLabel + " · " }) : null,
+          r.when)))))
+      : el("p", { class: "side__empty", text: "Your investigations will appear here." }),
+    el("button", { type: "button", class: "side__settings", onclick: openSettings },
+      icon("gear"),
+      el("span", { class: "side__settings-text" }, el("span", { text: "Settings" }),
+        el("span", { class: "side__model", text: state.problem ? "Server unreachable"
+          : state.launch.enabled ? String(state.model) : "Read-only" }))));
+}
+
+/* Closed, on a desk: a rail of the same three actions, as chat apps keep it. */
+function rail() {
+  return el("nav", { class: "rail", "aria-label": "Investigations" },
+    el("button", { type: "button", class: "icon-btn", "aria-label": "Open sidebar",
+                   title: "Open sidebar", onclick: toggleSide }, icon("panel")),
+    el("button", { type: "button", class: "icon-btn", "aria-label": "New investigation",
+                   title: "New investigation", onclick: newInvestigation }, icon("plus")),
+    el("button", { type: "button", class: "icon-btn rail__settings", "aria-label": "Settings",
+                   title: "Settings", onclick: openSettings }, icon("gear")));
+}
+
+/* ── settings: what the operator set, and what this browser prefers ────────────────── */
+
+function openSettings() {
   const l = state.launch;
-  return el("nav", { class: "side", "aria-label": "Workspace" },
-    brand(),
-    el("button", { type: "button", class: "btn btn--primary side__new",
-                   onclick: () => { state.pick = null; state.desc = ""; state.files = [];
-                                    go("#new"); } }, "New investigation"),
-    el("a", { class: "side__item", href: "#", "aria-current": "page" },
-      el("span", { text: "Investigations" }),
-      el("span", { class: "side__count", text: String(state.runs.length) })),
-    el("dl", { class: "side__foot" },
-      el("dt", { text: "Investigator" }),
-      el("dd", { text: l.enabled ? String(l.model) : "Read-only: no model configured" }),
-      l.enabled && l.max_cost_usd !== undefined
-        ? [el("dt", { text: "Cost cap per run" }),
-           el("dd", { class: "mono", text: "$" + Number(l.max_cost_usd).toFixed(2) })]
-        : null));
+  const fact = (term, value) => [el("dt", { text: term }), el("dd", { text: value })];
+  const choice = (key, label, hint) => el("label", { class: "pref" },
+    el("input", { type: "checkbox", checked: state[key] ? true : null,
+                  onchange: (e) => { keep(key, e.target.checked); render(); } }),
+    el("span", null, el("span", { class: "pref__label", text: label }),
+       el("span", { class: "pref__hint", text: hint })));
+  const dialog = el("dialog", { class: "settings", "aria-labelledby": "settings-h",
+                                onclose: () => dialog.remove() },
+    el("div", { class: "settings__head" },
+      el("h2", { id: "settings-h", class: "serif", text: "Settings" }),
+      el("button", { type: "button", class: "icon-btn", "aria-label": "Close settings",
+                     onclick: () => dialog.close() }, icon("close"))),
+    el("section", null,
+      el("h3", { class: "settings__h", text: "Investigator" }),
+      el("p", { class: "muted", text: "Set by the operator when the server was started; " +
+        "every investigation from this page runs with exactly these." }),
+      state.problem ? el("p", { class: "problem", text: "Could not reach the server: " +
+                                                        state.problem })
+        : !l.enabled ? el("p", { text: "Read-only: this server was started without a model, " +
+                                       "so the page shows the archive and starts nothing." })
+        : el("dl", { class: "facts" },
+            fact("Model", String(l.model)),
+            (l.models || []).length > 1 ? fact("Models offered", l.models.join(", ")) : null,
+            l.reasoning_effort ? fact("Reasoning effort", String(l.reasoning_effort)) : null,
+            fact("Provider", l.provider === "openai" ? "Paid, capped" : "Local, nothing spent"),
+            l.max_cost_usd !== undefined ? fact("Cost cap per run",
+                                                "$" + Number(l.max_cost_usd).toFixed(2)) : null,
+            fact("Turns per run", String(l.max_turns)),
+            l.max_tool_calls ? fact("Tool calls per run", String(l.max_tool_calls)) : null,
+            l.max_wall_clock_seconds ? fact("Time per run",
+                                            Math.round(l.max_wall_clock_seconds / 60) + " min")
+              : null)),
+    el("section", null,
+      el("h3", { class: "settings__h", text: "This browser" }),
+      choice("stepsOpen", "Show how ADII investigated, opened",
+             "The steps behind every answer, unfolded instead of folded away."),
+      choice("still", "Keep the mark still",
+             "No motion in the logo. Your system's reduced-motion setting is always honoured.")));
+  document.body.append(dialog);
+  dialog.showModal();
 }
 
-function page(header, main) {
+function topbar(...items) {
+  return el("header", { class: "bar" },
+    state.side ? null : el("button", { type: "button", class: "icon-btn bar__open",
+                                       "aria-label": "Open sidebar", onclick: toggleSide },
+                           icon("panel")),
+    items);
+}
+
+function page(header, main, current) {
   const root = document.getElementById("app");
-  root.replaceChildren(el("div", { class: "app" }, side(),
+  root.replaceChildren(el("div", { class: "app" + (state.side ? " is-side-open" : "") +
+                                          (state.still ? " is-still" : "") },
+    state.side ? side(current) : rail(),
+    state.side ? el("div", { class: "scrim", "aria-hidden": "true", onclick: toggleSide }) : null,
     el("div", { class: "pane" }, header, el("div", { class: "pane__scroll" }, main))));
   // what the fit test reads: the document's width against the viewport's — reading them
   // lays the page out, so the measurement is of what was just drawn
@@ -97,62 +241,96 @@ function go(hash) {
   else location.hash = hash;
 }
 
-/* ── the investigations list ──────────────────────────────────────────────────────── */
+/* ── home: the question, the composer, the samples ─────────────────────────────────── */
 
-function sparkline(rows, width, height) {
-  const c = V.chart(rows, width, height, 6);
-  return svg("svg", { viewBox: `0 0 ${width} ${height}`, class: "spark", "aria-hidden": "true" },
-    svg("polyline", { points: c.points, class: "spark__line" }),
-    svg("circle", { cx: c.last[0].toFixed(1), cy: c.last[1].toFixed(1), r: 4,
-                    class: "spark__dot" }));
-}
-
-function composer(neutral) {
-  const samples = state.incidents.filter((i) => i.sample);
+/* The composer, sized as a chat app's: a box that grows with what is typed, files and the
+ * model at its foot, one round button to send — and the samples beneath, as suggestions. */
+function composer() {
+  const models = state.launch.models || [];
   const ready = state.launch.enabled && (state.pick || (state.desc.trim() && state.files.length));
   const read = (list) => Promise.all([...list].map((file) => file.text().then((text) => (
     { name: file.name, text, size: file.size })))).then((files) => {
     state.files = files; state.pick = null; list.value = ""; render();
   });
-  const input = el("input", { id: "attach", type: "file", accept: ".csv", multiple: true,
-                              class: "visually-hidden",
-                              onchange: (e) => read(e.target.files) });
+  const grow = (box) => { box.style.height = "auto";
+                          box.style.height = Math.min(box.scrollHeight, 240) + "px"; };
+  const text = el("textarea", { id: "composer", rows: 1, class: "composer__text",
+    placeholder: "Describe the number that looks wrong, and attach the CSV files behind it",
+    oninput: (e) => { state.desc = e.target.value; if (state.pick) state.pick = null;
+                      grow(e.target); } }, state.desc);
+  requestAnimationFrame(() => grow(text));
   return el("section", { class: "composer", "aria-label": "New investigation" },
-    el("label", { for: "composer", class: "visually-hidden", text: "What looks wrong?" }),
-    el("textarea", { id: "composer", rows: 2, class: "composer__text",
-                     placeholder: "What looks wrong? For example: daily revenue fell sharply " +
-                                  "on Tuesday.",
-                     oninput: (e) => { state.desc = e.target.value;
-                                       if (state.pick) state.pick = null; } },
-      state.desc),
+    el("label", { for: "composer", class: "visually-hidden", text: "What looks wrong?" }), text,
+    state.files.length || state.pick ? el("div", { class: "composer__files" },
+      state.files.map((f) => el("span", { class: "chip mono" }, f.name,
+        el("span", { class: "chip__size", text: Math.ceil(f.size / 1024) + " KB" }),
+        el("button", { type: "button", class: "chip__x", "aria-label": "Remove " + f.name,
+                       onclick: () => { state.files = state.files.filter((x) => x !== f);
+                                        render(); } }, "×"))),
+      state.pick ? el("span", { class: "chip" }, "Sample incident",
+        el("button", { type: "button", class: "chip__x", "aria-label": "Clear the sample",
+                       onclick: () => { state.pick = null; state.desc = ""; render(); } },
+           "×")) : null) : null,
     el("div", { class: "composer__bar" },
-      el("div", { class: "composer__files" },
-        el("label", { for: "attach", class: "btn btn--quiet" }, "Attach CSV files"), input,
-        state.files.map((f) => el("span", { class: "chip mono" }, f.name,
-          el("span", { class: "chip__size", text: Math.ceil(f.size / 1024) + " KB" }),
-          el("button", { type: "button", class: "chip__x", "aria-label": "Remove " + f.name,
-                         onclick: () => { state.files = state.files.filter((x) => x !== f);
-                                          render(); } }, "×"))),
-        state.pick ? el("span", { class: "chip" }, "Sample incident",
-          el("button", { type: "button", class: "chip__x", "aria-label": "Clear the sample",
-                         onclick: () => { state.pick = null; state.desc = ""; render(); } },
-             "×")) : null),
-      el("button", { type: "button", id: "investigate", class: "btn btn--primary",
-                     "aria-disabled": ready ? "false" : "true", onclick: investigate },
-         "Investigate")),
-    state.note ? el("p", { class: "composer__note", role: "status", text: state.note }) : null,
-    el("p", { class: "composer__pitch", text: "ADII investigates a number that looks wrong in " +
-      "your data and decides whether to fix it, leave it alone, or escalate it. The AI that " +
-      "proposes a fix can’t approve it." }),
-    samples.length && state.runs.length && !neutral
-      ? el("div", { class: "samples" }, el("span", { text: "Try a sample incident:" }),
-          samples.map((s, i) => el("button", { type: "button", class: "pill", title: s.alert,
-            "data-incident": s.incident_id,
-            "aria-pressed": state.pick === s.incident_id ? "true" : "false",
-            onclick: () => pick(s) }, "Sample " + (i + 1))),
-          el("span", { class: "samples__note", text: "The same alert over three different " +
-                                                     "states of the data. Is it broken?" }))
-      : null);
+      el("label", { for: "attach", class: "icon-btn", title: "Attach CSV files" }, icon("clip"),
+         el("span", { class: "visually-hidden", text: "Attach CSV files" })),
+      el("input", { id: "attach", type: "file", accept: ".csv", multiple: true,
+                    class: "visually-hidden", onchange: (e) => read(e.target.files) }),
+      el("span", { class: "composer__spacer" }),
+      state.launch.enabled ? modelMenu(models.length ? models : [state.launch.model]) : null,
+      el("button", { type: "button", id: "investigate", class: "send",
+                     "aria-disabled": ready ? "false" : "true", title: "Investigate",
+                     onclick: investigate }, icon("up"),
+         el("span", { class: "visually-hidden", text: "Investigate" }))),
+    state.note ? el("p", { class: "composer__note", role: "status", text: state.note }) : null);
+}
+
+/* The model button, as chat apps keep it: the model this run will use, and a menu of the
+ * ones the operator offered — the page picks among them and never beyond. Opened and closed
+ * in place, so what the visitor was typing keeps its focus. */
+function modelMenu(models) {
+  const label = el("span", { class: "model__name", text: String(state.model) });
+  const button = el("button", { type: "button", class: "model", "aria-haspopup": "menu",
+    "aria-expanded": "false", title: "Choose the model",
+    onclick: (e) => { e.stopPropagation(); show(menu.hidden); } }, label, icon("down"));
+  const items = models.map((m) => el("button", { type: "button", role: "menuitemradio",
+    class: "model__item", "aria-checked": m === state.model ? "true" : "false",
+    onclick: () => { state.model = m; label.textContent = m;
+                     for (const shown of document.querySelectorAll(".side__model")) {
+                       shown.textContent = m; }
+                     items.forEach((i) => i.setAttribute("aria-checked",
+                       String(i.dataset.model === m)));
+                     show(false); button.focus(); }, "data-model": m },
+    el("span", { class: "model__item-text" }, el("span", { text: m }),
+      m === state.launch.model ? el("span", { class: "model__hint",
+                                              text: "The operator’s default" }) : null),
+    icon("check")));
+  const menu = el("div", { class: "model__menu", role: "menu", "aria-label": "Models" },
+    items, el("p", { class: "model__foot", text: models.length > 1
+      ? "The models offered on this server."
+      : "The only model offered on this server." }));
+  menu.hidden = true;
+  const away = (e) => { if (e.type === "keydown" ? e.key === "Escape" : !menu.contains(e.target))
+    show(false); };
+  const show = (open) => {
+    menu.hidden = !open;
+    button.setAttribute("aria-expanded", String(open));
+    for (const kind of ["click", "keydown"]) {
+      if (open) document.addEventListener(kind, away);
+      else document.removeEventListener(kind, away);
+    }
+    if (open) (items.find((i) => i.getAttribute("aria-checked") === "true") || items[0]).focus();
+  };
+  return el("div", { class: "model-pick" }, button, menu);
+}
+
+function suggestions() {
+  const samples = state.incidents.filter((i) => i.sample);
+  return samples.length ? el("div", { class: "samples", "aria-label": "Sample incidents" },
+    samples.map((s, i) => el("button", { type: "button", class: "pill", title: s.alert,
+      "data-incident": s.incident_id,
+      "aria-pressed": state.pick === s.incident_id ? "true" : "false",
+      onclick: () => pick(s) }, "Sample " + (i + 1)))) : null;
 }
 
 function pick(sample) {
@@ -165,14 +343,15 @@ async function investigate() {
     state.note = "This page is read-only: start it with a model to investigate.";
     return render();
   }
+  const model = state.model || state.launch.model;
   try {
     const started = state.pick
       ? await json("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" },
-                                  body: JSON.stringify({ incident: state.pick }) })
+                                  body: JSON.stringify({ incident: state.pick, model }) })
       : state.desc.trim() && state.files.length
         ? await json("/api/investigations", {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ description: state.desc,
+            body: JSON.stringify({ description: state.desc, model,
                                    files: state.files.map((f) => ({ name: f.name, text: f.text })) }) })
         : null;
     if (!started) {
@@ -187,82 +366,19 @@ async function investigate() {
   }
 }
 
-const TABS = [["all", "All"], ["running", "Running"], ["fix", "Fix it"], ["leave", "Leave it"],
-              ["escalate", "Escalate it"], ["none", "No answer"]];
-
-function glyph(key) {
-  return el("span", { class: "glyph glyph--" + key, "aria-hidden": "true" });
-}
-
-/* A neutral launch view, for a room: what looks wrong and the samples, and no earlier
- * answer anywhere on the screen — a sample's past outcome shown before it runs would give
- * the answer away. The history is one click away, under Investigations. */
-function launch() {
-  const samples = state.incidents.filter((i) => i.sample);
-  page(el("header", { class: "bar" }, el("h1", { class: "serif bar__title", text: "New investigation" })),
-    el("main", { class: "list" }, composer(true),
-      samples.length ? el("section", { class: "empty", "aria-label": "Sample incidents" },
-        el("p", { text: "The same alert over three different states of the data. Is it broken?" }),
-        el("div", { class: "empty__samples" }, samples.map((s, i) =>
-          el("button", { type: "button", class: "sample", "data-incident": s.incident_id,
-                         "aria-pressed": state.pick === s.incident_id ? "true" : "false",
-                         onclick: () => pick(s) },
-            el("span", { class: "tag", text: "Sample " + (i + 1) }),
-            s.series ? sparkline(s.series.rows, 300, 64) : null,
-            el("span", { class: "sample__title", text: s.alert }))))) : null));
-}
-
-function list() {
-  const rows = state.runs.map((r) => V.row(r, Date.now()));
-  const counts = {};
-  rows.forEach((r) => { counts[r.answer] = (counts[r.answer] || 0) + 1; });
-  const shown = rows.filter((r) => (state.filter === "all" || r.answer === state.filter) &&
-    r.title.toLowerCase().includes(state.query.toLowerCase()));
-  const samples = state.incidents.filter((i) => i.sample);
-  const empty = !state.runs.length;
-  const header = el("header", { class: "bar" },
-    el("h1", { class: "serif bar__title", text: "Investigations" }),
-    el("label", { class: "search" }, el("span", { class: "visually-hidden",
-                                                  text: "Search investigations" }),
-      el("input", { type: "search", placeholder: "Search investigations", value: state.query,
-                    oninput: (e) => { state.query = e.target.value; render();
-                                      const again = document.querySelector(".search input");
-                                      again.focus();
-                                      again.setSelectionRange(state.query.length,
-                                                              state.query.length); } })));
-  const main = el("main", { class: "list" }, composer(),
-    empty
-      ? el("section", { class: "empty", "aria-labelledby": "empty-h" },
-          el("h2", { id: "empty-h", class: "serif", text: "No investigations yet" }),
-          el("p", { text: "Describe a number that looks wrong and attach the CSV files behind " +
-                          "it. No data at hand? Start from a sample incident." }),
-          el("div", { class: "empty__samples" }, samples.map((s, i) =>
-            el("button", { type: "button", class: "sample", "data-incident": s.incident_id,
-                           onclick: () => pick(s) },
-              el("span", { class: "tag", text: "Sample " + (i + 1) }),
-              s.series ? sparkline(s.series.rows, 300, 64) : null,
-              el("span", { class: "sample__title", text: s.alert })))))
-      : el("section", { class: "runs", "aria-label": "All investigations" },
-          el("div", { class: "tabs", role: "tablist", "aria-label": "Filter by answer" },
-            TABS.map(([key, label]) => el("button", {
-              type: "button", role: "tab", class: "tab",
-              "aria-selected": state.filter === key ? "true" : "false",
-              onclick: () => { state.filter = key; render(); } },
-              label, el("span", { class: "tab__count",
-                                  text: String(key === "all" ? rows.length : counts[key] || 0) })))),
-          el("div", { class: "runs__head", "aria-hidden": "true" },
-            ["What looks wrong", "Answer", "Change", "Record", "Started"].map((t) =>
-              el("span", { text: t }))),
-          el("ul", { class: "runs__list" }, shown.map((r) => el("li", null,
-            el("a", { class: "run", href: "#r/" + encodeURIComponent(r.label) },
-              el("span", { class: "run__title", text: r.title }),
-              el("span", { class: "answer answer--" + r.answer }, glyph(r.answer), r.answerLabel),
-              el("span", { class: "run__change", text: r.change }),
-              el("span", { class: "run__rec mono", text: r.label }),
-              el("span", { class: "run__when", text: r.when })))))));
-  page(header, main);
-  if (rows.some((r) => r.answer === "running")) {
-    state.timer = setTimeout(() => refresh().then(render), 2000);
+/* Home is the question and nothing else: no earlier answer is anywhere on it, so a room
+ * sees the samples neutral; the history is in the sidebar, titles only. */
+function home() {
+  page(topbar(), el("main", { class: "home" },
+    el("div", { class: "home__hero" },
+      el("div", { class: "home__mark" }, mark("idle", 56)),
+      el("h1", { class: "home__prompt", text: "What looks wrong in your data?" })),
+    composer(), suggestions(),
+    el("p", { class: "home__note", text: "ADII decides whether to fix it, leave it alone, or " +
+      "escalate it. The AI that proposes a fix can’t approve it." })));
+  if (state.runs.some((r) => r.running)) {
+    const gen = state.gen;
+    state.timer = setTimeout(() => refresh().then(() => gen === state.gen && render()), 2000);
   }
 }
 
@@ -274,18 +390,24 @@ function dayLabel(day) {
                                                                   timeZone: "UTC" });
 }
 
-function lineChart(lines, rows, caption) {
+function lineChart(lines, caption) {
   const W = 1200, H = 220, pad = 24;
-  const all = lines.flatMap((l) => l.rows);
-  const top = Math.max(...all.map((r) => Number(r[1]))) * 1.1 || 1;
-  const x = (i, n) => pad + i * ((W - 2 * pad) / Math.max(n - 1, 1));
+  lines = lines.filter((l) => l.rows.length);
+  if (!lines.length) return null;
+  // every point is placed by its day, on the days any line has: a line missing a day is
+  // drawn with a gap in time, never stretched against the other
+  const days = [...new Set(lines.flatMap((l) => l.rows.map((r) => String(r[0]))))].sort();
+  const rows = days.map((d) => [d]);
+  const top = Math.max(...lines.flatMap((l) => l.rows.map((r) => Number(r[1])))) * 1.1 || 1;
+  const step = (W - 2 * pad) / Math.max(days.length - 1, 1);
+  const x = (day) => pad + days.indexOf(String(day)) * step;
   const y = (v) => H - pad - (Number(v) / top) * (H - 2 * pad);
   const drawn = lines.map((l) => {
-    const pts = l.rows.map((r, i) => x(i, l.rows.length).toFixed(1) + "," + y(r[1]).toFixed(1));
+    const pts = l.rows.map((r) => x(r[0]).toFixed(1) + "," + y(r[1]).toFixed(1));
     const last = l.rows[l.rows.length - 1];
     return [svg("polyline", { points: pts.join(" "), class: "line line--" + l.kind }),
-            svg("circle", { cx: x(l.rows.length - 1, l.rows.length).toFixed(1),
-                            cy: y(last[1]).toFixed(1), r: 9, class: "dot dot--" + l.kind })];
+            svg("circle", { cx: x(last[0]).toFixed(1), cy: y(last[1]).toFixed(1), r: 9,
+                            class: "dot dot--" + l.kind })];
   });
   return el("figure", { class: "chart" },
     el("div", { class: "chart__legend" }, lines.map((l) =>
@@ -315,7 +437,7 @@ function symptom(series) {
                  " against the " + (b.rows.length - 1) + " days before" })
                         : null)),
     lineChart([{ kind: "before", label: b.metric + ", as the system read it before " +
-                 "anything was investigated", rows: b.rows }], b.rows,
+                 "anything was investigated", rows: b.rows }],
       "What looked wrong: the alerted number, read from the data when the run began. It " +
       "is the symptom, not evidence."));
 }
@@ -368,24 +490,35 @@ function rebuild(record, series) {
     series.rebuilt && series.before
       ? lineChart([{ kind: "before", label: "Before", rows: series.before.rows },
                    { kind: "rebuilt", label: "The validator's rebuild", rows: series.rebuilt.rows }],
-          series.rebuilt.rows, "A chart that recovers is not yet a repair: the validator's " +
+          "A chart that recovers is not yet a repair: the validator's " +
           "checks below decide.")
       : null,
-    el("ul", { class: "checks" }, lines.map((c) => el("li", { class: c.held ? "is-held" : "is-failed" },
-      el("span", { class: "checks__mark", "aria-hidden": "true", text: c.held ? "✓" : "✕" }),
+    el("ul", { class: "checks" }, lines.map((c) => el("li", {
+      class: c.held === null ? "is-unmarked" : c.held ? "is-held" : "is-failed" },
+      el("span", { class: "checks__mark", "aria-hidden": "true",
+                   text: c.held === null ? "" : c.held ? "✓" : "✕" }),
       el("span", { class: "checks__name mono", text: c.name }),
       el("span", { class: "checks__said", text: c.said })))));
 }
 
-function lookedAt(record) {
-  const all = V.investigated(record);
-  return el("details", { class: "looked" },
-    el("summary", null, "Investigated: ADII looked at " + all.length +
-       (all.length === 1 ? " thing" : " things")),
-    el("ol", null, all.map((i) => el("li", null,
+/* The investigation, turn by turn, folded away like a model's thinking: open for whoever
+ * wants it, and it stays as they left it while a live run redraws. */
+function steps(looked, summary) {
+  return el("details", { class: "looked", open: state.stepsOpen,
+                         ontoggle: (e) => { state.stepsOpen = e.target.open; } },
+    el("summary", null, summary),
+    looked.length ? el("ol", null, looked.map((i) => el("li", null,
       el("span", { class: "looked__title", text: i.title }),
       i.what ? el("span", { class: "mono looked__what", text: i.what }) : null,
-      i.status !== "OK" ? el("span", { class: "looked__status", text: i.status }) : null))));
+      i.status !== "OK" ? el("span", { class: "looked__status", text: i.status }) : null)))
+      : el("p", { class: "muted", text: "Starting: the receipt is written before the first " +
+                                        "request to the model." }));
+}
+
+function lookedAt(record) {
+  const all = V.investigated(record);
+  return steps(all, "How ADII investigated · " + all.length +
+                    (all.length === 1 ? " step" : " steps"));
 }
 
 function slots(record) {
@@ -454,11 +587,8 @@ function copy(text) {
   if (navigator.clipboard) navigator.clipboard.writeText(text);
 }
 
-function crumbs(label) {
-  return el("header", { class: "bar" },
-    el("nav", { class: "crumbs", "aria-label": "Breadcrumb" },
-      el("a", { href: "#", text: "Investigations" }), el("span", { "aria-hidden": "true", text: "/" }),
-      el("span", { class: "mono", text: label })));
+function crumbs(title) {
+  return topbar(el("span", { class: "bar__title", text: title }));
 }
 
 function answer(record, label, fingerprint, receipt) {
@@ -489,7 +619,7 @@ function answer(record, label, fingerprint, receipt) {
         lookedAt(record)),
       el("aside", { class: "aside" }, slots(record), signoff(record),
          recordPanel(record, label, fingerprint, receipt, v))));
-  page(crumbs(label), main);
+  page(crumbs(record.context.alert), main, label);
 }
 
 function running(label, trace) {
@@ -509,44 +639,56 @@ function running(label, trace) {
          el("span", { text: trace.running === false ? "Not running" : "Investigating" }))),
     el("div", { class: "detail__grid" },
       el("div", { class: "detail__main" }, symptom(series),
-        el("section", { class: "checking", "aria-labelledby": "run-h" },
-          el("div", { class: "checking__head" },
-            el("h2", { id: "run-h", class: "serif", text: "Investigating" }),
-            el("span", { role: "status", class: "checking__status",
-                         text: most ? "Turn " + turns + " of " + most : "Turn " + turns })),
-          looked.length ? el("ol", { class: "checking__list" }, looked.map((i) => el("li", null,
-            el("span", { class: "looked__title", text: i.title }),
-            i.what ? el("span", { class: "mono looked__what", text: i.what }) : null,
-            i.status !== "OK" ? el("span", { class: "looked__status", text: i.status }) : null)))
-            : el("p", { class: "muted", text: "Starting: the receipt is written before the " +
-                                              "first request to the model." }))),
+        el("p", { class: "working", role: "status" }, mark("working", 22),
+          "Investigating · " + (most ? "turn " + turns + " of " + most : "turn " + turns)),
+        steps(looked, "Show the investigation as it happens · " + looked.length +
+                      (looked.length === 1 ? " step" : " steps"))),
       el("aside", { class: "aside" }, slots(null))));
-  page(crumbs(label), main);
+  page(crumbs(known ? known.alert : "Your investigation"), main, label);
 }
 
-async function detail(label, waited = 0) {
+function problem(label, text) {
+  page(crumbs(label), el("main", { class: "detail" },
+    el("p", { class: "problem", role: "alert", text })), label);
+}
+
+/* One run. Every await is followed by a check that this screen is still the one on show:
+ * `gen` is the screen's, and a later navigation has moved state.gen on. */
+async function detail(label, gen, waited = 0) {
   const base = "/api/runs/" + encodeURIComponent(label);
+  const current = () => gen === state.gen;
   let trace;
   try {
     trace = await json(base + "/trace");
   } catch (why) {
+    if (!current()) return;
     // a run just started is answered with its label a moment before the runtime reserves
     // its folder: keep asking for a few seconds before calling it unreadable
     if (waited < 10) {
       running(label, { events: [] });
-      state.timer = setTimeout(() => detail(label, waited + 1), 1000);
+      state.timer = setTimeout(() => detail(label, gen, waited + 1), 1000);
       return;
     }
-    return page(crumbs(label), el("main", { class: "detail" },
-      el("p", { class: "problem", role: "alert", text: "This run could not be read: " + why.message })));
+    return problem(label, "This run could not be read: " + why.message);
+  }
+  if (!current()) return;
+  if (!trace.finished && trace.running === false) {
+    return problem(label, "This run did not finish: its trace stopped without a record, so " +
+                          "it has no answer. Nothing was changed.");
   }
   if (!trace.finished) {
     running(label, trace);
-    if (trace.running !== false) state.timer = setTimeout(() => detail(label), 1000);
+    state.timer = setTimeout(() => detail(label, gen), 1000);
     return;
   }
-  const answerText = await (await fetch(base, { cache: "no-store" })).text();
-  const record = JSON.parse(answerText);
+  let answerText, record;
+  try {
+    answerText = await (await fetch(base, { cache: "no-store" })).text();
+    record = JSON.parse(answerText);
+  } catch (why) {
+    return current() && problem(label, "This record could not be read: " + why.message);
+  }
+  if (!current()) return;
   if (!SCHEMAS.includes(record.schema)) {
     return page(crumbs(label), el("main", { class: "detail" }, el("p", { class: "problem",
       role: "alert", text: "This record is in a shape this page does not read: it declares " +
@@ -557,20 +699,26 @@ async function detail(label, waited = 0) {
     ? [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))]
         .map((b) => b.toString(16).padStart(2, "0")).join("")
     : "";
-  answer(record, label, fingerprint, trace.receipt);
+  if (current()) answer(record, label, fingerprint, trace.receipt);
 }
 
 /* ── boot and routing ──────────────────────────────────────────────────────────────── */
 
 async function refresh() {
-  state.runs = await json("/api/runs").catch(() => state.runs);
+  try {
+    state.runs = await json("/api/runs");
+    state.problem = null;
+  } catch (why) {           // the list keeps what it last read, and says it could not reach
+    state.problem = why.message;
+  }
 }
 
 function render() {
   stop();
+  const gen = ++state.gen;
   const hash = decodeURIComponent(location.hash || "");
-  if (hash.startsWith("#r/")) return detail(hash.slice(3));
-  return hash === "#new" ? launch() : list();
+  if (hash.startsWith("#r/")) return detail(hash.slice(3), gen);
+  return home();
 }
 
 async function route() {
@@ -581,9 +729,13 @@ async function route() {
 
 async function boot() {
   document.title = "ADII — Is it broken?";
-  [state.launch, state.incidents] = await Promise.all([
-    json("/api/launch").catch(() => ({ enabled: false })),
-    json("/api/incidents").catch(() => [])]);
+  try {
+    [state.launch, state.incidents] = await Promise.all([json("/api/launch"),
+                                                        json("/api/incidents")]);
+  } catch (why) {           // said, never shown as "read-only"
+    state.problem = why.message;
+  }
+  state.model = state.launch.model;
   window.addEventListener("hashchange", route);
   await route();
 }

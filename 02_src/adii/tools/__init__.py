@@ -14,7 +14,7 @@ from .change_history_tools import (
     change_history_observation,
     load_change_histories,
 )
-from .database import QueryResult, ReadOnlyDatabase, TableSchema
+from .database import ReadOnlyDatabase
 from .declared_schema_tools import (
     DECLARED_SCHEMA_MAP_NAME,
     DECLARED_SCHEMA_SOURCE_DIR,
@@ -30,7 +30,7 @@ from .reconciliation_tools import (
     load_reconciliation_sources,
 )
 from .schemas import Parameter, ToolSpec, validate_arguments
-from .sql_tools import DEFAULT_MAX_ROWS, GET_SCHEMA, RUN_SQL, build_sql_tools
+from .sql_tools import GET_SCHEMA, RUN_SQL, build_sql_tools
 from .transform_tools import TRANSFORM_MAP_NAME, TRANSFORM_SOURCE_DIR, load_transform_sources
 from .walkthrough_world import open_walkthrough_world
 
@@ -45,10 +45,9 @@ EVIDENCE_BUNDLES = (
 )
 
 __all__ = [
-    "DEFAULT_MAX_ROWS", "EVIDENCE_BUNDLES", "GET_SCHEMA", "RUN_SQL", "ChangeHistory",
-    "DeclaredSchema", "Denied", "Parameter", "QueryResult", "ReadOnlyDatabase", "Rejected",
-    "TableSchema", "ToolExecutor", "ToolSpec", "build_sql_tools", "canonical_json",
-    "change_history_observation", "evidence_id", "load_change_histories",
+    "EVIDENCE_BUNDLES", "GET_SCHEMA", "RUN_SQL", "ChangeHistory", "DeclaredSchema", "Denied",
+    "Parameter", "ReadOnlyDatabase", "Rejected", "ToolExecutor", "ToolSpec", "build_sql_tools",
+    "canonical_json", "change_history_observation", "evidence_id", "load_change_histories",
     "load_declared_schemas", "load_notice_sources", "load_reconciliation_sources",
     "load_transform_sources", "open_walkthrough_world", "validate_arguments",
 ]

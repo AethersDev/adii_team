@@ -10,6 +10,8 @@ scores, so the benchmark and the page are two readers of the same records.
 python -m adii.demo                                                     # read-only → http://127.0.0.1:8000
 python -m adii.demo 8000 --provider openai --model gpt-6-sol --reasoning-effort low \
     --max-tokens 4096 --max-cost-usd 0.50 --max-turns 20               # runs from the page, paid, capped
+python -m adii.demo 8000 --provider openai --model gpt-6-sol --models gpt-6-luna gpt-4.1 \
+    --reasoning-effort low --max-tokens 4096 --max-cost-usd 0.50       # …and the page may pick a model
 ```
 
 No install. No dependencies. Standard library only, and nothing fetched from anywhere but
@@ -19,9 +21,23 @@ stage. The previous page is archived whole in `03_assets/archive/front-door-v1/`
 
 ## What it shows
 
-**Investigations** — the composer (*What looks wrong?*, CSV files, Investigate), the three
-sample incidents of the demo company, and every archived run: what looked wrong, the
-answer, what changed, the record and when. An empty workspace opens on the samples.
+**Home** — like a chat app's first screen: the mark alone, the question *What looks wrong
+in your data?*, and one composer — the number in words, a paperclip for CSV files, the model
+button and the send button — with three neutral sample chips beneath. The model button names
+the model the next run will use and opens a menu of the ones the operator offered, the
+default marked; the page picks among them and never beyond. The word ADII lives alone at the
+top of the sidebar, the mark alone on home: each is learnt by itself. **The sidebar** holds past investigations the
+way a chat app holds past conversations — titles and times, never answers, so it can stay
+open in a room — and closes to a rail of its three actions (open, new, settings); on a
+phone it slides over the page. **Settings**, at its foot, shows what the operator started
+the server with — model, effort, cost cap, turns, tool calls, time — read-only, and two
+choices kept in this browser: open the investigation's steps by default, and keep the mark
+still.
+
+**The mark, alive.** The identity's symbol, drawn from its own geometry and unchanged in
+shape: at rest its unfilled slot breathes, slowly — evidence not yet in; while ADII
+investigates, the three slots rise in turn; with an answer it is still. The system's
+reduced-motion setting always stops it, as does *Keep the mark still*.
 
 **One investigation**, in the order a stranger needs it:
 
@@ -38,7 +54,8 @@ answer, what changed, the record and when. An empty workspace opens on the sampl
    **Independent rebuild** — the validator's reading of its own rebuild
    (`ValidationResult.rebuilt_series`) beside the symptom, with each check it ran. A chart
    that recovers is not yet a repair: the checks decide.
-5. **Investigated** — everything the run looked at, cited or not, one disclosure down.
+5. **How ADII investigated** — every step the run took, cited or not, folded away like a
+   model's thinking; open it to read it, including while a run is live.
 6. **Answer, Sign-off, Record** beside it: the three answer slots; who proposed, who
    permitted, who checked; the record's id, its sha256, the receipt, the model and the spend.
 
@@ -70,8 +87,10 @@ Locally the browser tests skip without Chrome; on CI they must run.
 
 - **Not an authority.** It decides no answer, admits no change and executes nothing.
 - **Not a place to raise what a run may cost.** It starts runs only within what the
-  operator set at the terminal — provider, model, cap, turns, effort — with the credential
-  in the server's environment, never in the page's hands.
+  operator set at the terminal — provider, cap, turns, effort, and the models it may pick
+  among (`--model`, plus `--models`, each priced and checked as the first is) — with the
+  credential in the server's environment, never in the page's hands. An effort reaches only
+  a reasoning model; gpt-4.1 runs with a temperature.
 - **Not the implementation.** Nothing in `02_src/adii/` may import it.
 
 ## API
@@ -84,24 +103,21 @@ GET /api/runs              one row per archived run, newest first — the alert,
 GET /api/runs/{label}      the record, verbatim
 GET /api/runs/{label}/trace     the live trace of a run in progress, whether it finished, and
                            whether its receipt was written
-GET /api/runs/{label}/evaluation   the evaluation authority's report, verbatim, once scored
-GET /api/incidents         the incidents a run can be started on; the demo company's are
-                           samples, each with its alerted series
-GET /api/launch            whether runs may be started from the page, and against what
-POST /api/runs             start a run on an incident the archive knows — only when the
-                           server was started with --model (403), on an incident it knows
-                           (400), one at a time (409); {incident, model?, max_turns?,
-                           max_cost_usd?}
+GET /api/incidents         the incidents the page may name; the demo company's are samples
+GET /api/launch            whether runs may be started from the page, and the server's settings
+POST /api/runs             start a run on a sample or the walkthrough — never a benchmark or
+                           held-out case — only when the server was started with --model
+                           (403), one at a time (409); {incident, model?} — a model the
+                           operator did not offer is 400; nothing else is read
 POST /api/investigations   start a run on the visitor's own incident: {description, files:
-                           [{name, text}], …} — the description is the alert, each CSV a
-                           table (tools/user_world.py); the body is limited to 12 MB
-POST /api/runs/{label}/feedback   record an operator's feedback beside the record
+                           [{name, text}], model?} — the description is the alert, each CSV a table
+                           (tools/user_world.py); the body is limited to 12 MB
 ```
 
-Every write takes a JSON object declared as `application/json` and answers 400 to anything
-else. Every response carries `ADII-Code`, the newest change to the page's files; a tab whose
-script is older reloads itself once. Routes are the URL hash: `#` the investigations,
-`#r/<label>` one run.
+Every write takes a strict JSON object declared as `application/json` and answers 400 to
+anything else, NaN and Infinity included. Every response carries `ADII-Code`, the newest
+change to the page's files; a tab whose script is older reloads itself once. Routes are the
+URL hash: `#` home, `#r/<label>` one investigation.
 
 ## Verify
 

@@ -5,22 +5,22 @@ archive's — against the provider the operator configured.
     python -m adii.demo                                  # read-only: the archive, nothing else
     python -m adii.demo 8000 --endpoint http://127.0.0.1:8090/v1 \\
         --model Qwen3-4B-Instruct-2507-4bit --served-as default_model    # and live runs
-    python -m adii.demo 8000 --provider openai --model gpt-4.1 \\
-        --max-cost-usd 0.25 --max-turns 20         # paid runs; OPENAI_API_KEY in this process
+    python -m adii.demo 8000 --provider openai --model gpt-6-sol --reasoning-effort low \\
+        --max-tokens 4096 --max-cost-usd 0.50 --max-turns 20   # paid; OPENAI_API_KEY here
                                                   # (+ --max-tool-calls, --max-model-requests,
                                                   #  --max-wall-clock-seconds: every runtime bound)
 
 Read-only by default: it lists `01_data/runs/<label>/record.json`, serves each record
 verbatim, and serves the static page. A page that can start a run can spend money and
 create a first exposure, so launching exists only when the person at the terminal
-configured a model. The browser chooses the incident and, within the flags the server was
-started with, a priced model, a cap and a turn budget — requests the server checks and
-refuses when they exceed its own, never clamps; provider, endpoint and credential are the
-server's alone. Every run is forwarded to the same `python -m adii.runtime` entry point
-the command line uses. A paid provider is reachable
-only when the operator said so at startup, with the credential already in this process's
-environment and checked before the port was bound; it goes from there to the wire and to
-nothing the page can read — the runtime's paid path owns that, and its tests hold it.
+configured a model. The browser chooses what to investigate — one of the demo company's
+samples, the walkthrough, or the visitor's own files — and nothing else: every run runs
+under the flags the server was started with, and model, bounds, provider, endpoint and
+credential are the server's alone. Every run is forwarded to the same `python -m
+adii.runtime` entry point the command line uses. A paid provider is reachable only when the
+operator said so at startup, with the credential already in this process's environment and
+checked before the port was bound; it goes from there to the wire and to nothing the page
+can read — the runtime's paid path owns that, and its tests hold it.
 
 Standard library only: the team repository has zero dependencies and this must not be the
 thing that adds one. A launched run executes inside the request that started it, in the
@@ -44,7 +44,6 @@ from ..examples.specimens import SPECIMENS
 from ..examples.walkthrough import load as load_walkthrough
 from ..reporting.ledger import PRICES
 from ..reporting.record import ARCHIVE, LABEL, REPO, read_record
-from ..runtime.__main__ import alerted_series
 from ..runtime.__main__ import main as run_main
 from ..tools import ReadOnlyDatabase
 from ..tools.user_world import LIMITS, world_from_files
@@ -63,38 +62,27 @@ STALE_AFTER_S = 180
 RUNNING = threading.Lock()
 
 
-def models() -> list[str]:
-    """The models a run may be asked for: on the paid path every priced one — the price
-    table is the allow-list, and the cap bounds the spend whichever is chosen; on a local
-    endpoint only the one the operator named, since the page cannot know what it serves."""
-    if LAUNCH.get("provider") == "openai" and not LAUNCH.get("reasoning_effort"):
-        return sorted(PRICES)
-    return [str(LAUNCH["model"])]     # a reasoning effort is the operator's model's setting
+def chosen_model(body: dict) -> str:
+    """The model the page picked, one the operator offered when starting the server — or the
+    server's own when none was picked. ValueError names the refusal; nothing is substituted."""
+    model = body.get("model", LAUNCH["model"])
+    offered = LAUNCH.get("models", [LAUNCH["model"]])
+    if model not in offered:
+        raise ValueError(f"model must be one the operator offered: {', '.join(offered)}")
+    return model
 
 
-def requested(body: dict) -> dict[str, object]:
-    """The run settings the page asked for, each checked against the operator's — requests,
-    not authority: a model the server offers, a turn budget and a cap at most the server's
-    own. Absent, the server's. ValueError names the refusal; nothing is clamped, so a run
-    that exists ran exactly what was asked."""
-    model, turns = body.get("model", LAUNCH["model"]), body.get("max_turns", LAUNCH["max_turns"])
-    if model not in models():
-        raise ValueError(f"model must be one of {', '.join(models())}")
-    if not (isinstance(turns, int) and not isinstance(turns, bool)
-            and 1 <= turns <= int(LAUNCH["max_turns"])):
-        raise ValueError(f"max_turns must be a whole number from 1 to {LAUNCH['max_turns']}")
-    chosen: dict[str, object] = {"model": model, "max_turns": turns}
-    if LAUNCH.get("provider") == "openai":
-        ceiling = float(LAUNCH["max_cost_usd"])
-        cost = body.get("max_cost_usd", ceiling)
-        # the ceiling is finite (checked at startup), so inf and nan both fail this
-        if not (isinstance(cost, (int, float)) and not isinstance(cost, bool)
-                and 0 < cost <= ceiling):
-            raise ValueError(f"max_cost_usd must be above zero and at most {ceiling}")
-        chosen["max_cost_usd"] = cost
-    elif "max_cost_usd" in body:
-        raise ValueError("max_cost_usd applies to a paid provider only; nothing is spent here")
-    return chosen
+def run_settings(model: str) -> dict[str, object]:
+    """The runtime's flags for one run: the operator's, with the picked model; a reasoning
+    effort only where that model is a reasoning one, a temperature everywhere else."""
+    settings = {k: v for k, v in LAUNCH.items() if k != "models"} | {"model": model}
+    if model in PRICES and not PRICES[model].reasoning:
+        settings.pop("reasoning_effort", None)
+    return settings
+
+
+def _not_json(constant: str) -> object:
+    raise ValueError(f"{constant} is not JSON")       # NaN and Infinity: no strict reader's
 
 
 # An incident the visitor brings: what looks wrong, in their words, over their own files.
@@ -127,18 +115,20 @@ def brought(body: dict) -> tuple[dict, str]:
 
 # the samples the page offers a first visitor: the company generated for the stage
 SAMPLES = tuple(incident_id(DEMO, state) for state in DEMO_STATES)
+# what the page may start: the samples and the walkthrough — never a benchmark or held-out
+# incident, whose first run is the final pack's (decision E)
+STARTABLE = frozenset({*SAMPLES, load_walkthrough()[0].incident_id})
 
 
 def incidents() -> list[dict[str, object]]:
     """Every incident a run can be started on: the walkthrough's, the development packages'
-    and the specimens'. A sample carries its alerted series, read from its world the way
-    the runtime reads it, so the page can draw what looks wrong before anything runs."""
+    and the specimens'."""
     context, _ = load_walkthrough()
     packages = [json.loads((p / "incident.json").read_text(encoding="utf-8"))
                 for p in sorted(INCIDENTS.glob("*")) if (p / "incident.json").is_file()]
     return [{"incident_id": context.incident_id, "alert": context.alert},
             *({"incident_id": p["incident_id"], "alert": p["alert"],
-               **({"sample": True, "series": alerted_series(INCIDENTS / p["incident_id"])}
+               **({"sample": True}
                   if p["incident_id"] in SAMPLES else {})} for p in packages),
             *({"incident_id": s.context.incident_id, "alert": s.context.alert}
               for s in SPECIMENS)]
@@ -166,7 +156,6 @@ def index(root: Path) -> list[dict]:
             continue
         rows.append({
             "label": label,
-            "evaluation": evaluation_of(folder),
             "incident_id": record.context.incident_id,
             "alert": record.context.alert,
             "changed": sorted(record.decision.patch) if record.decision else [],
@@ -181,20 +170,11 @@ def index(root: Path) -> list[dict]:
             "api_cost_usd": record.api_cost_usd,
             "written_at": record.provenance.get("written_at"),
         })
-    rows.sort(key=lambda row: row.get("written_at") or "~", reverse=True)   # running first
+    # running first, then newest first; a run whose time cannot be read goes last, never
+    # claimed as just now
+    rows.sort(key=lambda row: "~" if row.get("running") else row.get("written_at") or "",
+              reverse=True)
     return rows
-
-
-def evaluation_of(folder: Path) -> str | None:
-    """The category the evaluation authority scored this run, when it has; a report this
-    reader cannot parse is said to be unreadable rather than dropped."""
-    path = folder / "evaluation_report.json"
-    if not path.is_file():
-        return None
-    try:
-        return str(json.loads(path.read_text(encoding="utf-8")).get("category"))
-    except ValueError:                        # not JSON: custody's finding, listed as such
-        return "unreadable"
 
 
 def running(folder: Path) -> bool:
@@ -217,35 +197,6 @@ def unfinished(folder: Path) -> dict:
                else "a receipt was written, but no record" if receipt.is_file()
                else "the label was reserved but no record was written")
     return {"running": False, "error": f"{how_far}; the run did not finish"}
-
-
-FEEDBACK_LIMITS = {"useful": ("yes", "partly", "no"), "expected": 2000, "by": 80}
-
-
-def feedback_of(folder: Path) -> list[dict]:
-    """Every piece of feedback left on a run, oldest first, as recorded."""
-    path = folder / "feedback.jsonl"
-    if not path.is_file():
-        return []
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
-
-
-def record_feedback(folder: Path, body: dict) -> dict:
-    """Append one operator's feedback beside the record: attributed, bounded, verbatim.
-    Raises ValueError with the reason when the body is not feedback this archive keeps."""
-    useful, expected, by = body.get("useful"), body.get("expected", ""), body.get("by", "")
-    if useful not in FEEDBACK_LIMITS["useful"]:
-        raise ValueError("useful must be one of yes, partly, no")
-    if not isinstance(expected, str) or not isinstance(by, str):
-        raise ValueError("expected and by must be text")
-    if len(expected) > FEEDBACK_LIMITS["expected"] or len(by) > FEEDBACK_LIMITS["by"]:
-        raise ValueError("expected is limited to 2000 characters and by to 80")
-    entry = {"schema": "adii.feedback/v1", "useful": useful, "expected": expected.strip(),
-             "by": by.strip() or "an operator",
-             "written_at": datetime.now(UTC).isoformat(timespec="seconds")}
-    with (folder / "feedback.jsonl").open("a", encoding="utf-8", newline="\n") as sink:
-        sink.write(json.dumps(entry, allow_nan=False) + "\n")
-    return entry
 
 
 def live_trace(folder: Path) -> dict:
@@ -289,8 +240,7 @@ class Handler(SimpleHTTPRequestHandler):
         if parts == ["api", "incidents"]:
             return self.send_json(incidents())
         if parts == ["api", "launch"]:
-            return self.send_json({"enabled": bool(LAUNCH), **LAUNCH,
-                                   **({"models": models()} if LAUNCH else {})})
+            return self.send_json({"enabled": bool(LAUNCH), **LAUNCH})
         if parts[:2] == ["api", "runs"] and len(parts) in (3, 4):
             label = parts[2]
             # LABEL first: a label that is not one path segment never reaches the filesystem,
@@ -299,11 +249,6 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.send_json({"error": f"no run {label!r}"}, 404)
             if len(parts) == 4 and parts[3] == "trace":
                 return self.send_json(live_trace(ARCHIVE / label))
-            if len(parts) == 4 and parts[3] == "feedback":
-                return self.send_json(feedback_of(ARCHIVE / label))
-            report = ARCHIVE / label / "evaluation_report.json"
-            if len(parts) == 4 and parts[3] == "evaluation" and report.is_file():
-                return self.send(report.read_bytes())   # verbatim, as the authority wrote it
             record = ARCHIVE / label / "record.json"
             if len(parts) == 3 and record.is_file():
                 return self.send(record.read_bytes())   # verbatim: what was archived is shown
@@ -317,30 +262,20 @@ class Handler(SimpleHTTPRequestHandler):
         if self.headers.get("Content-Type", "").split(";")[0].strip() != "application/json":
             raise ValueError("send a JSON object, as application/json")
         length = int(self.headers.get("Content-Length", 0))
-        if length > limit:
+        if not 0 <= length <= limit:              # a negative length would read to the end
             raise ValueError(f"the body is limited to {limit:,} bytes")
-        parsed = json.loads(self.rfile.read(length) or b"{}")
+        parsed = json.loads(self.rfile.read(length) or b"{}", parse_constant=_not_json)
         if not isinstance(parsed, dict):
             raise ValueError("send a JSON object, as application/json")
         return parsed
 
     def do_POST(self) -> None:  # noqa: N802
-        """Three writes, and only three. Feedback on a run: an operator's words, kept beside
-        the record. Starting a run — on an incident the archive knows, or on the visitor's
-        own over their files: refused unless the operator configured a model when starting
-        the server; the page may ask for a model, a cap and a turn budget within the
-        operator's; the label is answered at once and the run then executes in this
-        request's thread — the runtime's command, the server's flags with the page's
-        requests over them — while the page watches the live trace."""
+        """One write: starting a run — on a sample or the walkthrough, or on the visitor's own
+        incident over their files — refused unless the operator configured a model when
+        starting the server. Held-out and benchmark incidents are never started here: their
+        first run is the final pack's. The label is answered at once and the run executes in
+        this request's thread under the server's own flags, while the page watches."""
         parts = self.route()
-        if len(parts) == 4 and parts[:2] == ["api", "runs"] and parts[3] == "feedback":
-            label = parts[2]
-            if not LABEL.fullmatch(label) or not (ARCHIVE / label / "record.json").is_file():
-                return self.send_json({"error": f"no finished run {label!r}"}, 404)
-            try:
-                return self.send_json(record_feedback(ARCHIVE / label, self.body()))
-            except ValueError as why:          # not JSON, or not feedback this archive keeps
-                return self.send_json({"error": str(why)}, 400)
         if parts not in (["api", "runs"], ["api", "investigations"]):
             return self.send_json({"error": "no such endpoint"}, 404)
         if not LAUNCH:
@@ -350,25 +285,24 @@ class Handler(SimpleHTTPRequestHandler):
             if parts == ["api", "runs"]:                # an incident the archive knows
                 body = self.body()
                 incident = body.get("incident")
-                if not isinstance(incident, str) \
-                        or incident not in {i["incident_id"] for i in incidents()}:
-                    raise ValueError(f"no such incident {incident!r}")
-                return self.launch(incident, requested(body))
+                if not isinstance(incident, str) or incident not in STARTABLE:
+                    raise ValueError(f"{incident!r} is not an incident this page starts: "
+                                     "the samples and the walkthrough only")
+                return self.launch(incident, chosen_model(body))
             body = self.body(limit=BROUGHT["body"])     # the visitor's own, over their files
             incident, world = brought(body)
-            chosen = requested(body)
+            model = chosen_model(body)
         except ValueError as why:            # not JSON, not an incident, or more than allowed
             return self.send_json({"error": str(why)}, 400)
         with tempfile.TemporaryDirectory() as staging:   # gone once the runtime has kept both
             folder = Path(staging)
             (folder / "incident.json").write_text(json.dumps(incident, indent=2), encoding="utf-8")
             (folder / "world.sql").write_text(world, encoding="utf-8")
-            return self.launch(incident["incident_id"], chosen, folder)
+            return self.launch(incident["incident_id"], model, folder)
 
-    def launch(self, incident_id: str, chosen: dict, folder: Path | None = None) -> None:
+    def launch(self, incident_id: str, model: str, folder: Path | None = None) -> None:
         """One run, from the archive's incident or the visitor's folder: the label answered
-        at once, then the runtime's command in this thread with the server's flags and the
-        page's requests over them."""
+        at once, then the runtime's command in this thread with the server's flags."""
         busy = {"error": "a run is in progress; this machine investigates one at a time"}
         if any(row.get("running") for row in index(ARCHIVE)) or not RUNNING.acquire(blocking=False):
             return self.send_json(busy, 409)
@@ -388,7 +322,7 @@ class Handler(SimpleHTTPRequestHandler):
                       "--label", label, "--no-report", "--archive", str(ARCHIVE),
                       "--requested-from", f"the page, within the ceilings the operator set when "
                                           f"starting the server ({ceilings})",
-                      *(flag for key, value in {**LAUNCH, **chosen}.items() if value is not None
+                      *(flag for key, value in run_settings(model).items() if value is not None
                         for flag in (f"--{key.replace('_', '-')}", str(value)))])
         finally:
             RUNNING.release()

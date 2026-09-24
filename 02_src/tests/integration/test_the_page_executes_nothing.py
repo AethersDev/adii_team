@@ -151,10 +151,10 @@ const poll = setInterval(() => {
 </script>"""
 
 EXPECTED = {
-    "": ("Investigations", "Is it broken?", "Attach CSV files", "Fix it", "Leave it"),
-    "new": ("New investigation", "Sample 1", "Sample 2", "Sample 3", "Attach CSV files"),
+    "": ("What looks wrong in your data?", "Attach CSV files", "Sample 1", "Sample 2", "Sample 3"),
+    "new": ("What looks wrong in your data?", "Attach CSV files", "Sample 1"),
     "r/fix": ("Yes. Fix it.", "How ADII knows", "Proposed fix", "Independent rebuild",
-              "Sign-off", "Record", "Investigated: ADII looked at"),
+              "Sign-off", "Record", "How ADII investigated"),
     "r/leave": ("No. Leave it.", "How ADII knows", "No change proposed", "Sign-off"),
     "r/ended": ("The run couldn't finish.", "Nothing was changed.", "The record says"),
 }
@@ -201,7 +201,10 @@ def test_every_screen_fits_the_viewport_at_desktop_and_phone_width(tmp_path, mon
     text = dom[dom.index('<pre id="text">'):]
     for said in EXPECTED[route]:
         assert said in text, f"{said!r} missing from {route or 'the list'} at {width}px"
-    if route == "new":          # a room sees no earlier answer before the live one
+    # the history is a sidebar, open on a desk and closed on a phone until asked for
+    assert (("New investigation" in text) == (width > 900)), "the sidebar's default is wrong"
+    if route in ("", "new"):    # a room sees no earlier answer before the live one,
+                                # the sidebar's history included: titles, never answers
         for answer in ("Fix it", "Leave it", "Escalate it", "No answer"):
             assert answer not in text, f"the launch view shows an earlier {answer!r}"
     assert "could not be read" not in text, "the page rendered an error state"

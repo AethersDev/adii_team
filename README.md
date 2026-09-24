@@ -1,222 +1,138 @@
-# Autonomous Data Incident Investigator (ADII)
+# ADII — Is it broken?
 
-ADII is an agentic AI system that investigates data incidents using controlled tools and
-produces one structured decision:
+A number in your data looks wrong. ADII investigates it and answers one of three things:
 
 ```text
-REPAIR        the defect is real, and here is the bounded intervention
-NO_REPAIR     the world is legitimately like this; change nothing
-ESCALATE      the decision is not this actor's to make, and here is why
+Fix it        REPAIR      the number is wrong, here is why, and here is the change that fixes it
+Leave it      NO_REPAIR   the number is right: the world changed, and nothing should be touched
+Escalate it   ESCALATE    the evidence here cannot settle it; someone with more access should decide
 ```
 
-Any repair it proposes is validated by a **separate authority** — the investigator never
-grades its own work.
+**The AI that proposes a fix can't approve it.** An investigator model looks at the data
+only through a read-only tool layer and submits a decision. A proposed change must then pass
+two authorities it has no part in: an **authorizer** (is this change permitted here?) and an
+independent **validator**, which rebuilds the data from a frozen copy with the change applied
+and checks it against the data's own invariants. Every run writes a receipt before anything
+is spent, a trace as it happens, and a record at the end; the page shows only what the
+record says.
 
-## Quick Start
+**What this is, precisely.** ADII is a complete, locally running reference implementation.
+We engineered and qualified the authority boundaries as if they mattered in production; we
+have not deployed it into a production customer environment. It claims no high availability,
+single sign-on, managed secrets, enterprise connectors, operations or data-residency story.
 
-Six steps. One Python version for everyone: **3.12**. No Docker, no Make, no shell
-scripts — anything that matters runs as `python -m ...`, so it behaves identically on
-Windows and macOS.
+## Quick start
 
-**1. Create the environment**
+Python **3.12**, Windows or macOS. No Docker, no Make, no shell scripts: everything runs as
+`python -m …`.
 
 ```bash
 python3.12 -m venv .venv            # Windows:  py -3.12 -m venv .venv
 source .venv/bin/activate           # Windows:  .\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+python 02_src/scripts/check_env.py  # prints Ready.
+pytest                              # the whole suite
 ```
 
 If PowerShell blocks activation, run once:
-`Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`
+`Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`.
 
-**2. Install requirements**
-
-```bash
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-**3. Configure the API key — only for paid runs**
-
-Nothing below needs one: the scripted path and a local model cost nothing and use no key.
-For a paid run (`--provider openai`), copy `.env.example` to `.env.local` and fill in
-`OPENAI_API_KEY`. `.env.local` is ignored by git; the runtime and the demo read that one
-name from it when the environment does not already have it, and a value the shell set
-always wins. The key travels to the provider as a bearer header and appears in no
-receipt, trace, record or log — a test holds that.
-
-**4. Run the environment check**
+**See one investigation, free.** The scripted path replays a recorded investigation through
+the real runtime, tools and validator — no model, no key, no cost:
 
 ```bash
-python 02_src/scripts/check_env.py
+python -m adii.runtime --incident demo-learning-001 --provider scripted
+python -m adii.demo                                  # → http://127.0.0.1:8000, read-only
+python -m adii.examples.walkthrough --step           # the architecture, one stage at a time
 ```
 
-If it prints `Ready.`, your machine is done. Nobody needs to touch your laptop.
-
-**5. Run one incident, then open the inspector**
+**Investigate from the page** (paid; the key in `.env.local`, copied from `.env.example` —
+it is read from there or the environment and appears in no receipt, trace, record or log):
 
 ```bash
-python -m adii.runtime --incident demo-learning-001 --provider scripted   # investigate, validate, archive, report
-python -m adii.demo                                                     # → http://127.0.0.1:8000
+python -m adii.demo 8000 --provider openai --model gpt-6-sol --reasoning-effort low \
+    --max-tokens 4096 --max-cost-usd 0.50 --max-turns 20
 ```
 
-`scripted` replays the investigator and the validator — no model, no cost — and drives them
-through the real runtime over the real tool layer. Every archived run appears in the inspector:
-the trace, the decision, the verdict, the cost — read-only, unless it was started with a
-model, and then runs can be started and watched from the page. See
-[02_src/adii/runtime/README.md](02_src/adii/runtime/README.md) and
-[02_src/adii/demo/README.md](02_src/adii/demo/README.md).
+Open **New investigation**: describe what looks wrong and attach CSV files, or pick one of
+the three samples — the same alert over three different states of the data. Every run from
+the page is the same `python -m adii.runtime` the evaluation scores, capped at $0.50.
 
-Then the same architecture in one command:
+## How it was evaluated
 
-```bash
-python -m adii.examples.walkthrough --step
-```
+The evaluation is designed and registered before any final run
+([final_plan.md](02_src/docs/final_plan.md), decision E), on synthetic incidents the team
+generated and labelled ([canonical_world.py](02_src/adii/examples/canonical_world.py)):
 
-**6. Run the tests**
+| set | cases | used for |
+|---|---|---|
+| benchmark | 12 — four companies, two per answer and per explicit/implicit tier | three investigators: gpt-6-sol, gpt-6-luna, gpt-4.1 |
+| held-out | 6 — two companies no model had run | the declared configuration, gpt-6-sol, once |
+| controls | the 12 benchmark cases | the same model shown only the alert, and a floor that always escalates |
 
-```bash
-pytest
-```
-
-Then read [02_src/docs/architecture.md](02_src/docs/architecture.md). Demo, walkthrough,
-architecture — in that order.
-
-## Everyday commands
-
-```bash
-pytest                                        # all tests
-python -m ruff check 02_src                   # lint
-python -m adii.examples.walkthrough --step    # the walkthrough, one stage at a time
-python -m adii.runtime --incident demo-learning-001 --provider scripted   # one incident → archive → report
-python 02_src/scripts/check_env.py            # is my machine ready?
-python 02_src/scripts/guard_check.py          # every safety guard demonstrated by a failing test (a few minutes)
-```
+Three questions are answered apart: does the architecture hold across investigators; do
+the tools add information beyond the alert; and what the declared system does on cases
+nobody tuned on — six cases, a demonstration and not a statistic. The evaluated system is
+frozen by digest before the final runs (`python -m adii.evaluation.lock`); nothing in it
+changes because of a result. The results will be in `02_src/docs/evaluation_report.md`,
+written from the run records once the final packs have run.
 
 ## Repository map
 
-The top-level folders are the submission structure, used from day one so there is no
-packaging migration at the deadline.
-
 ```text
-01_data/                     data the system reads. Team-visible, never evaluation-only
-  demo/world/                the operational world the whole team shares
-  runs/                      the archive: one record per run, what the inspector reads
-  walkthrough/               the teaching fixture
+01_data/
+  incidents/     the generated incident packages: worlds and evidence, never answers
+  packs/         each evaluation pack's receipt and report
+  runs/          the archive: one folder per run — receipt, trace, record
+  demo/csv/      sample data to bring to the page as CSV
+  walkthrough/   the teaching incident and its recorded run
 
-02_src/                      the system, its tests, its tools, its technical docs
-  adii/contracts/            the shared vocabulary — read this first
-  adii/investigator/         agent loop, investigation state
-  adii/tools/                tool execution, evidence grounding
-  adii/validation/           the validation boundary
-  adii/evaluation/           scoring and answer keys
-  adii/reporting/            telemetry — traces, artifacts, reports
-  adii/runtime/              one incident end to end — the harness that owns the trace
-  adii/examples/             the walkthrough, and one produced record per ending
-  adii/demo/                 ADII's page over the archive; starts runs only as the operator configured the server
-  tests/contract/            the contracts are pinned here
-  tests/architecture/        the boundaries, as tests that fail the build
-  tests/unit/  integration/  everything else, including the browser check on the inspector
-  scripts/                   check_env.py, sync_briefing.py, sync_status.py, sync_identity.py
-  docs/                      system map, build plan, status, glossary, architecture, the D plan
+02_src/
+  adii/contracts/     the shared vocabulary every package speaks
+  adii/investigator/  the agent loop: the model's messages, refused or accepted
+  adii/tools/         the only door to the data: read-only, bounded, every result cited by id
+  adii/validation/    the validator: rebuild from frozen inputs, check invariants
+  adii/evaluation/    answer keys, scoring, the grid runner, the freeze
+  adii/runtime/       one incident end to end: receipt, trace, record
+  adii/provider/      the only code that speaks to a model: hard cost caps, no redirects
+  adii/reporting/     the record, the ledger, the archive manifest
+  adii/examples/      the incident generator and the walkthrough
+  adii/demo/          the front door: a page over the archive, a starter of runs
+  tests/              the suite: contracts, architecture boundaries, units, integration, browser
+  scripts/            environment check, guard pass, syncs, the submission packager
+  docs/               architecture, system map, the final plan and its decisions, glossary
 
-03_assets/                   diagrams, screenshots, and the identity
-  identity/                  the design system the inspector's stylesheet is synced from
+03_assets/
+  identity/      the logo and design system
+  archive/       the first page, kept whole as provenance
+  diagrams/  screenshots/
 ```
 
-The split between `adii/` and `adii/demo/` is an authority boundary, not housekeeping:
-the demo may be changed freely because it claims nothing, and a test forbids the rest of
-`adii/` from importing it.
+The architecture's three boundaries are tested, not asserted: the investigator reaches the
+data only through the tool layer; the investigator never imports the validator or the
+evaluation; the evaluation is a separate program
+([architecture.md](02_src/docs/architecture.md),
+`02_src/tests/architecture/test_boundaries.py`). Every check that refuses, bounds or
+validates is registered in `02_src/scripts/guard_check.py` and demonstrated by removing it
+and watching a test fail.
 
-## New contributor? Read these five, in this order
-
-| | |
-|---|---|
-| [system_map.md](02_src/docs/system_map.md) | what you are looking at, and where every concept lives in the code |
-| [build_plan.md](02_src/docs/build_plan.md) | the milestones, what each one has to do, and what "done" means |
-| [current_status.md](02_src/docs/current_status.md) | what is actually built right now — **generated**, so it does not go stale |
-| [stack.md](02_src/docs/stack.md) | the backend and the frontend, package by package and file by file: what exists, what is missing, what is blocked on which decision |
-| [glossary.md](02_src/docs/glossary.md) | the words, kept short. Validation and evaluation are not the same thing |
-
-Twenty minutes with those five and the walkthrough should leave you knowing what ADII
-does, what exists, what does not, where each idea lives, what we build next, and how to
-prove your contribution works.
-
-Then take a task, or write one with
-[task_template.md](02_src/docs/task_template.md). Nobody owns a subsystem here, so there
-is no queue to join; [TEAM.md](TEAM.md) says how we work and
-[architecture.md](02_src/docs/architecture.md#your-first-contribution) has the longer
-path in.
-
-**Working with an AI assistant?** Point it at [AGENTS.md](AGENTS.md) — it is
-vendor-neutral, and it tells any assistant the same reading order and the same
-boundaries. "Read AGENTS.md, system_map.md and build_plan.md, then explain the
-investigator package to me as a beginner" is a reasonable first prompt.
-
-## One repository
-
-This is the whole project. Nothing to obtain elsewhere, no second checkout, no path on
-disk that has to exist. If `pytest` passes here, the system works — not "works on the
-machine that has the other repository".
-
-An earlier implementation of ADII proved the architecture feasible, ran a real evaluation,
-and was then audited. It is private and stays private. What crossed into this repository
-is in [02_src/docs/inherited/](02_src/docs/inherited/): requirements, failure modes, and
-one measurement problem. Its code did not cross, and neither did its results — those were
-measured on a different system and stay attached to it.
-
-## What we already know
-
-[02_src/docs/inherited/](02_src/docs/inherited/) carries what a previous implementation of
-ADII cost to learn. Read it before building the component it covers.
+## Read more
 
 | | |
 |---|---|
-| [CONFORMANCE.md](02_src/docs/inherited/CONFORMANCE.md) | 39 requirements plus three X1 sub-items, per capability; its Traceability section maps the fifteen audited defects |
-| [AUTHORITY_LIFECYCLE.md](02_src/docs/inherited/AUTHORITY_LIFECYCLE.md) | boundary 4, and the freeze-ordering mistake that produced it |
-| [CONTROLS.md](02_src/docs/inherited/CONTROLS.md) | how we know investigating beats guessing — and why 18/18 is a problem |
-
-[02_src/docs/DATA_WORLD_v0.md](02_src/docs/DATA_WORLD_v0.md) specifies the operational
-world the incidents come from, why it is synthetic, and who decides changes to it.
-
-Their tests are our requirements. Their implementation is not our implementation.
-
-## Working with coding agents
-
-Agents produce code faster than four people can review it. Three pieces of infrastructure
-keep that from becoming a codebase nobody can defend:
-
-| Piece | What it does |
-|---|---|
-| `CLAUDE.md` / `AGENTS.md` | auto-loaded briefings — both generated from `02_src/docs/agent_briefing.md`, kept identical by a test |
-| `.claude/skills/adii-change/` | the procedure for making a change here: read order, work order, boundaries, per-capability guidance |
-| `02_src/tests/architecture/` | the boundaries as executable tests — they fail the build, not a review comment |
-
-Edit `02_src/docs/agent_briefing.md`, then run `python 02_src/scripts/sync_briefing.py`.
-
-## Contributing
-
-Read [02_src/docs/review_playbook.md](02_src/docs/review_playbook.md) before your first
-PR, [02_src/docs/task_template.md](02_src/docs/task_template.md) before starting a piece
-of work, and [AGENTS.md](AGENTS.md) before pointing a coding agent at this repository.
-The short version: **a perfect generated implementation that nobody can debug is not
-done.**
+| [system_map.md](02_src/docs/system_map.md) | what each package is, and what it must never do |
+| [architecture.md](02_src/docs/architecture.md) | the boundaries, and why they are where they are |
+| [final_plan.md](02_src/docs/final_plan.md) | the final phases and every decision, with its reason |
+| [glossary.md](02_src/docs/glossary.md) | the words; validation and evaluation are not the same thing |
+| [inherited/](02_src/docs/inherited/) | requirements learned from an earlier, private implementation; its code and results did not cross |
 
 ## Submission packaging
 
-The final deliverable is `ADII_Group05_Code_v1.zip`, containing this repository's
-contents under a single `ADII_Group05_Code_v1/` folder. The structure above is already
-that structure, so packaging is a copy and a zip — not a migration.
-
-Kept in GitHub, excluded from the ZIP, because they coordinate development rather than
-deliver the system:
-
-```text
-.github/          CI, CODEOWNERS, PR template
-.claude/          agent skill definitions
-CLAUDE.md         auto-loaded agent briefing
-AGENTS.md         auto-loaded agent briefing
-TEAM.md           how the team works
-```
-
-Everything required to install, run, test and understand the project stays in the ZIP:
-`01_data/`, `02_src/`, `03_assets/`, `requirements.txt`, `README.md`.
+The deliverable is `ADII_Group05_Code_v1.zip`, one `ADII_Group05_Code_v1/` folder inside,
+built from a tagged commit by `python 02_src/scripts/package_submission.py --ref <tag>
+--packs <the final packs>` and qualified by extracting it on clean Windows and macOS machines.
+It holds `01_data/`, `02_src/`, `03_assets/`, `README.md`, `requirements.txt`,
+`pyproject.toml`, the final packs' run folders, and `SUBMISSION.json` listing every file by
+sha256. The team's working files stay in GitHub and out of the ZIP (`export-ignore` in
+`.gitattributes`): `.github/`, `.claude/`, `CLAUDE.md`, `AGENTS.md`, `TEAM.md`.

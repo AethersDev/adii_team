@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 32" width="80" height="32" role="img" aria-labelledby="adii-wordmark-title" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4">
+  <title id="adii-wordmark-title">ADII</title>
+  <path d="M4 26 L13 6 H17 L26 26"/>
+  <path d="M9.4 14 H20.6"/>
+  <path d="M36 4 V28"/>
+  <path d="M36 6 H46 A10 10 0 0 1 46 26 H36"/>
+  <path d="M65 4 V28"/>
+  <path d="M76 4 V28"/>
+</svg>

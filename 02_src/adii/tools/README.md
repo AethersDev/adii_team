@@ -83,9 +83,8 @@ SQLite; no declaration is inferred. The optional package is closed, symlink-free
 validated before execution. Original source bytes and the parsed model-visible mapping
 have separate receipt identities.
 
-To run against a real database file, `ReadOnlyDatabase.from_file(path)` — the path is
-configuration the runtime holds, never something a tool accepts. To run over an
-operator's own CSV files, `user_world.world_from_files([(name, text), …])` gives the
+Every world is built in memory from a script, so no file path exists for a tool to accept.
+To run over an operator's own CSV files, `user_world.world_from_files([(name, text), …])` gives the
 build script for `in_memory`: one table per file named after it, every column typed from
 its values (INTEGER, REAL, else TEXT; a blank cell is NULL) and never altered by the typing
 — a leading zero, a non-ASCII numeral, an integer past 64 bits or a number past a float's

@@ -164,3 +164,45 @@ def test_a_row_of_the_list_is_the_indexs_facts():
     assert view("row", {"label": "y", "running": True}, now)["answer"] == "running"
     assert view("row", {"label": "z", "termination": "model_failure", "changed": []},
                 now)["answer"] == "none"
+
+
+def test_an_older_record_is_read_for_what_it_holds_never_as_a_rejection(runs):
+    """The audit of 24 Sep: a record written before the authorization fact existed, or before
+    any validator ran, was shown as "the independent rebuild rejected it". It says what it
+    holds instead."""
+    before = {**runs["fix"], "authorization": None}
+    said = view("verdict", before)
+    assert said["headline"] == "A fix was proposed. It was not approved."
+    assert "predates the authorization check" in said["lead"]
+    assert {s["who"]: s["status"] for s in view("signoff", before)}["Authorizer"] == "Not recorded"
+    unchecked = {**runs["fix"], "validation": {"accepted": False, "report": "not checked",
+                                               "checks_run": [], "reason_code": None}}
+    assert view("verdict", unchecked)["lead"].startswith("No validator checked it.")
+    assert {s["who"]: s["status"] for s in view("signoff", unchecked)}["Validator"] == \
+        "Not checked"
+
+
+def test_a_check_is_marked_only_where_the_validator_stated_it(runs):
+    prose = {**runs["rejected"], "validation": {**runs["rejected"]["validation"],
+                                                "report": "Rejected: totals drift; see log"}}
+    assert view("checks", prose) == [{"name": "report", "said": "Rejected: totals drift; see log",
+                                      "held": None}]
+    marked = view("checks", runs["rejected"])
+    assert marked[0]["name"] == "rebuild" and marked[0]["held"] is True
+    assert [c["held"] for c in marked[1:]].count(False) >= 1
+
+
+def test_spend_is_a_lower_bound_that_counts_what_was_never_priced(runs):
+    paid = {**runs["leave"], "configuration": {"provider": "openai", "max_cost_usd": 0.5},
+            "counters": {**runs["leave"]["counters"], "api_cost_usd": 0.0123},
+            "trace": [{"kind": "model_requested", "payload": {}},
+                      {"kind": "model_responded", "payload": {"usage": {"prompt_tokens": 5,
+                                                                        "completion_tokens": 2}}},
+                      {"kind": "model_requested", "payload": {}},
+                      {"kind": "model_responded", "payload": {"usage": None}}]}
+    assert view("spend", paid) == "at least $0.0123 of a $0.50 cap; 1 request(s) without usage"
+    assert view("spend", {**runs["leave"], "configuration": {"provider": "fixture"}}) == \
+        "Nothing spent: no model was asked"
+    assert view("row", {"label": "x", "running": False,
+                        "error": "a receipt was written, but no record; the run did not finish"},
+                1)["answerLabel"] == "Did not finish"

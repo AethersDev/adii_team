@@ -21,15 +21,19 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 
-from ..reporting.record import LABEL, REPO, source_revision
+from ..reporting.record import REPO, source_revision
 
 FREEZES = Path(__file__).resolve().parent / "freezes"
 PARTITION = json.loads((Path(__file__).resolve().parent / "catalogue" / "partition.json")
                        .read_text(encoding="utf-8"))
 SCHEMA = "adii.freeze/v1"
+# freeze-YYYY-MM-DD, and -2, -3 … for another version taken the same day: the newest is the
+# latest date and, on one date, the highest number — never the last name in sort order
+NAME = re.compile(r"freeze-(\d{4}-\d{2}-\d{2})(?:-(\d+))?")
 # What the evaluated system is made of: every file under these, and these files.
 TREES = ("02_src/adii", "01_data/incidents")
 FILES = ("requirements.txt", "pyproject.toml")
@@ -74,8 +78,13 @@ def digest(frozen: dict[str, str]) -> str:
     return hashlib.sha256(json.dumps(frozen, sort_keys=True).encode("utf-8")).hexdigest()
 
 
+def order(path: Path) -> tuple[str, int]:
+    date, n = NAME.fullmatch(path.stem).groups()
+    return date, int(n or 1)
+
+
 def newest(root: Path = FREEZES) -> dict | None:
-    found = sorted(root.glob("*.json"))
+    found = sorted((p for p in root.glob("*.json") if NAME.fullmatch(p.stem)), key=order)
     return json.loads(found[-1].read_text(encoding="utf-8")) if found else None
 
 
@@ -101,8 +110,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{freeze['name']}: " + ("the tree matches" if not moved else
               f"{len(moved)} frozen file(s) changed: " + ", ".join(moved[:20])))
         return 1 if moved else 0
-    if not (LABEL.fullmatch(args.name) and args.name.startswith("freeze-")):
-        print("--name is freeze-<date>, one label segment")
+    if not NAME.fullmatch(args.name):
+        print("--name is freeze-YYYY-MM-DD, or freeze-YYYY-MM-DD-2 for another the same day")
         return 2
     path = FREEZES / f"{args.name}.json"
     if path.exists():

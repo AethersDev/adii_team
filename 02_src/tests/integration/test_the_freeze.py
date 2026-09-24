@@ -71,3 +71,13 @@ def test_a_registered_pack_runs_only_on_the_freeze_with_its_frozen_terms(tmp_pat
     assert grid.main([*HELD_OUT, *where]) == 0
     receipt = json.loads((tmp_path / "packs" / "final-held-out.json").read_text("utf-8"))
     assert receipt["freeze"] == {"name": "freeze-test", "digest": "d"}
+
+
+
+def test_the_newest_freeze_is_the_latest_date_never_the_last_name(tmp_path):
+    for name in ("freeze-2026-09-24", "freeze-2026-09-24-2", "freeze-2026-09-30", "notes"):
+        (tmp_path / f"{name}.json").write_text(json.dumps({"name": name}), encoding="utf-8")
+    assert lock.newest(tmp_path)["name"] == "freeze-2026-09-30"
+    (tmp_path / "freeze-2026-09-30.json").unlink()
+    assert lock.newest(tmp_path)["name"] == "freeze-2026-09-24-2"
+    assert lock.main(["--name", "freeze-final"]) == 2          # never a name that sorts wrong

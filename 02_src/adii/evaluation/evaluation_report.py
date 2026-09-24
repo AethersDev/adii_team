@@ -5,18 +5,11 @@ report to show "success, failure, false repair, correct abstention,
 unnecessary escalation and repair rejection... each labelled in its own
 terms." This module is that report's evaluation half, built from C's own
 scoring output — outcome_classification.classify_outcome — applied to a
-real adii.run_record/v1 document (02_src/adii/reporting/record.py).
+real run record document (02_src/adii/reporting/record.py, any version it reads).
 
-Deliberately NOT a change to RunRecord or its schema: RunRecord v1, as it
-exists in the real codebase today, carries no evaluation field at all —
-adding one is a schema change (v1 -> v2) that touches record.py,
-render.py, every archived v1 file, and the inspector, which is a decision
-for whoever owns reporting/, not something this module does unilaterally.
-This module instead reads a RunRecord's JSON as-is and produces a
-SEPARATE document, adii.evaluation_report/v1, meant to sit beside
-record.json in the archive (e.g. evaluation_report.json) until the team
-decides whether and how to fold it into RunRecord itself. Nothing here
-depends on that decision being made any particular way.
+The record carries no evaluation, by design: the evaluation authority is a separate
+program. This module reads a record's JSON as it is and writes a SEPARATE document,
+adii.evaluation_report/v1, beside record.json in the archive (evaluation_report.json).
 
 Only "submitted" runs (RunRecord.termination == "submitted") carry a
 decision to evaluate at all — see TERMINATIONS in record.py. A run that
@@ -33,10 +26,7 @@ from .outcome_classification import classify_outcome
 
 SCHEMA = "adii.evaluation_report/v1"
 
-# Mirrors record.py's own TERMINATIONS — only "submitted" runs carry a
-# decision. Duplicated here rather than imported: this module has no
-# dependency on the adii_team package, by the same separation C2/C3 rest
-# on (evaluation authority lives outside the system it evaluates).
+# A run that did not submit carries no decision to score (record.py, TERMINATIONS).
 NON_SUBMITTED_CATEGORY = "not_evaluable"
 
 

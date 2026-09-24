@@ -348,3 +348,23 @@ def test_the_live_trace_is_strict_json_or_nothing_is_written(tmp_path, value):
     with pytest.raises((TypeError, ValueError)):
         recorder.event("tool_result", {"value": value})
     assert sink.read_text(encoding="utf-8") == ""
+
+
+@pytest.mark.parametrize(("query", "why"), [
+    ("DELETE FROM t", "its query was refused"),
+    ("WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 500) "
+     "SELECT i, i FROM n", "longer than 400 rows"),
+])
+def test_a_declared_series_the_world_cannot_give_whole_is_refused_before_the_run(
+        tmp_path, capsys, query, why):
+    """The audit of 24 Sep: a refused series query was an unnamed exception after the label was
+    claimed, and a series past its bound was cut without a word. Both are the package's
+    defect: refused before anything runs, and the label given back."""
+    folder = brought(tmp_path, {"alert_series.json": json.dumps(
+        {"metric": "m", "unit": "u", "query": query}).encode("utf-8")},
+        world="CREATE TABLE t (x INTEGER); INSERT INTO t VALUES (1);")
+    archive = tmp_path / "archive"
+    assert cli.main(["--incident-dir", str(folder), "--provider", "none", "--arm",
+                     "always-escalate", "--archive", str(archive), "--label", "s"]) == 2
+    assert why in capsys.readouterr().out
+    assert not (archive / "s").exists()

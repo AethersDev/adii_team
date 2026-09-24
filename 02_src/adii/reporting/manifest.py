@@ -43,6 +43,7 @@ EVIDENCE_BUNDLES = (("transform_map.json", "transform_sources"),
                     ("declared_schema_map.json", "declared_schema_sources"))
 RETENTION = {"receipt.json": "evidence", "trace.jsonl": "evidence", "record.json": "evidence",
              "incident.json": "evidence", "world.sql": "evidence",     # an operator's own incident
+             "alert_series.json": "evidence",                          # its declared series
              **{map_name: "evidence" for map_name, _ in EVIDENCE_BUNDLES},   # and its evidence
              "feedback.jsonl": "annotation", "evaluation_report.json": "evaluation"}
 SOURCE_DIRS = frozenset(dir_name for _, dir_name in EVIDENCE_BUNDLES)

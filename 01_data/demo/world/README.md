@@ -2,18 +2,16 @@
 
 **Built 23 September 2026.** The three configurations are incident packages under [`01_data/incidents/`](../../incidents/), written by `python -m adii.examples.canonical_world` and held to it byte for byte, with opaque ids; the data-readiness gate (`02_src/tests/integration/test_incident_packages_are_ready.py`) holds every package to the rules below. This page stays the specification.
 
-It is also the first operational environment the whole team shares: the tool layer
-exposes it, the agent loop investigates it, the evaluation layer knows its truth
-independently, and telemetry renders it. Until it exists, the investigator and the
-validator are scripted from the walkthrough; the tool layer is real, and the runtime
-drives it over the walkthrough's tiny world (`02_src/adii/tools/walkthrough_world.py`), so
-the first integration exists — against the teaching incident only.
+It is the operational environment the whole team shares: the tool layer exposes it, the
+agent loop investigates it, the validator rebuilds it, the evaluation layer knows its truth
+independently, and the front door draws it.
 
 Specification: [DATA_WORLD_v0.md](../../../02_src/docs/DATA_WORLD_v0.md) — *The canonical
 demo world*.
 
 Build the smallest executable operational world in which three configurations of one alert
-(*revenue down 45%*) resolve three different ways, legibly. Same organisation, same
+(*revenue down 45%*; since decision A2 the alert names the orders' fall, the number it
+measured) resolve three different ways, legibly. Same organisation, same
 schema, same alert family, same tool vocabulary; only the causal state differs:
 
 | | expected | delivered | loaded | pipeline | other evidence |

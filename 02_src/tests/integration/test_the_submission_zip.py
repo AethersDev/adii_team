@@ -30,10 +30,13 @@ def a_tar(files: dict[str, bytes]) -> bytes:
 
 def test_the_zip_is_the_tag_and_the_evidence_listed_by_digest_the_same_every_time(tmp_path):
     (tmp_path / "01_data" / "packs").mkdir(parents=True)
-    (tmp_path / "01_data" / "packs" / "p.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "01_data" / "packs" / "p.json").write_text(json.dumps(
+        {"pack": "p", "incidents": ["a"], "arms": ["full"], "repeats": 1}), encoding="utf-8")
     (tmp_path / "01_data" / "packs" / "p.report.md").write_text("# p", encoding="utf-8")
     (tmp_path / "01_data" / "runs" / "p-a-full-r1").mkdir(parents=True)
     (tmp_path / "01_data" / "runs" / "p-a-full-r1" / "record.json").write_text("{}", "utf-8")
+    (tmp_path / "01_data" / "runs" / "p-zzz-not-a-cell").mkdir()     # a prefix, not a cell
+    (tmp_path / "01_data" / "runs" / "p-zzz-not-a-cell" / "record.json").write_text("{}", "utf-8")
     (tmp_path / "01_data" / "runs" / "other-run").mkdir()
     (tmp_path / "01_data" / "runs" / "other-run" / "record.json").write_text("{}", "utf-8")
     committed = {"02_src/adii/x.py": b"print(1)\n", "README.md": b"# ADII\n"}
@@ -41,12 +44,15 @@ def test_the_zip_is_the_tag_and_the_evidence_listed_by_digest_the_same_every_tim
     first = packager.package(files, "freeze-x", ["p"])
     assert first == packager.package(files, "freeze-x", ["p"])          # the same bytes
     with zipfile.ZipFile(io.BytesIO(first)) as zipped:
-        names = zipped.namelist()
-        manifest = json.loads(zipped.read(packager.NAME))
+        names = [n.removeprefix(packager.FOLDER + "/") for n in zipped.namelist()]
+        assert all(n.startswith(packager.FOLDER + "/") for n in zipped.namelist())
+        manifest = json.loads(zipped.read(f"{packager.FOLDER}/{packager.NAME}"))
         assert names[-1] == packager.NAME
         assert "01_data/runs/other-run/record.json" not in names         # only the named packs
+        assert "01_data/runs/p-zzz-not-a-cell/record.json" not in names  # only their cells
         for name in names[:-1]:
-            assert manifest["files"][name] == hashlib.sha256(zipped.read(name)).hexdigest()
+            assert manifest["files"][name] == hashlib.sha256(
+                zipped.read(f"{packager.FOLDER}/{name}")).hexdigest()
     assert set(manifest["files"]) == {"02_src/adii/x.py", "README.md", "01_data/packs/p.json",
                                       "01_data/packs/p.report.md",
                                       "01_data/runs/p-a-full-r1/record.json"}

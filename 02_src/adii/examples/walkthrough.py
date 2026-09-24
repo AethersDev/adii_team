@@ -157,8 +157,9 @@ def main(argv: list[str] | None = None) -> int:
         print("=" * 78)
         print("ADII WALKTHROUGH — demo-learning-001 (a teaching fixture, not a scenario)")
         print("=" * 78)
-        for number, (body, boundary) in enumerate(stages(context, run), start=1):
-            print(f"\n[{number}/9]  {body}\n         ...... {boundary}")
+        steps = stages(context, run)
+        for number, (body, boundary) in enumerate(steps, start=1):
+            print(f"\n[{number}/{len(steps)}]  {body}\n         ...... {boundary}")
             if args.step:
                 try:
                     input("\n         -- Enter to continue --")

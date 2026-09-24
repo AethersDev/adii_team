@@ -20,7 +20,7 @@ record; this one is made up, and says so on every record (`provenance.origin: sp
 
 What is real. Every run goes through the real runtime over the real tool layer, so every
 observation in every record is what the tools actually returned from the specimen's world,
-evidence ids included, and every record is the same `adii.run_record/v1` the runtime writes
+evidence ids included, and every record is the same run record the runtime writes
 for a live run. No mock API, no frontend-only shape.
 """
 from __future__ import annotations

@@ -1,8 +1,8 @@
-"""Step 1, smallest unit: does the reported disposition match the answer key?
+"""Scoring a decision against its frozen answer key.
 
-Nothing else yet. No root cause, no repair, no validation — those are separate
-steps. This function answers exactly one question: REPAIR/NO_REPAIR/ESCALATE,
-right or wrong.
+The disposition first (REPAIR, NO_REPAIR or ESCALATE, right or wrong), then for a repair
+the validator's verdict and the key's reference, routed deterministically where the key
+settles it and to the judge where only a judgement can (decide_route, score_decision).
 """
 from __future__ import annotations
 

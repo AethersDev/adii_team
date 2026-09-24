@@ -83,14 +83,14 @@ built.
 | **2** | The real vertical slice | One command runs incident → investigation → evidence → decision → validation → archived run → readable report. Same commit green on Windows **and** macOS. A scripted provider is fine. |
 | **3** | Real investigator evidence | One unscored smoke, then development runs. Archived: config, model, trace, decision, validation, usage, cost, latency. We can name concrete failure modes. |
 | **4** | The scientific layer | We can answer: *does interactive investigation add measurable value over always-escalate, alert-only, and static evidence?* **"No" is a valid answer.** |
-| **5** | Freeze + blind evaluation | Investigator, config, metrics, validator, and authority all frozen. One-shot blind run. No tuning after seeing outcomes. |
+| **5** | Freeze + held-out evaluation | Investigator, config, metrics, validator, and authority all frozen. One run on held-out cases no model had seen (held-out, not blind: the team wrote their keys). No tuning after seeing outcomes. |
 | **6** | Analysis, report, demo | A report that shows success, failure, false repair, correct abstention, unnecessary escalation, and repair rejection with equal honesty. |
 
 **The critical path is short.** Everything else happens beside it:
 
 ```text
 cross-platform repo → contracts → walkable fixture → tiny agent loop
-  → vertical slice → real model → dev evaluation → freeze → blind → report
+  → vertical slice → real model → dev evaluation → freeze → held-out → report
 ```
 
 If something threatens that line, it gets deprioritised.

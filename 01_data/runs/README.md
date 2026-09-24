@@ -2,7 +2,7 @@
 
 Every run the runtime starts is archived here as `<label>/record.json`, however it ends —
 a submission, a run the loop ended, or a failure of ours: one strict, versioned document per
-run (`adii.run_record/v1`, defined in `02_src/adii/reporting/record.py`). A label reserved
+run (`adii.run_record/v3`, defined in `02_src/adii/reporting/record.py`). A label reserved
 by a run that never finished is listed by the inspector as exactly that. The inspector reads
 this directory and nothing else:
 

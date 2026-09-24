@@ -45,6 +45,7 @@ from .openai_compatible import (
     endpoint_may_carry_a_credential,
     input_tokens_upper_bound,
 )
+from .worker import _OPENER as NO_REDIRECT
 from .worker import error_code as _error_code
 from .worker import transact
 
@@ -90,7 +91,8 @@ def listing(endpoint: str, model: str, credential: str) -> dict[str, object]:
     request = urllib.request.Request(endpoint.rstrip("/") + "/models", method="GET",
                                      headers={"Authorization": f"Bearer {credential}"})
     try:
-        with urllib.request.urlopen(request, timeout=TIMEOUT_S) as response:
+        # the run's own opener: a redirect is refused, never followed with the credential
+        with NO_REDIRECT.open(request, timeout=TIMEOUT_S) as response:
             listed = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as refused:
         return {"credential": "refused", "kind": "http", "status": refused.code,

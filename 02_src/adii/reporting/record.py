@@ -195,7 +195,8 @@ def _patch(patch: object) -> dict[str, str]:
 
 
 def from_json(text: str) -> RunRecord:
-    """Parse one record. Refuses any schema but SCHEMA — a reader that guesses at a shape
+    """Parse one record, of this version or an earlier one read as it declares itself.
+    Refuses any other schema — a reader that guesses at a shape
     it does not know is how an archive drifts from its source without anyone noticing."""
     doc = json.loads(text, parse_constant=_not_json)
     schema = doc.get("schema") if isinstance(doc, dict) else None

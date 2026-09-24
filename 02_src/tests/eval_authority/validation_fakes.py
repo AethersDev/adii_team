@@ -1,19 +1,15 @@
-"""STEP 2 · Wire in the validator.
-
-"A REPAIR only counts if the fix itself is independently accepted, too."
-
-The rule itself already exists as scoring.score_repair_validation — this
-module is STEP 2 made explicit: a named place that owns the fake
-ValidationResult standing in for the real validation/ package, so the
-swap to the real thing later is a one-line change, not a redesign.
-
-Fake now, real later — same principle as judge.py's fake model provider.
-validation/ is someone else's package to build; this module only defines
-the shape score_decision expects from it and a fake that produces it.
+"""Test doubles for the scoring tests: the shape score_decision takes a validator in, a
+stand-in that answers it without rebuilding anything, and an adapter from the real validator
+to that shape. Moved here from evaluation/validation_wiring.py and validation/validator.py
+by the audit of 24 Sep: none of it is the evaluated system — the runtime hands the real
+Validator a REPAIR, and the evaluation scores the record it wrote.
 """
 from __future__ import annotations
 
 from typing import Protocol
+
+from adii.contracts import Disposition, IncidentContext, InvestigationDecision
+from adii.validation.validator import Validator
 
 
 class ValidatorProvider(Protocol):
@@ -70,3 +66,21 @@ def get_validation_for(decision: dict, validator: ValidatorProvider) -> dict | N
     if decision["disposition"] != "REPAIR":
         return None
     return validator(decision)
+
+
+def as_dict_validator(context: IncidentContext):
+    """Adapt `validate()` to the `ValidatorProvider` shape
+    (`decision: dict -> {"accepted", "report", "checks_run", "reason_code"}`), for offline
+    scoring over decisions held as dicts; the runtime path uses `Validator` directly."""
+    def provider(decision: dict) -> dict:
+        real_decision = InvestigationDecision(
+            disposition=Disposition(decision["disposition"]),
+            root_cause_id=decision.get("root_cause_id"),
+            root_cause_summary=decision.get("root_cause_summary", ""),
+            repair_id=decision.get("repair_id"),
+            patch=decision.get("patch") or {},
+        )
+        result = Validator().validate(context, real_decision)
+        return {"accepted": result.accepted, "report": result.report,
+                "checks_run": list(result.checks_run), "reason_code": result.reason_code}
+    return provider

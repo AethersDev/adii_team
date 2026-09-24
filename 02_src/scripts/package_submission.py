@@ -10,8 +10,10 @@ it archived under 01_data/runs — the evidence, which git ignores. A ZIP holdin
 file, or the first characters of the configured OpenAI key anywhere, is refused, naming only
 the files. Inside, SUBMISSION.json
 lists every file with its sha256, the ref and the packs. Timestamps are fixed, so the same
-inputs build the same bytes. Standard library only; it reads the repository and writes
-adii_submission.zip, nothing else.
+inputs build the same bytes. Everything sits under one folder, `ADII_Group05_Code_v1/`, in
+`ADII_Group05_Code_v1.zip` (README, "Submission packaging"); the team's working files are
+left out by `export-ignore` in .gitattributes. Standard library only; it reads the
+repository and writes the ZIP, nothing else.
 """
 from __future__ import annotations
 
@@ -28,12 +30,19 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 EPOCH = (1980, 1, 1, 0, 0, 0)          # the earliest time a ZIP entry can carry
 NAME = "SUBMISSION.json"
+FOLDER = "ADII_Group05_Code_v1"       # the one folder inside, and the ZIP's own name
 
 
 def tree(tar: bytes) -> dict[str, bytes]:
     """The regular files of a `git archive --format=tar` stream, by path."""
     with tarfile.open(fileobj=io.BytesIO(tar)) as archive:
         return {m.name: archive.extractfile(m).read() for m in archive.getmembers() if m.isfile()}
+
+
+def cells(receipt: dict) -> list[str]:
+    """The run labels a pack's receipt promises — the grid's own naming, cell by cell."""
+    return [f"{receipt['pack']}-{incident}-{arm}-r{k}" for incident in receipt["incidents"]
+            for arm in receipt["arms"] for k in range(1, receipt["repeats"] + 1)]
 
 
 def evidence(root: Path, packs: list[str]) -> dict[str, bytes]:
@@ -45,7 +54,8 @@ def evidence(root: Path, packs: list[str]) -> dict[str, bytes]:
             raise ValueError(f"no pack {pack!r}: {receipt.relative_to(root)} is missing")
         for path in sorted((root / "01_data" / "packs").glob(f"{pack}.*")):
             found[path.relative_to(root).as_posix()] = path.read_bytes()
-        for folder in sorted((root / "01_data" / "runs").glob(f"{pack}-*")):
+        for label in cells(json.loads(receipt.read_text(encoding="utf-8"))):
+            folder = root / "01_data" / "runs" / label
             for path in sorted(p for p in folder.rglob("*") if p.is_file()):
                 found[path.relative_to(root).as_posix()] = path.read_bytes()
     return found
@@ -80,7 +90,7 @@ def package(files: dict[str, bytes], ref: str, packs: list[str]) -> bytes:
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zipped:
         for path, data in [*sorted(files.items()),
                            (NAME, (json.dumps(manifest, indent=2) + "\n").encode("utf-8"))]:
-            entry = zipfile.ZipInfo(path, EPOCH)
+            entry = zipfile.ZipInfo(f"{FOLDER}/{path}", EPOCH)
             entry.compress_type = zipfile.ZIP_DEFLATED
             entry.external_attr = 0o644 << 16
             zipped.writestr(entry, data)
@@ -92,7 +102,7 @@ def main(argv: list[str] | None = None) -> int:
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--ref", required=True, help="the tag the ZIP is built from")
     parser.add_argument("--packs", nargs="*", default=[], help="packs whose evidence to include")
-    parser.add_argument("--out", default=str(ROOT / "adii_submission.zip"))
+    parser.add_argument("--out", default=str(ROOT / f"{FOLDER}.zip"))
     args = parser.parse_args(argv)
     try:
         tar = subprocess.run(["git", "archive", "--format=tar", args.ref], cwd=ROOT,

@@ -164,7 +164,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--arms", nargs="+", default=list(runtime.ARMS),
                         choices=list(runtime.ARMS))
     parser.add_argument("--repeats", type=int, default=3)
-    parser.add_argument("--partition", choices=sorted(PARTITION), default="benchmark",
+    # demo is the stage's and superseded is kept only as history: neither is ever a pack
+    parser.add_argument("--partition", choices=("benchmark", "held_out"), default="benchmark",
                         help="the registered set a pack runs (catalogue/partition.json)")
     parser.add_argument("--incidents", nargs="+",
                         help="named incidents instead of a partition: a rehearsal's, never a "
@@ -218,11 +219,12 @@ def main(argv: list[str] | None = None) -> int:
                 return 2
             pack["freeze"] = {"name": freeze["name"], "digest": freeze["digest"]}
         paid = sum(arm != "always-escalate" for _, _, arm, _ in cells(pack))
-        if args.provider == "openai":
+        if args.provider == "openai" or args.judge_model:     # a judge is priced either way
             judged = JUDGE_MAX_COST_USD if args.judge_model else Decimal(0)
-            worst = paid * (Decimal(str(args.max_cost_usd)) + judged)
+            per_run = Decimal(str(args.max_cost_usd)) if args.provider == "openai" else Decimal(0)
+            worst = paid * (per_run + judged)
             if args.pack_cap_usd is None or worst > Decimal(str(args.pack_cap_usd)):
-                print(f"the pack's worst case is {paid} paid runs × (${args.max_cost_usd:.2f}"
+                print(f"the pack's worst case is {paid} paid runs × (${per_run:.2f}"
                       f" + a judge's ${judged:.2f}) = ${worst:.2f}; --pack-cap-usd must be at "
                       "least that, or the pack smaller")
                 return 2

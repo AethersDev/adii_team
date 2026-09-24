@@ -16,7 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "03_assets" / "identity" / "assets" / "logo"
 TARGET = ROOT / "02_src" / "adii" / "demo" / "web" / "logo"
-FILES = ("adii-lockup-horizontal.svg", "adii-symbol.svg", "favicon.svg")
+FILES = ("adii-lockup-horizontal.svg", "adii-symbol.svg", "adii-wordmark.svg", "favicon.svg")
 
 
 def stale() -> list[str]:

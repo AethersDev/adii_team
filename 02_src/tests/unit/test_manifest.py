@@ -139,3 +139,15 @@ def test_an_unknown_manifest_schema_is_refused(archive):
                                 encoding="utf-8")
     with pytest.raises(ValueError, match="unknown manifest schema"):
         verify(archive)
+
+
+def test_a_brought_packages_declared_series_is_evidence_and_verifies(archive):
+    """The audit of 24 Sep: the runtime copies a package's alert_series.json beside the record;
+    the manifest keeps it as evidence, so a run from a brought package verifies."""
+    run = archive / "demo-learning-001"
+    (run / "alert_series.json").write_text('{"metric": "m", "unit": "u", "query": "q"}',
+                                           encoding="utf-8")
+    manifest = json.loads(write_manifest(archive).read_text(encoding="utf-8"))
+    kept = {e["path"]: e["retention"] for e in manifest["entries"]}
+    assert kept["demo-learning-001/alert_series.json"] == "evidence"
+    assert verify(archive).ok

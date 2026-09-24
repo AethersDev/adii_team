@@ -8,9 +8,9 @@ a local model by default, costing nothing; against a paid one when the operator 
 the repository's ignored `.env.local`, read for that one name when the environment lacks it.
 Every precondition of spending is checked here, before a port is bound, and stops the
 process; the page never learns of credentials.
-The flags are each run's default and the ceiling a request from the page may not pass; every
-bound the runtime has is set here, so a run from the page runs under exactly the bounds a
-run from the command line would, and /api/launch reports each of them."""
+The flags are every page-started run's settings — the page chooses what to investigate and
+nothing else — so a run from the page runs under exactly the bounds a run from the command
+line would, and /api/launch reports each of them."""
 from __future__ import annotations
 
 import argparse
@@ -26,8 +26,7 @@ parser.add_argument("--provider", choices=["local", "openai"], default="local",
                          "openai: the paid path, capped per run")
 parser.add_argument("--endpoint", default=None,
                     help="the base URL (default: Ollama's for local, api.openai.com for openai)")
-parser.add_argument("--model", help="allow runs from the page; this model by default — on the "
-                                     "paid path a visitor may pick any priced one")
+parser.add_argument("--model", help="allow runs from the page, every one with this model")
 parser.add_argument("--served-as", metavar="NAME",
                     help="the name the endpoint wants in requests when it differs from --model")
 parser.add_argument("--max-turns", type=int, default=12)
@@ -39,10 +38,14 @@ parser.add_argument("--max-cost-usd", type=float, default=0.25,
                     help="openai: the hard cap one run may not pass, at nominal prices")
 parser.add_argument("--max-tokens", type=int, default=512,
                     help="openai: the most tokens one response may carry")
+parser.add_argument("--models", nargs="+", default=[], metavar="ID",
+                    help="openai: further priced models the page may pick per run, beside --model; "
+                         "a reasoning effort goes only to the reasoning ones")
 parser.add_argument("--reasoning-effort", choices=REASONING_EFFORTS,
-                    help="openai, a reasoning model: sent in place of temperature on every run; "
-                         "the page may then ask for this model only")
+                    help="openai, a reasoning model: sent in place of temperature on every run")
 args = parser.parse_args()
+if args.models and args.provider != "openai":
+    raise SystemExit("--models is the paid path's: a local endpoint serves the one model it has")
 if args.reasoning_effort and args.provider != "openai":
     raise SystemExit("--reasoning-effort is a paid reasoning model's setting: --provider openai")
 launch = None
@@ -65,9 +68,10 @@ if args.model:
             load_env_local()            # the operator's .env.local, when the shell has no key
         except ValueError as why:
             raise SystemExit(str(why)) from None
-        # the page may ask for any priced model, so no wire alias can stand for "the" model
-        why = (refused_paid(args.model, args.max_cost_usd, args.endpoint, args.served_as,
-                            args.max_tokens)
+        # on the paid path the name on the wire is the priced name
+        why = (next(filter(None, (refused_paid(m, args.max_cost_usd, args.endpoint,
+                                               args.served_as, args.max_tokens)
+                                  for m in (args.model, *args.models))), None)
                or (args.served_as and "--served-as is for local endpoints: on the paid path "
                                       "the name on the wire is the priced name, whichever the "
                                       "page asks for"))
@@ -87,4 +91,5 @@ if args.model:
         launch.update(max_cost_usd=args.max_cost_usd, max_tokens=args.max_tokens)
         if args.reasoning_effort:
             launch["reasoning_effort"] = args.reasoning_effort
+        launch["models"] = list(dict.fromkeys([args.model, *args.models]))
 raise SystemExit(main(args.port, launch))

@@ -1,7 +1,5 @@
 """A's loop, driven by the runtime, with a real model behind it.
 
-    SPIKE — see adii/provider. Not merged to main until the D-1 rows resolve.
-
 The runtime calls `investigate(context, tools)`; this class calls A's `run()` with a
 `ChatProvider`, the tools the runtime is already watching, and the runtime's recorder as
 the loop's sink: tool calls and results land in the runtime's trace on the way through,
@@ -65,19 +63,18 @@ class LoopInvestigator:
             decision, _ = run(context, provider, tools, max_turns=self._max_turns,
                               sink=self._recorder)
         except TurnBudgetExceededError as bound:
-            provider.close()
             raise Terminated("bound_hit",
                              f"model_turns: {bound.limit} of {bound.limit} used") from None
         except ProviderFailureError as failed:
             # A wraps whatever the provider raised and chains it; the class is read from the
             # type of the cause, never from the message. The endpoint failing is not the
             # model failing (inherited D14); a spend cap is a bound like any other.
-            provider.close()
             cause = failed.__cause__
             if isinstance(cause, BoundExceeded):
                 raise Terminated("bound_hit", str(cause)) from None
             if isinstance(cause, ProviderFailure):
                 raise Terminated("infrastructure_failure", str(cause)) from None
             raise Terminated("model_failure", failed.reason) from None
-        provider.close()
+        finally:                        # on every ending, the expected ones and any other
+            provider.close()
         return decision

@@ -11,7 +11,7 @@
 
 -e .
 
-# Pinned for the same reason as ruff: the clean-clone path and CI both consume this
+# Pinned for the same reason as ruff: every clean install and the ZIP qualification consume this
 # file, so an open major on the test runner means the same commit can go red tomorrow
 # with nothing in the repository having changed. 9.1.1 is what two clean clones qualified.
 pytest==9.1.1
@@ -20,6 +20,6 @@ pytest==9.1.1
 # Thread-based, so it exists on Windows and interrupts a native wait.
 pytest-timeout==2.4.0
 
-# Pinned, not floated. CI gates on lint, and an unpinned linter turns a new ruff
+# Pinned, not floated. The local gate runs lint, and an unpinned linter turns a new ruff
 # release into a red build nobody caused. Bump it deliberately, in its own PR.
 ruff==0.16.6
