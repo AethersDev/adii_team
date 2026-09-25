@@ -1,4 +1,4 @@
-"""Shared vocabulary. Everything four people agree on, and nothing else."""
+"""Shared vocabulary. Everything the packages agree on, and nothing else."""
 from .core import (
                    Disposition,
                    IncidentContext,

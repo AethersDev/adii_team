@@ -1,4 +1,4 @@
-"""The suite itself, hardened — inherited X4, X2 and D10 as tests.
+"""The suite itself, hardened — requirement X4, X2 and D10 as tests.
 
 Everything that is a test is collected; a hung test fails rather than blocks; every
 third-party import is declared; and nothing we depend on is a name we do not own. Each of
@@ -100,7 +100,7 @@ def test_every_test_file_is_collected_in_a_full_run(request):
 
 
 def test_every_third_party_import_is_declared():
-    """Inherited X2: a module that arrives transitively disappears when a neighbour drops
+    """Requirement X2: a module that arrives transitively disappears when a neighbour drops
     it, and the failure lands in code nobody changed. Imported directly, declared directly."""
     imported: set[str] = set()
     for path in SRC.rglob("*.py"):
@@ -117,7 +117,7 @@ def test_every_third_party_import_is_declared():
 
 
 def test_every_dependency_is_a_name_we_chose_and_pinned():
-    """Inherited D10: metadata that names a package we do not own is resolved from a public
+    """Requirement D10: metadata that names a package we do not own is resolved from a public
     index by whoever installs without the lockfile. Every name is chosen here on purpose and
     pinned in requirements.txt, and nothing that sounds like ours comes from an index."""
     names = declared()
@@ -128,7 +128,7 @@ def test_every_dependency_is_a_name_we_chose_and_pinned():
 
 
 def test_a_hung_test_fails_instead_of_blocking(pytester):
-    """Inherited X4: a per-test timeout, thread-based so it interrupts a native wait and
+    """Requirement X4: a per-test timeout, thread-based so it interrupts a native wait and
     exists on Windows. Run in a subprocess, because that is how the thread method ends a
     hung test — by ending the process, every stack printed."""
     pytester.makepyfile("import time\n\n\ndef test_hangs():\n    time.sleep(30)\n")

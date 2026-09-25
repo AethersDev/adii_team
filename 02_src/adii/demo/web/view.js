@@ -294,7 +294,7 @@ function proposal(record) {
 }
 
 /* What a paid run cost, as the ledger can prove it: a lower bound, with every request whose
- * usage was never reported counted rather than priced at zero (inherited D15). */
+ * usage was never reported counted rather than priced at zero (requirement D15). */
 function spend(record) {
   const c = record.configuration || {};
   if (c.provider === "local") return "Nothing spent: a local model";

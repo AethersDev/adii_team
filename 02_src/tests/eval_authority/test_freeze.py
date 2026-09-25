@@ -1,6 +1,6 @@
 """Tests for freeze.py — C2: answer keys are frozen by hash and never edited.
 
-Mirrors CONFORMANCE.md C2's own test spec verbatim:
+Mirrors requirement C2's own test spec verbatim:
   "a mutated key fails to load; loading verifies the digest rather than
   trusting the filename; a correction produces a new artifact and the old
   one still loads."

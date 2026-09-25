@@ -68,7 +68,7 @@ class LoopInvestigator:
         except ProviderFailureError as failed:
             # A wraps whatever the provider raised and chains it; the class is read from the
             # type of the cause, never from the message. The endpoint failing is not the
-            # model failing (inherited D14); a spend cap is a bound like any other.
+            # model failing (requirement D14); a spend cap is a bound like any other.
             cause = failed.__cause__
             if isinstance(cause, BoundExceeded):
                 raise Terminated("bound_hit", str(cause)) from None

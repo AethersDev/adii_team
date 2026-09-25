@@ -5,7 +5,7 @@ with integer token counts is *proved* usage, priced at the nominal rate pinned h
 that model. A request that got no response, or a response with no usage, is an *unknown*
 row: money may have moved, and nothing here pretends to know how much. The aggregate is
 therefore a lower bound with the count of unknown rows beside it — never a total, and
-never 0.0 for a run whose rows are all unknown (inherited defect D15).
+never 0.0 for a run whose rows are all unknown (requirement D15).
 
 Beside the lower bound, a worst case, for the provider's admission of the next request: the
 proved rows at their price, and an unknown row at the reserve the provider recorded when it
@@ -23,7 +23,7 @@ bills by: the provider's input bound counts bytes, which is conservative for a b
 BPE and for nothing else, so a model priced here with another tokenizer may not run capped.
 
 Usage is read where the trace carries it (`usage` on `model_responded`, matched to
-`model_requested` by turn; docs/trace_event_contract.md).
+`model_requested` by turn).
 """
 from __future__ import annotations
 

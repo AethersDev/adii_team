@@ -6,7 +6,7 @@
         --max-cost-usd 0.50 --pack-cap-usd 60
     python -m adii.evaluation.grid --pack final-1 --report       # the report, from the records
 
-The question it answers (inherited CONTROLS.md): does investigating change what the agent
+The question it answers: does investigating change what the agent
 decides? Three arms on the same incidents, the same model, the same protocol and bounds —
 full (the tool surface), alert-only (no tool: it decides from the alert) and always-escalate
 (no model) — each repeated, every cell a run through the runtime's own entry point, archived

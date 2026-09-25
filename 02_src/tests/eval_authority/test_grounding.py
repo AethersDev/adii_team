@@ -1,7 +1,7 @@
 """Tests for grounding.py — C3: authorities that freeze at different times
 must be different artifacts.
 
-Mirrors CONFORMANCE.md C3's own test spec: "changing one authority does
+Mirrors requirement C3's own test spec: "changing one authority does
 not alter the digest of another; each load path verifies its own
 artifact." Also exercises the six refusal modes AUTHORITY_LIFECYCLE.md
 lists for a bound pair: unfrozen, changed since freezing, wrong filename,

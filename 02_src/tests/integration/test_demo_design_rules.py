@@ -40,7 +40,7 @@ def test_the_mark_is_the_handoffs_byte_for_byte(name):
 
 def test_the_view_layer_never_executes_what_it_renders():
     """The day a live provider runs, every string in a record is model-written, and a page
-    that executes what the model wrote is inherited defect D12. Text nodes cannot execute;
+    that executes what the model wrote is requirement D12. Text nodes cannot execute;
     every name in EXECUTES can."""
     for name in SCRIPTS:
         used = [door for door in EXECUTES if door in code(name)]

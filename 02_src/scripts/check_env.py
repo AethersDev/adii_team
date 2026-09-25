@@ -1,4 +1,4 @@
-"""One command that tells a teammate whether their machine is ready.
+"""One command that tells you whether this machine is ready to run ADII.
 
 Runs on Windows, macOS, and Linux with no shell, no Make, and no assumptions about
 which package manager anyone uses:  python 02_src/scripts/check_env.py

@@ -13,9 +13,7 @@ against an archive that looks like a product rather than one teaching fixture.
 What they are not. The investigator here is a script: it makes its calls and commits its
 decision without reading a result, so nothing about a decision below is a claim that it is
 correct. No model ran. These carry no evaluation claim, are never eligible for blind
-evaluation, and are not the development catalogue proposed in
-docs/development_catalog.md — that one is compiled from private material under a decision
-record; this one is made up, and says so on every record (`provenance.origin: specimen`,
+evaluation. They are made up, and say so on every record (`provenance.origin: specimen`,
 `configuration.model: null`).
 
 What is real. Every run goes through the real runtime over the real tool layer, so every

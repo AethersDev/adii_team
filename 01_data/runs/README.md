@@ -1,57 +1,22 @@
 # 01_data/runs — the run archive
 
-Every run the runtime starts is archived here as `<label>/record.json`, however it ends —
-a submission, a run the loop ended, or a failure of ours: one strict, versioned document per
-run (`adii.run_record/v3`, defined in `02_src/adii/reporting/record.py`). A label reserved
-by a run that never finished is listed by the inspector as exactly that. The inspector reads
-this directory and nothing else:
+Every run is archived here as one folder, however it ended:
 
-```bash
-python -m adii.demo                        # http://127.0.0.1:8000
+```text
+<label>/receipt.json   written and flushed before the first model request: the incident and
+                       data by digest, the configuration, the reason the spend is permitted
+<label>/trace.jsonl    every event, in order, as the runtime recorded it
+<label>/record.json    the record: one strict, versioned document (adii.run_record/v3)
 ```
 
-Payloads are ignored by git — they are machine-produced and can be large — but ignoring is
-not preserving. Three mechanisms, kept apart:
+A label names one run forever; a taken label is refused, never overwritten. A run that
+stopped without writing a record is listed by the page as exactly that.
 
 ```bash
-python -m adii.reporting.manifest                   # attest: MANIFEST.json — path, size, digest, retention
-python -m adii.reporting.manifest --verify          # hold the archive to its manifest, from the manifest alone
-python -m adii.reporting.manifest --preserve DEST   # manifest first, then the copy, then the copy verified
+python -m adii.demo                        # the page over this archive: http://127.0.0.1:8000
 ```
 
-`MANIFEST.json` is tracked; commit it when the runs it lists are worth attesting — the
-first paid run, say. The original is never deleted on the strength of an unverified copy.
-
-Every run folder also holds `receipt.json`, written and flushed after the label was
-reserved and before the investigator ran: the incident and world by digest, the
-configuration, the source revision, and the reason the spend is permitted; and
-`trace.jsonl`, every event as the runtime recorded it. A folder that has written nothing
-for three minutes and has no record is a run that did not finish, and the inspector says
-so. A person may leave `feedback.jsonl` beside a finished run, from the inspector.
-
-What is kept, by name: `receipt.json`, `trace.jsonl` and `record.json` are **evidence** —
-what the run left of itself — and so are `incident.json` and `world.sql` when the operator
-brought the incident (`python -m adii.runtime --incident-dir DIR`, or the page's own
-form): what the investigator was told and the world behind the tools, byte for byte — and
-so are the incident's evidence bundles when it carried any: each map file
-(`transform_map.json`, `notice_map.json`, `change_history_map.json`,
-`reconciliation_map.json`, `declared_schema_map.json`) and every file under its
-`*_sources/` folder, the run's own copy, the one it was loaded from;
-`feedback.jsonl` is an **annotation** — what someone said about it afterwards;
-`evaluation_report.json` is an **evaluation** — what the authority said against a key the
-run never saw (`python -m adii.evaluation --run <label> --key PATH`). The manifest attests
-and preservation copies all of these, each in its class; a file under any other name or
-folder in a run folder is listed by verification, not archived.
-
-To produce a run:
-
-```bash
-python -m adii.runtime --incident demo-learning-001 --provider scripted
-```
-
-`python -m adii.examples.walkthrough --archive` archives the same run assembled by hand
-rather than produced by the runtime. The two agree on every status, the decision and the
-verdict, and a test says they do; they are not byte-identical, because the runtime's record
-carries what the real tool layer returned, evidence ids included.
-
-A label names one run forever. Archiving under a taken label is refused, never overwritten.
+In this folder: the runs of the final evaluation packs (their receipts and reports are in
+`01_data/packs/`), and the four `square-*` runs — one scripted proposal for each cell of the
+admissibility square, judged by the real authorizer and validator
+(`python 02_src/scripts/admissibility_square.py`; see `02_src/docs/architecture.md`).

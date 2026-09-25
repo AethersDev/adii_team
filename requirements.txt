@@ -16,7 +16,7 @@
 # with nothing in the repository having changed. 9.1.1 is what two clean clones qualified.
 pytest==9.1.1
 
-# Inherited X4: a per-test timeout that fails a hung test instead of blocking the run.
+# Requirement X4: a per-test timeout that fails a hung test instead of blocking the run.
 # Thread-based, so it exists on Windows and interrupts a native wait.
 pytest-timeout==2.4.0
 

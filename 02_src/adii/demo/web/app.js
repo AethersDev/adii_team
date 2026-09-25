@@ -6,7 +6,7 @@
  * decides no answer, admits no change and executes nothing.
  *
  * No innerHTML anywhere. Every string a model wrote reaches the page as a text node, which
- * cannot execute (inherited D12; test_the_page_executes_nothing.py).
+ * cannot execute (requirement D12; test_the_page_executes_nothing.py).
  */
 "use strict";
 

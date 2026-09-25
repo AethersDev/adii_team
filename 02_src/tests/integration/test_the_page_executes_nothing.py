@@ -1,4 +1,4 @@
-"""Inherited D12, in a browser: the shipped page renders what a model wrote as text, and no
+"""Requirement D12, in a browser: the shipped page renders what a model wrote as text, and no
 handler executes.
 
 The source-level rule in test_demo_design_rules.py forbids every known door from string to

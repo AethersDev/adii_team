@@ -6,7 +6,7 @@ One record per outcome class besides the walkthrough's own accepted repair: a re
 validator rejected, a model failure, a bound, and an infrastructure failure. Each is produced
 by the runtime — the investigator scripted to end that way, the real tool layer, the
 validator scripted — never assembled by hand, so what the report shows is what the runtime
-archives. Inherited D11: each has to read as legibly as a success, in its own terms.
+archives. Requirement D11: each has to read as legibly as a success, in its own terms.
 """
 from __future__ import annotations
 

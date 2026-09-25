@@ -78,9 +78,7 @@ trace: the incident handed over, every tool call and its result on the way throu
 decision, the verdict. `tool_calls` is counted from that trace. The investigator has no
 channel through which to report a number.
 
-The five event kinds are the walkthrough's — the only vocabulary that exists.
-[docs/trace_event_contract.md](../../docs/trace_event_contract.md) proposes their
-successors; `Recorder` in `run.py` is the one place that changes when it is agreed.
+`Recorder` in `run.py` is the one place the trace's vocabulary is written.
 
 ## Every way a run ends leaves a record
 

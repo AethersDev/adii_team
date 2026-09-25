@@ -22,8 +22,8 @@ says differs (DATA_WORLD_v0.md, "The canonical demo world"):
 This module writes worlds, never answers. No package states or encodes a disposition, a
 root cause or a repair; its incident id is opaque, derived from a digest; what each package
 *means* is the evaluation authority's (keys, grounding keys) and the validator's (oracles),
-authored separately and frozen before any evaluated run. Specification-authored, drawn from
-no private material: development data, never eligible for blind evaluation. Deterministic:
+authored separately and frozen before any evaluated run. Specification-authored:
+development data, never eligible for blind evaluation. Deterministic:
 a fixed seed, no clock, so a test holds the committed packages to this module byte for byte.
 Half the families are explicit — a notice or the load log's note says what happened — and
 half are implicit, their notices quiet, so the evidence is only in the data.

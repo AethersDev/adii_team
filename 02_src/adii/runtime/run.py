@@ -85,7 +85,7 @@ class Recorder:
 
     Every event a run has lands here, in order, from the boundary where it happened: the
     runtime's own, the tool layer's through `watch`, the provider's and the loop's through
-    `event`. docs/trace_event_contract.md is the vocabulary.
+    `event`.
     """
 
     def __init__(self, sink: Path | None = None) -> None:

@@ -35,13 +35,11 @@ development scoring fixtures, under 02_src/tests/
 A key that is meant to become blind truth does not move in here to make CI pass; the
 machinery moves, and a development key stands in for it. `test_answer_keys_stay_out`
 confines evaluation-shaped data to this package — that is the first boundary, enforced.
-The second is custodial: [DATA_WORLD_v0.md](../../docs/DATA_WORLD_v0.md) names blind
-incidents custodian-controlled, and
-[development_catalog.md](../../docs/development_catalog.md) records how the private
-reserve is committed before any development case is exposed. Nothing here can enforce
-the second boundary, which is exactly why it has to be written down.
+The second is custodial: blind incidents are held by a custodian, outside this
+repository. Nothing here can enforce the second boundary, which is exactly why it has to be
+written down.
 
-Note this is a *different* boundary from validation, which you also own. Validation asks
+Note this is a *different* boundary from validation. Validation asks
 **does this repair work**. Scoring asks **was this the right call at all** — including for
 the two dispositions that propose no repair, where there is nothing to validate.
 
@@ -57,9 +55,7 @@ Each stage is useful on its own, and each is a real measurement before the next 
    repair is *also* accepted; a right diagnosis with a wrong fix is not a pass.
 3. **Baseline arms.** Same incidents, weaker systems: always-escalate (no model at all),
    and alert-only (same model, same prompt, **zero tools**). Without these, a score is a
-   number with nothing to attribute it to. See
-   [../../../02_src/docs/inherited/CONTROLS.md](../../../02_src/docs/inherited/CONTROLS.md) — it also
-   explains why a perfect score is a problem rather than a result.
+   number with nothing to attribute it to.
 
 ## Two rules to build in before there is anything to protect
 
@@ -138,4 +134,3 @@ pytest 02_src/tests -k "evaluation or scoring"
 ## Related
 
 Consumes `contracts/`. Consumed by offline analysis only.
-Six-question summary in [system_map.md](../../docs/system_map.md#evaluation).

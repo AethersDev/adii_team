@@ -1,143 +1,133 @@
 # ADII architecture
 
-One diagram. If you understand this, you can read the codebase.
+A number in the data looks wrong. ADII investigates it and answers **Fix it** (REPAIR),
+**Leave it** (NO_REPAIR) or **Escalate it** (ESCALATE). The model that investigates can
+propose a fix; it cannot approve one. This page is the system in one diagram, four
+boundaries, and one run end to end.
 
 ```text
-                          INCIDENT
+                          INCIDENT  (the alert, and a frozen copy of the data)
                              │
                              ▼
               ┌──────────────────────────────┐
-              │   INVESTIGATOR               │
-              │   decides what to look at    │
+              │   INVESTIGATOR               │   a model, in a bounded loop:
+              │   decides what to look at    │   turns, tool calls, time, a cost cap
               └──────────────────────────────┘
-                    │  ToolCall      ▲  ToolResult
+                    │  ToolCall      ▲  ToolResult (every observation gets an id)
                     ▼                │
               ┌──────────────────────────────┐
-              │   CONTROLLED TOOLS           │
-              │   the ONLY way to see data   │
+              │   CONTROLLED TOOLS           │   read-only, bounded results,
+              │   the ONLY way to see data   │   no file paths, nothing written
               └──────────────────────────────┘
                              │
                              ▼
-              REPAIR   /   NO_REPAIR   /   ESCALATE
+              REPAIR   /   NO_REPAIR   /   ESCALATE      — citing the observations it used
                  │
-                 └── REPAIR carries a candidate repair
+                 └── a REPAIR carries a patch, and two authorities judge it:
                               │
+              ┌───────────────┴──────────────┐
+              ▼                              ▼
+   ┌─────────────────────┐       ┌──────────────────────────┐
+   │ AUTHORIZER          │       │ INDEPENDENT VALIDATOR     │
+   │ may this incident's │       │ rebuild from frozen       │
+   │ files be changed?   │       │ inputs, check invariants  │
+   └─────────────────────┘       └──────────────────────────┘
+              └───────────────┬──────────────┘
                               ▼
-              ┌──────────────────────────────┐
-              │   INDEPENDENT VALIDATION     │
-              │   ACCEPT  /  REJECT          │
-              └──────────────────────────────┘
+               ADMISSIBLE = authorized AND ACCEPT      (derived, never stored)
 
-  TELEMETRY persists the public run at every step:
-      trace → evidence → decision → validation → report
+   THE RUNTIME writes a receipt before anything is spent, a trace as it happens,
+   and a record at the end:  01_data/runs/<label>/
 
-  ══════════════════════════════════════════════════════
-   EVALUATION AUTHORITY — we build it here, and it is ours
-   incidents, answer keys, scoring
-   NEVER part of agent context · never importable by the
-   investigator
-  ══════════════════════════════════════════════════════
+  ══════════════════════════════════════════════════════════════════
+   EVALUATION AUTHORITY — answer keys and scoring, a separate program
+   never in the investigator's context, never importable by it
+  ══════════════════════════════════════════════════════════════════
 ```
 
-## The three authority boundaries
+## The four boundaries
 
-Everything hard about this project is a boundary question. Learn these three.
+**1. The investigator sees the data only through the tool layer.**
+It has no file path, no database handle, no shell and no network. If it could read files
+it could read an answer key, and every number reported about it would be meaningless. The
+tool layer decides what the investigator may do and refuses the rest; a `DENIED` result is
+the boundary working. Only `02_src/adii/tools/` may open the data.
 
-**1. The agent sees the world only through the tool layer.**
-The investigator has no filesystem path, no database handle, no shell. If it could read
-files it could read the answer key, and every number we report would be meaningless. The
-tool layer is a *boundary*, not a helper: it decides what the investigator may do and
-refuses the rest. A `DENIED` result is the boundary working correctly.
-
-**2. The agent is not the validator.**
-The investigator has a rehearsal tool and will happily tell itself a patch works. That is
-a *hypothesis*. Validation rebuilds from the frozen inputs and returns the *verdict*, and
-the investigator never sees how it got there. When someone says "the agent tested the repair and it passed", the answer is:
-*candidate testing and independent validation are different authorities.*
+**2. The investigator is not the validator.**
+A model will happily tell itself a patch works; that is a hypothesis. The validator
+rebuilds the data from a frozen copy with the patch applied and checks it against the
+data's own invariants — identities, never only counts — and returns the verdict. The
+investigator never imports the validator and never sees how it decided.
 
 **3. The judge is a different program.**
-Something has to hold each incident's correct answer, or "correct" is not a measurable
-word. That authority — incidents, answer keys, scoring — is the evaluation authority's,
-it lives in
-`02_src/adii/evaluation/`, and the investigator can never import it. Note it is *not* boundary 2 restated:
-validation asks **does this repair work**, the judge asks **was this the right call at
-all**. Two questions, two authorities, both unreachable from the investigator.
+Each incident's correct answer is held by the evaluation authority, in
+`02_src/adii/evaluation/`, which the investigator cannot import. This is not boundary 2
+restated: validation asks *does this repair work*, the judge asks *was this the right call
+at all*. Two questions, two authorities, both out of the investigator's reach.
 
-We build ours. There is no external judge to connect to and nothing to integrate with
-later — the prior implementation's scored catalogue is in a private repository, and no
-code here imports it.
+**4. What is evaluated is frozen first.**
+Before any final run, `python -m adii.evaluation.lock` names every file of the evaluated
+system by sha256, with the terms of every evaluation pack. From then on a test fails if a
+frozen file changes, and the evaluation refuses to run on a tree that does not match. An
+authority that changes after its results exist is not an authority.
 
-**4. Authorities have a lifecycle.**
-The first three boundaries are about *who may know what*. This one is about *when*. An
-authority frozen before it is complete cannot be completed — its hash is the thing that
-makes it an authority, and changing the hash invalidates everything scored against it. So
-two things that freeze at different times must be two artifacts, bound to each other by
-hash rather than merged. This one was learned the hard way; the story is in
-[inherited/AUTHORITY_LIFECYCLE.md](inherited/AUTHORITY_LIFECYCLE.md).
+## Admission: two facts about every proposed fix
 
-## The system's capabilities
-
-One runtime. These are the parts of it, not a list of people.
-
-| Capability | Covers | The question it answers |
+| authorizer | validator | meaning |
 |---|---|---|
-| **agent-loop** · **state** | the loop, model messages, tool calling, budgets, stopping | How does a model *request* a tool, and what ends the loop? |
-| **tools** · **evidence** | schemas, SQL, permissions, candidate-repair sandbox | Why is `DENIED` a success, not a failure? |
-| **decision** | the disposition and the repair proposal it commits to | What exactly did the investigator claim, and on what evidence? |
-| **validation** · **evaluation** | independent verdicts, scoring, baselines, our answer keys | Who owns the answer key and when is it consulted? |
-| **telemetry** | traces, run artifacts, reporting, cost/latency, CI | If a behaviour is not in the trace, what can you prove? |
-| **integration** | the end-to-end path through all of the above | Does one command still take an incident to a report? |
+| permitted | ACCEPT | admissible — *Fix it* |
+| permitted | REJECT | allowed, but it does not work |
+| denied | ACCEPT | works, but not allowed |
+| denied | REJECT | neither |
 
-Capabilities describe the software, never a division of the team. Every boundary above
-has two sides, so no change stays inside one capability for long, and no capability
-belongs to one person.
+The authorizer checks the patch's targets against the files the incident permits, whole
+or not at all. The validator is asked regardless and is never told what is permitted: the
+two facts are independent, and neither gates the other. Nothing is executed on real data
+in any cell. `01_data/runs/square-*` holds one archived run for each cell.
 
-## Before you build
+## One run, end to end
 
-Read [inherited/](inherited/). Three documents carrying what a previous
-implementation of this system cost to learn:
+`python -m adii.runtime` (`02_src/adii/runtime/`) is the harness, and the page and the
+evaluation start runs only through it:
 
-- **CONFORMANCE.md** — 39 requirements plus three X1 sub-items for your code, traced back
-  to the fifteen audited defects
-- **AUTHORITY_LIFECYCLE.md** — boundary 4, and the mistake that produced it
-- **CONTROLS.md** — how we know investigating beats guessing, and why a perfect score is a
-  problem
+1. **Receipt.** Before any model request: the incident and data by digest, the
+   configuration, the reason the spend is permitted — flushed to disk.
+2. **Investigation.** The loop sends the alert and the tool list to the model and executes
+   each tool call it asks for through the tool layer, within its bounds. A paid request is
+   admitted only if its worst-case cost fits under the run's hard cap.
+3. **Decision.** The model submits a disposition that cites observation ids. A citation of
+   something it never observed is refused.
+4. **Authorities.** A REPAIR goes to the authorizer and the validator.
+5. **Record.** One strict, versioned JSON record (`adii.run_record/v3`): the decision, both
+   facts, the trace, the counters, the cost as a proved lower bound. A run ends in exactly
+   one of four ways — `submitted`, `model_failure`, `bound_hit`, `infrastructure_failure` —
+   and every ending is archived as legibly as a success.
 
-Their tests are your requirements. Their implementation is not your implementation. And
-their **results are not our results** — a number measured on that system says nothing
-about this one until this one has produced its own.
+`02_src/adii/provider/` is the only code that speaks to a model: HTTP runs in a separate
+process started without the key, no redirect is followed, and a failure comes back as a
+kind and a status, never a response body.
 
-## The world the incidents come from
+## Where the code is
 
-The architecture above is domain-independent. The operational world it runs against is not
-a detail — it decides whether ADII reads as an incident investigator or as an SQL agent, so
-its design is a shared decision upstream of any implementation work:
-[DATA_WORLD_v0.md](DATA_WORLD_v0.md).
-
-## Start here
-
-```bash
-python -m adii.examples.walkthrough --step
+```text
+02_src/adii/contracts/     the shared vocabulary: eight types every package speaks
+02_src/adii/investigator/  the loop, the protocol, the model's messages refused or accepted
+02_src/adii/tools/         the only door to the data
+02_src/adii/validation/    rebuild from frozen inputs, check invariants
+02_src/adii/runtime/       one incident end to end: receipt, trace, authorities, record
+02_src/adii/provider/      the model boundary and its cost caps
+02_src/adii/reporting/     the record, the ledger, the archive's manifest
+02_src/adii/evaluation/    answer keys, scoring, the evaluation grid, the freeze
+02_src/adii/examples/      the incident generator and the walkthrough
+02_src/adii/demo/          the page: a view over the archive and a starter of runs
+02_src/tests/              the boundaries above, as executable tests
 ```
 
-## Your first contribution
+Each package has a README saying what it is for. The boundaries are tests, not prose:
+`02_src/tests/architecture/test_boundaries.py` fails the build if the investigator imports
+the validator or the evaluation, or if anything outside the tool layer opens the data.
 
-Nobody is assigned a subsystem, so nobody has to wait for permission to touch one. The
-path in is the same for everyone:
-
-1. **Run it.** `python -m adii.runtime --incident demo-learning-001 --provider scripted`, then
-   `python -m adii.demo` to see the archived run, then the walkthrough above. All three
-   work with nothing installed beyond `requirements.txt` and no API key.
-2. **Read the vocabulary.** `02_src/adii/contracts/core.py` — eight types, and the only
-   thing every part of the system agrees on.
-3. **Read one package README.** Pick the capability the task you want touches. They are
-   short and they say what the component is for.
-4. **Take a task from the shared backlog**, or write one with
-   [task_template.md](task_template.md). Name the capability it touches; a task that
-   touches three is normal.
-5. **Open a PR.** [review_playbook.md](review_playbook.md) is the merge gate. The short
-   version: you have to be able to explain what you merged.
-
-If you cannot find a task, the most useful first contribution is usually a test for
-something that is currently only true by convention. `02_src/tests/architecture/` is what
-that looks like when it works.
+```bash
+python -m adii.examples.walkthrough --step    # the architecture, one stage at a time, no model
+python -m pytest 02_src/tests/architecture    # the boundaries alone
+```

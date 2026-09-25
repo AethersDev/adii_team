@@ -289,7 +289,7 @@ def test_endings_translate_by_type_never_by_message(tmp_path, endpoint):
                      "--model", "test-model-1", "--archive", str(tmp_path), "--label", "down",
                      "--no-report"]) == 4
     down = read_record(tmp_path / "down" / "record.json")
-    # the endpoint failing is not the model failing (inherited D14): infrastructure, exit 4
+    # the endpoint failing is not the model failing (requirement D14): infrastructure, exit 4
     assert down.termination == "infrastructure_failure" and "HTTP 500" in down.detail
 
 
@@ -444,7 +444,7 @@ def test_the_active_pre_flight_refuses_an_unpriced_model_and_reports_a_broken_pr
 
 def test_a_paid_run_is_refused_before_the_label_unless_every_precondition_holds(
         tmp_path, endpoint, monkeypatch, capsys):
-    """Inherited D6 and D7: every check before anything irreversible, and the message names
+    """Requirement D6 and D7: every check before anything irreversible, and the message names
     the thing missing. No folder appears in the archive for any refusal."""
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     unpriced = ["--incident", INCIDENT, "--provider", "openai", "--model", "no-such-model",
@@ -750,7 +750,7 @@ def test_a_model_billed_by_an_unknown_tokenizer_may_not_run_capped(endpoint, mon
 
 def test_a_response_without_usage_is_an_unknown_row_never_zero(tmp_path, endpoint,
                                                                 monkeypatch):
-    """Inherited D15: a paid record never says 0.0 for rows it cannot price. The ledger
+    """Requirement D15: a paid record never says 0.0 for rows it cannot price. The ledger
     prices what the provider reported and counts the rest."""
     from adii.reporting.ledger import PRICES, aggregate
     monkeypatch.setenv("OPENAI_API_KEY", KEY)

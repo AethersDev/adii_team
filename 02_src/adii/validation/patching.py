@@ -1,6 +1,6 @@
 """Applying a candidate patch to a frozen world, from scratch, every time.
 
-CONFORMANCE C1: validation rebuilds from frozen inputs rather than mutating a world the
+requirement C1: validation rebuilds from frozen inputs rather than mutating a world the
 investigator already touched. `ReadOnlyDatabase` (tools/database.py) enforces read-only at
 the authorizer, so the only way to a post-patch world is a new one built from a script.
 

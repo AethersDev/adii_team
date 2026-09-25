@@ -1,4 +1,4 @@
-"""Inherited D13 as tests: attestation, verification from the manifest alone, and
+"""Requirement D13 as tests: attestation, verification from the manifest alone, and
 manifest-first preservation. The archive lives in a temporary directory here; the tracked
 archive's manifest is whatever the last attestation on that machine wrote."""
 from __future__ import annotations

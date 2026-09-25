@@ -1,6 +1,6 @@
 """The two ways a tool handler may decline, and why they are different exceptions.
 
-CONFORMANCE B1: `DENIED`, `REJECTED`, and `ERROR` are three different things. A handler
+requirement B1: `DENIED`, `REJECTED`, and `ERROR` are three different things. A handler
 raises `Denied` to refuse and `Rejected` to send the model's wrong arguments back to it.
 Anything else it raises is our bug, and the executor files it as `ERROR` — never as
 either of these.

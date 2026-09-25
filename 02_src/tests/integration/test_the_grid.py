@@ -46,7 +46,7 @@ def test_every_promised_cell_is_run_scored_and_reported(tmp_path, endpoint):
     assert "| full |" in (tmp_path / "packs" / "t.report.md").read_text(encoding="utf-8")
     assert "Runs not scored: none" in (tmp_path / "packs" / "t.report.md").read_text(
         encoding="utf-8")
-    # inherited D5: a run with no evaluation report is named unscored, never by how it ended
+    # requirement D5: a run with no evaluation report is named unscored, never by how it ended
     first = tmp_path / "runs" / runs[0]
     (first / "evaluation_report.json").unlink()
     assert grid.main(["--pack", "t", "--report", "--archive", str(tmp_path / "runs"),

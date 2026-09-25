@@ -1,16 +1,16 @@
 """A SQLite database the investigator can only read.
 
-CONFORMANCE B4: read-only is enforced by the database's authorizer, not by inspecting the
+requirement B4: read-only is enforced by the database's authorizer, not by inspecting the
 query text. SQLite consults the authorizer for every action a statement would perform
 while it is being compiled — read a column, call a function, insert a row, attach another
 file, run a pragma — and this module allows exactly four of them. A regex over the SQL is
 a suggestion; this is a boundary. `ATTACH` matters most: it is the way a query reaches a
 file the tool was never given.
 
-CONFORMANCE B2: every result is bounded. Rows are capped, long cells are cut, and a query
+requirement B2: every result is bounded. Rows are capped, long cells are cut, and a query
 that runs too long is interrupted and sent back as the model's mistake to narrow.
 
-CONFORMANCE B3: there is no file path at all — every world is built in memory from its
+requirement B3: there is no file path at all — every world is built in memory from its
 package's script by the runtime — so none can ever be a tool argument.
 
 This module is the only reason this package imports `sqlite3`. Nothing else in `adii/`

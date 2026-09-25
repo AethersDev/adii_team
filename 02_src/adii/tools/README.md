@@ -101,10 +101,8 @@ handler runs: it may raise `Denied` or `Rejected`; anything else it raises is `E
 An `OK` observation is stamped with `evidence_id`, a hash of the tool, its arguments and
 what it returned — the same observation always gets the same id.
 
-**Not built yet.** The candidate-repair sandbox; the recovered development case packages;
-the canonical three-configuration world
-from `docs/DATA_WORLD_v0.md` (a shared decision, not this package's alone); tools over
-manifests.
+**Not built.** A candidate-repair sandbox: the investigator cannot run a repair it
+proposes. Only the validator rebuilds, from frozen inputs, outside the investigator's reach.
 
 ## What to get right early
 
@@ -154,4 +152,3 @@ fixture through the real tools and expects the recorded statuses back.
 ## Related
 
 Called by `investigator/`, speaks `contracts/`.
-Six-question summary in [system_map.md](../../docs/system_map.md#tools).

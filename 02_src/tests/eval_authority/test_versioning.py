@@ -1,6 +1,6 @@
 """Tests for versioning.py — C4: version dispatch is explicit.
 
-Mirrors CONFORMANCE.md C4's own test spec verbatim: "a v1 artifact with a
+Mirrors requirement C4's own test spec verbatim: "a v1 artifact with a
 v2 field fails to load rather than being upgraded."
 
 Uses tmp_path throughout — never touches the real answer key files.

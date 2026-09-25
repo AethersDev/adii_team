@@ -1,4 +1,4 @@
-"""Manifest-first preservation of the run archive — inherited D13.
+"""Manifest-first preservation of the run archive — requirement D13.
 
     python -m adii.reporting.manifest                  # attest: write 01_data/runs/MANIFEST.json
     python -m adii.reporting.manifest --verify [DIR]   # hold a directory to its manifest alone

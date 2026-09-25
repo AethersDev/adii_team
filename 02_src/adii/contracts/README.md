@@ -4,9 +4,7 @@
 `ToolCall`, `ToolResult`, `TraceEvent`, `InvestigationDecision`, `ValidationResult`,
 `InvestigationRun`. Read `core.py` before writing anything anywhere else in this
 repository — code that invents its own shapes will be plausible, well-named, and
-incompatible with everyone else's.
-
-Six-question summary in [system_map.md](../../docs/system_map.md#contracts).
+incompatible with every other package.
 
 ## Invariants
 
@@ -14,8 +12,7 @@ Six-question summary in [system_map.md](../../docs/system_map.md#contracts).
   A dependency here becomes everybody's dependency.
 - Every type is a frozen dataclass or an enum. Contracts are values, not objects with
   behaviour.
-- A change here is a change to every other package at once, so it takes the whole team on
-  the review.
+- A change here is a change to every other package at once.
 
 ## How to test it
 

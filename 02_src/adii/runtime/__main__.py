@@ -95,7 +95,7 @@ from ..tools.walkthrough_world import build_script
 from .run import Recorder, run_incident
 from .scripted import AlwaysEscalate, replay
 
-# The three arms of the controls (inherited CONTROLS.md): what the full investigator adds is
+# The three arms of the controls: what the full investigator adds is
 # measured against the same model with no tools and against no model at all.
 ARMS = ("full", "alert-only", "always-escalate")
 
@@ -348,7 +348,7 @@ def refused_bounds(max_turns: int, max_tool_calls: int, max_model_requests: int,
 def refused_paid(model: str | None, max_cost_usd: float, endpoint: str,
                  served_as: str | None, max_tokens: int) -> str | None:
     """Why a paid run may not start, or None. Every precondition of spending, checked
-    before anything irreversible — a label claimed, a port bound (inherited D6, D7): a priced
+    before anything irreversible — a label claimed, a port bound (requirement D6, D7): a priced
     model, billed by a tokenizer the input bound is conservative for, that is the model on
     the wire; a finite cap; a completion bound above zero, since every reserve prices it in
     full; an endpoint that carries no secret; and the credential in the environment. The

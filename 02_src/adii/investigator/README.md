@@ -17,11 +17,10 @@ with a stop that decides nothing (trace contract row 5). The provider seam is
 prefix: `<TOOL_CALL>` JSON or `<DECISION>` JSON; anything else is rejected and told once. `provider.py` — `ScriptedProvider`, deterministic, for tests; no model, no
 network. `state.py` — `InvestigationState`, the observations accumulated so far, a frozen
 value. Endings are two exceptions carrying the trace so far, `TurnBudgetExceededError` and
-`ProviderFailureError`. The loop writes its own trace of eight kinds;
-`docs/trace_event_contract.md` records what each means and what the runtime needs from
-them. The decision policy — REPAIR and NO_REPAIR need an observation, ESCALATE does not,
-and a decision's `evidence_refs` cite only ids of successful results the model received,
-or it is rejected with the ids named — is `docs/decision_policy.md`. It runs against the
+`ProviderFailureError`. The loop writes its own trace of eight kinds. The decision
+policy — REPAIR and NO_REPAIR need an observation, ESCALATE does not, and a decision's
+`evidence_refs` cite only ids of successful results the model received, or it is rejected
+with the ids named — is enforced in `loop.py`. It runs against the
 tool layer's real `get_schema` and
 `run_sql` in `02_src/tests/integration/`.
 
@@ -43,8 +42,8 @@ however it ended. Today the runtime still drives the scripted stand-in in
 `02_src/adii/runtime/scripted.py`; nothing outside this package imports the loop yet. The
 adapter between `run()` and `investigate()` — one canonical trace recorded at the provider
 boundary, A's two exceptions mapped to two termination classes, a decided meaning for a
-stop without a decision — is the next unit, and it waits on the decision rows in
-`docs/trace_event_contract.md`. A keeps its exceptions; the runtime does the mapping.
+stop without a decision — lives in `runtime/live.py`. The loop keeps its exceptions; the
+runtime does the mapping.
 
 ## The question this component answers
 
@@ -73,4 +72,3 @@ pytest 02_src/tests -k investigator
 ## Related
 
 Speaks `contracts/`, calls `tools/`, is judged by `validation/` and `evaluation/`.
-Six-question summary in [system_map.md](../../docs/system_map.md#investigator).
