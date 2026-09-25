@@ -43,7 +43,7 @@ SHIPPED = (
     "01_data/README.md", "01_data/incidents/", "01_data/walkthrough/", "01_data/demo/csv/",
     "01_data/runs/README.md",
     "02_src/adii/", "02_src/tests/", "02_src/scripts/check_env.py",
-    "02_src/scripts/admissibility_square.py",
+    "02_src/scripts/admissibility_square.py", "02_src/scripts/evaluation_report.py",
     "02_src/docs/architecture.md", "02_src/docs/evaluation_report.md",
     "03_assets/README.md", "03_assets/identity/assets/", "03_assets/diagrams/",
     "03_assets/screenshots/",
@@ -149,7 +149,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--ref", required=True, help="the tag the ZIP is built from")
     parser.add_argument("--packs", nargs="*", default=[], help="packs whose evidence to include")
     parser.add_argument("--runs", nargs="*", default=[], help="further runs to include, by label")
-    parser.add_argument("--out", default=str(ROOT / f"{FOLDER}.zip"))
+    # beside the repository, never in it: extracted where it lands, a ZIP inside the checkout
+    # is a second copy of the project that the repository's own tests rightly refuse
+    parser.add_argument("--out", default=str(ROOT.parent / f"{FOLDER}.zip"))
     args = parser.parse_args(argv)
     try:
         tar = subprocess.run(["git", "archive", "--format=tar", args.ref], cwd=ROOT,
