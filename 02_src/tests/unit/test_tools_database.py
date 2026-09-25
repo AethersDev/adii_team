@@ -1,4 +1,4 @@
-"""Read-only is a property of the database, not of the query text (CONFORMANCE B4), and
+"""Read-only is a property of the database, not of the query text (requirement B4), and
 every result is bounded (B2). These tests try to get past the authorizer the ways a model
 would, and check that what comes back is a refusal the model can read."""
 from __future__ import annotations

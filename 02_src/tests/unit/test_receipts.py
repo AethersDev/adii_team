@@ -1,4 +1,4 @@
-"""Inherited D8 as tests: the receipt is on disk, complete, before the irreversible call —
+"""Requirement D8 as tests: the receipt is on disk, complete, before the irreversible call —
 proven by killing the process the instant after it is written — and every archived run
 carries one from before it ran."""
 from __future__ import annotations

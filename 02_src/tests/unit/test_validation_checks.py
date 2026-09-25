@@ -1,6 +1,6 @@
 """The invariant check, in isolation: two queries that must agree, row for row.
 
-CONFORMANCE C1(c) in test form: a rebuild with the right number of rows and the wrong ones
+requirement C1(c) in test form: a rebuild with the right number of rows and the wrong ones
 must fail, where a count-only oracle would wave it through.
 """
 from __future__ import annotations

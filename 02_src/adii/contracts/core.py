@@ -4,8 +4,8 @@ WHY THESE SHAPES AND NOT OTHERS. Not a free design exercise. A working implement
 ADII was built, evaluated, and audited before this one, and these are the shapes that
 survived it: `InvestigationDecision` is a submission a judge can score without asking the
 agent anything further, and `InvestigationRun` carries what an archive needs to be
-replayable months later. Each invariant below is here because its absence produced a real
-defect -- docs/inherited/CONFORMANCE.md names them.
+replayable months later. Each invariant below is here because its absence produces a real
+defect.
 
 We own these now. Changing one is a cross-boundary human decision, not a refactor.
 

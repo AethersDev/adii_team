@@ -122,22 +122,6 @@ can explain to a large one they cannot.
 
 ## Where things live
 
-```text
-02_src/adii/contracts/     shared vocabulary — read first, change only with review
-02_src/adii/investigator/  the agent loop and investigation state
-02_src/adii/tools/         tool execution — the ONLY door to the outside world
-02_src/adii/validation/    the validation boundary — the other authority
-02_src/adii/evaluation/    incidents, answer keys, scoring, baselines
-02_src/adii/reporting/     telemetry — traces, artifacts, reports
-02_src/adii/runtime/       one incident end to end — the harness that owns the trace
-02_src/adii/demo/          ADII's page over the archive — the rest of adii/ may never import it
-02_src/tests/architecture/ the boundaries, executable
-01_data/demo/world/        the shared operational world (work order; not built)
-01_data/demo/csv/          the specimens' worlds as CSV — the data to bring to the page's form
-01_data/runs/              the archive: one record per run, what the inspector reads
-01_data/walkthrough/       the teaching fixture
-```
-
 Top-level `01_data/ 02_src/ 03_assets/` is the submission structure, used from day one so
 there is no packaging migration at the deadline. Code goes in `02_src/`, data the system
 reads goes in `01_data/`, and nothing that states an answer goes in either.
@@ -145,10 +129,8 @@ reads goes in `01_data/`, and nothing that states an answer goes in either.
 ## Commands
 
 ```bash
-python -m pytest                                                # the suite; pyproject sets pythonpath=02_src
 python -m pytest 02_src/tests/unit/test_env_local.py -k twice   # one file, one test by name
 python -m pytest 02_src/tests/architecture -q                   # the boundaries alone — run these first
-python -m ruff check 02_src                                     # rules E F I UP B, line length 100
 python 02_src/scripts/guard_check.py --only D                   # one track's guards; --list prints the registry
 python -m adii.examples.walkthrough                             # end to end without a model
 python -m adii.demo 8000 --model <id> --endpoint http://127.0.0.1:8090/v1 --served-as default_model
@@ -234,5 +216,3 @@ A test fails on any drift between a generated file and its source, so the local 
   `02_src/docs/m7_validation_integration.md`). The resolution is a new commit; history is
   never amended.
 - Nothing committed contains an absolute path.
-- Windows and macOS parity is enforced: LF line endings via `.gitattributes`, Python 3.12
-  only (`>=3.12,<3.13`), `pytest` and `ruff` pinned in `requirements.txt`.

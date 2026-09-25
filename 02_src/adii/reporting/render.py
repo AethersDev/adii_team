@@ -1,7 +1,7 @@
 """The report: one run, from its record, readable by a human.
 
 It has to show a success, a rejected repair, a model failure, a bound and an infrastructure
-failure with equal honesty, each labelled in its own terms (inherited D11). A report that
+failure with equal honesty, each labelled in its own terms (requirement D11). A report that
 only reads well when the agent was right is not evidence, it is marketing. Every call is
 paired with the result the model saw, in order, and a call the run ended on is shown as
 unanswered — never "pending", which is the wrong word for a call that ended the run.

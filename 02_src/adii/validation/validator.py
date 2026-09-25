@@ -1,6 +1,6 @@
 """The independent authority: satisfies `runtime.run.Validator`.
 
-CONFORMANCE C1. The investigator hands over a `REPAIR` decision and this is the only place
+requirement C1. The investigator hands over a `REPAIR` decision and this is the only place
 that decides whether it holds. It rebuilds the incident's world from frozen inputs with the
 patch applied (`patching.apply_patch`), puts the rebuild through the incident's invariants
 (`checks.check`), and returns `ACCEPT` only if every one agrees.

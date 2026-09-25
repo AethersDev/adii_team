@@ -1,6 +1,6 @@
 """C6: scoring semantics changes are pre-registered, never post-hoc.
 
-CONFORMANCE.md C6 — "the scoring definition carries a version and a
+requirement C6 — "the scoring definition carries a version and a
 freeze date; a test asserts the frozen definition is the one the scorer
 implements." This test loads scoring_semantics.json through the same
 frozen-digest loader C2 built (freeze.py), so the semantics document

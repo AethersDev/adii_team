@@ -60,7 +60,7 @@ def test_a_verdict_that_could_not_be_established_round_trips_and_older_records_l
     doc = json.loads(record.to_json())
     doc["validation"] = {"accepted": False, "checks_run": [], "report": "no validator yet"}
     with pytest.raises(ValueError, match="record is missing 'reason_code'"):
-        from_json(json.dumps(doc))          # inherited D4: v2 has the field, always
+        from_json(json.dumps(doc))          # requirement D4: v2 has the field, always
     assert from_json(json.dumps({**doc, "schema": V1})).validation.state == "UNCHECKED"
 
 

@@ -340,7 +340,7 @@ def test_each_way_a_run_ends_has_its_own_exit_code_and_its_record(tmp_path, caps
 
 @pytest.mark.parametrize("value", [math.nan, math.inf, object()])
 def test_the_live_trace_is_strict_json_or_nothing_is_written(tmp_path, value):
-    """Inherited D3: archived evidence has no permissive fallback — not NaN, not a foreign
+    """Requirement D3: archived evidence has no permissive fallback — not NaN, not a foreign
     object stringified into something a strict parser refuses or a reader cannot type."""
     from adii.runtime.run import Recorder
     sink = tmp_path / "trace.jsonl"

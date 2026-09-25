@@ -68,5 +68,4 @@ pytest 02_src/tests -k validation
 ## Related
 
 Runs after `investigator/` commits, reports through `reporting/`. Distinct from
-`evaluation/` — see the glossary if that distinction is not yet sharp.
-Six-question summary in [system_map.md](../../docs/system_map.md#validation).
+`evaluation/`: validation asks whether a repair works, evaluation whether the call was right.

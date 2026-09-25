@@ -170,7 +170,7 @@ class RunRecord:
 def unresolved_citations(decision: InvestigationDecision,
                          trace: tuple[TraceEvent, ...]) -> tuple[str, ...]:
     """The cited ids this trace never minted. An evidence id exists only on a successful tool
-    result, minted by the tool layer (inherited D2); a decision may reference one, never
+    result, minted by the tool layer (requirement D2); a decision may reference one, never
     invent one. Empty means every citation resolves — or there are none."""
     minted = set()
     for event in trace:        # a payload of any other shape minted nothing

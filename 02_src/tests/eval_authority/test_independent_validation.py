@@ -1,7 +1,7 @@
 """C1: independent validation rebuilds from frozen inputs and never
 consults the agent's own rehearsal.
 
-CONFORMANCE.md C1's own test spec, verbatim: "buildable now, against a
+requirement C1's own test spec, verbatim: "buildable now, against a
 fake frozen world and a fake candidate repair, with no model and no real
 incident: (a) a patch whose rehearsal passes and whose independent
 rebuild fails is scored as a failure; (b) validation produces the same
@@ -27,7 +27,7 @@ def rebuild_and_check_identities(world: dict, patch: dict) -> dict:
     """A minimal independent rebuild: applies a patch's record-level
     effect to a frozen world and checks both count AND identity.
 
-    This is the fake "frozen world" and "candidate repair" CONFORMANCE.md
+    This is the fake "frozen world" and "candidate repair" requirement
     C1 says to test against — no model, no real incident, no file I/O.
     `world` is {"records": {id: value, ...}}. `patch` is
     {"remove_ids": [...], "keep_ids": [...]} — a minimal stand-in for "a
@@ -70,7 +70,7 @@ def rebuild_and_check_identities(world: dict, patch: dict) -> dict:
 
 class TestRehearsalIsNeverConsulted:
     def test_a_patch_whose_rehearsal_passes_but_whose_rebuild_fails_is_scored_a_failure(self):
-        # CONFORMANCE.md C1's own reproduction case, concretely: dedup on
+        # requirement C1's own reproduction case, concretely: dedup on
         # the wrong key. The agent's rehearsal says PASS (simulated by
         # simply never being passed to rebuild_and_check_identities at
         # all — see the next test for why that is the point).

@@ -1,6 +1,6 @@
 """C4: version dispatch is explicit.
 
-CONFORMANCE.md C4 — "the version is read first and dispatched on; an
+requirement C4 — "the version is read first and dispatched on; an
 unexpected field for the declared version is an error." A v1 answer key
 carrying a v2-only field must fail to load, never be silently treated as
 an implicit upgrade: "two readers now disagree about what the artifact

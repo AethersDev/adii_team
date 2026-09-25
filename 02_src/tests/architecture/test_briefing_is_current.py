@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 SRC = Path(__file__).resolve().parents[2]
 REPO = SRC.parent
 BEGIN, END = "<!-- BEGIN ADII BRIEFING -->", "<!-- END ADII BRIEFING -->"
@@ -20,6 +22,9 @@ def block(path: Path) -> str:
 
 
 def test_both_agent_entry_points_carry_the_same_briefing():
+    if not (REPO / ".git").exists():
+        pytest.skip("an export of the repository — the submission ZIP leaves the agents' "
+                    "briefings out by export-ignore")
     source = block(SRC / "docs" / "agent_briefing.md")
     assert block(REPO / "CLAUDE.md") == source, "CLAUDE.md has drifted from the briefing"
     assert block(REPO / "AGENTS.md") == source, "AGENTS.md has drifted from the briefing"

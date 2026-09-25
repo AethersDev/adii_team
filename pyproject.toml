@@ -19,7 +19,7 @@ packages = ["02_src/adii"]
 testpaths = ["02_src/tests"]
 pythonpath = ["02_src"]
 addopts = "-q -p pytester"
-# Inherited X4: a hung test fails, it does not block. Thread-based, because a signal cannot
+# Requirement X4: a hung test fails, it does not block. Thread-based, because a signal cannot
 # interrupt a native wait and does not exist on Windows. A test over budget is refactored;
 # the budget is not raised.
 timeout = 60

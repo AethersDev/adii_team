@@ -1,7 +1,7 @@
 """C5: a published schema and the validating code are checked against each
 other by a test.
 
-CONFORMANCE.md C5 — "the published schema is the one the validator uses,
+requirement C5 — "the published schema is the one the validator uses,
 or a test asserts they accept and reject exactly the same documents...
 a corpus of valid and invalid documents produces identical verdicts from
 the published schema and the code path."

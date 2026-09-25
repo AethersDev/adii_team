@@ -308,7 +308,7 @@ Nothing frozen changes because of a result.
 
 **Qualification of the frozen commit, on clean macOS and Windows.** `python
 02_src/scripts/package_submission.py --ref freeze-<date>` builds `ADII_Group05_Code_v1.zip` from
-the tag (standard library only; `SUBMISSION.json` lists every file by sha256; the same
+the tag (standard library only; an allow-list, `SHIPPED`, names what goes in; the manifest listing every file by sha256 is written beside the ZIP, never in it; the same
 inputs build the same bytes; it refuses a `.env` file or the configured key's prefix in any
 file). Extracted on each machine, from nothing: `py -3.12 -m venv .venv` (`python3.12` on
 the Mac), `pip install -r requirements.txt`, `python 02_src/scripts/check_env.py`, `pytest`,
@@ -416,7 +416,11 @@ it ends at its bound, and the page says so.
 
 From the frozen build only: the finished interface, one version-2 FIX case run from the page
 with its label on screen, the before chart and the independent rebuild, the sign-off, the
-final numbers from the report; the last line "if it is not in the trace, it did not happen".
+final numbers from the report. Revised 25 Sep: the film is *Before Enter*
+(`03_assets/identity/filmadii/BEFORE_ENTER.md`, kept out of the repository): the same alert over
+the demo company's three cases, answered from the page; the admissibility square's
+works-but-not-allowed record as its centre; and no closing slogan. It ends on the symbol, and
+the presenter says the line live.
 The version-1 FIX kept from the integration gate is not filmed beside a revenue figure: its
 alert predates decision A2.
 
@@ -430,7 +434,7 @@ presentation material. Nothing under Freeze A changes; `test_the_freeze.py` prov
 
 1. The merged commit tagged `submission-<date>`; `python 02_src/scripts/package_submission.py
    --ref submission-<date> --packs final-sol final-luna final-gpt-4-1 final-held-out --runs
-   <the four square-freeze-… labels>`; its `SUBMISSION.json` reviewed by the architect: the
+   <the four square-freeze-… labels>`; its manifest, `ADII_Group05_Code_v1.manifest.json`, reviewed by the architect: the
    three top-level folders, the README, the requirements, the packs' receipts, reports and
    run folders the report cites, and the admissibility square's four runs the deck shows.
 2. No secret: the packager refuses a `.env` file and the configured key's prefix anywhere;
@@ -441,6 +445,11 @@ presentation material. Nothing under Freeze A changes; `test_the_freeze.py` prov
    archived answer work in a browser.
 4. If anything changes after this, the ZIP is rebuilt and step 3 repeated on both machines.
    The ZIP that was qualified is the ZIP that is uploaded, by digest.
+5. Three uploads, side by side and finished together (decision by the project owner, 25 Sep):
+   the ZIP, `ADII_Group05_Presentation_v1.pptx` and `ADII_Group05_Video_v1.mp4`. Both are
+   built outside the repository, in the git-ignored production folder, and never enter the
+   ZIP; their result numbers are bound to the evaluation report, and neither is final while
+   one is open.
 
 ### 7.6 Rehearsals
 
@@ -505,6 +514,7 @@ scope cut, the order is: the second rebuildable world, the benchmark view on the
 | F | two freezes: Freeze A binds the evaluated system before the benchmark runs; Freeze B binds the submission after the evidence exists; feature development ends at Freeze A | APPROVED | APPROVED — the project owner, 24 Sep 2026 | phases 4 and 7 |
 | R | no benchmark result on the product page: the front door shows alert, investigation, answer, evidence, proposal, sign-off and record; results live in the report and the deck | APPROVED | APPROVED — the project owner, 24 Sep 2026 | phase 6 |
 | CL | the claim: "ADII is a complete, locally running reference implementation. We engineered and qualified the authority boundaries as if they mattered in production; we have not deployed it into a production customer environment." — industry-grade engineering discipline, never "production-grade deployment" (no HA, SSO, secret management, connectors, operations, residency or workload history is claimed) | APPROVED | APPROVED — the project owner, 24 Sep 2026 | phase 7 |
+| Q | earned authority, computed and never enforced, registered 25 Sep 2026 before any final run: the evaluation report computes, per investigator and per action class (fix, leave, escalate), the authority its evidence would earn. A class is earned only if no wrong decision of that class was admitted and the one-sided 95% Clopper–Pearson lower bound on its correctness (of the decisions the investigator made in that class, the share the key agrees with) is at least 0.90. At this evidence size nothing can clear it (all twelve right bounds at 0.78; four at 0.47), and the report says so and states the evidence a class needs: 29 of 29. Nothing in the runtime reads it; the authorizer stays as frozen. Model identity is the name the provider served, not a weights digest, which an API model does not have | the thesis — autonomy as a qualification result, not a setting — shown with the team's own evidence, and fixed before the evidence exists so it cannot be fitted to it |
 
 ## The audit of 23 Sep, before the freeze
 
@@ -556,3 +566,5 @@ finding, what was done, and what the benchmark may therefore claim.
 | 23 Sep 2026 | 2 (decision A2) and the front door | a review found the alert's percentage was the orders' under the word revenue, so the page showed 49% above a chart reading 51%; version 2 of the 21 live cases written with an alert that names the orders, keys, grounding keys and oracles copied and frozen, the partition moved, version 1 superseded and kept; the readiness gate proves the new alert matches the orders in every state and version 1 unchanged. And the stage leak: the list showed earlier answers under the neutral samples, so `#new` — what "New investigation" opens — is a launch view with no earlier answer on it, held by the fit test; the history stays one click away. The stage's precomputed FIX (version 1, `revenue-drop-d0888f-20260923T190024-097Z`) stays as it is; a version-2 film case is run only after the freeze | |
 | 24 Sep 2026 | before Freeze A (the audit) | a production-readiness audit of every file, by five read-only reviewers, each finding verified against the code before acting. Fixed on the evaluated path: a tool call or decision carrying NaN, Infinity or a 5,000-digit number crashed the run instead of being refused; the database misfiled an unbound placeholder as "one statement per call" and a closed connection as the model's mistake, and did not escape a quoted table name; a refused or over-long declared series escaped the runtime after its label was claimed; the provider worker leaked on an unexpected exception and the trace file was never closed; the pre-flight's model listing followed a redirect carrying the credential; the manifest did not keep `alert_series.json`; the newest freeze was chosen by name; `--partition` offered demo and superseded; a judge on a local pack was uncapped; the packager took run folders by prefix; the 48 scored keys were not schema-checked. The page and server: the page may start only the samples and the walkthrough (a held-out case could have been run from it); an older record's accepted repair was shown as rejected; check marks were read from prose; spend was shown as spent, not as a lower bound; a dead run looked alive; a slow answer could redraw another screen; a negative Content-Length bypassed the body bound. Removed as unused or superseded: feedback, page-chosen run settings and the evaluation endpoint (decision R), and the evaluation modules `failure_signal`, `receipt_artefacts`, `commitment`, `exposure`; the fake validator moved into the tests. One reported defect was not one: a judge-settled "incorrect" repair filed as a rejection is the team's pinned decision, and only its comment was wrong. A correction to this log's 23 Sep row "13 skipped (the blind-key tests, kept out on purpose)": they skipped on a stale path; they run now. Docs and docstrings brought to the system as it is; the ZIP holds only what a judge needs (`export-ignore`), named `ADII_Group05_Code_v1.zip` | |
 | 24 Sep 2026 | 4.5, before Freeze A | the admissibility square's generator, `02_src/scripts/admissibility_square.py`: four scripted proposals on the demo company's fix case through the real runtime, authorizer and validator, archived only from the frozen commit; each cell proved in a test (permitted · ACCEPT, permitted · REJECT by the oracle, denied · ACCEPT, REJECT by the rebuild); two guards, killed |
+| 24 Sep 2026 | 4, Freeze A | freeze-2026-09-24 taken (1,013 files, digest `eef4f7522079`) and the admissibility square generated from it. The qualification rehearsal — the tag extracted with `git archive` into a fresh folder and venv — failed: `*.log` in .gitignore had kept all 48 `reconciliation_sources/vendor_receipts.log` evidence files out of the repository since phase 2, so the freeze digested them from one disk and the tag carried none; every incident package failed to load from the tag while the suite passed here. The other 965 frozen files matched the tag byte for byte. Fixed without touching a frozen file: .gitignore excepts `01_data/incidents/**/*.log` and the 48 files are committed; `test_the_frozen_trees_are_committed.py` fails if git ignores any file the freeze digests (guard `C.frozen_evidence_is_committed`, killed); the briefing test skips in an export, which leaves CLAUDE.md and AGENTS.md out by design. The same digest is re-taken as freeze-2026-09-24-2 at the commit that carries every frozen file, and that is the tag the ZIP is built from; the first tag stays, never moved. With the fix the export passes the whole suite, the scripted run and the page |
+| 24 Sep 2026 | 4, Freeze A (the ZIP) | the ZIP holds what the brief asks for and nothing else (decision by the project owner): 01_data, 02_src, 03_assets, requirements.txt, README.md, and pyproject.toml, which requirements.txt installs from. The packager ships by an allow-list, `SHIPPED`, with `LEFT_OUT` for the team's tests of its own process; the manifest is written beside the ZIP. Docs: architecture.md, rewritten for a reader of the ZIP (the team's onboarding moved to contributing.md, which stays behind), and evaluation_report.md when written; the plans, research, lineage and process documents stay in the repository. Everything that ships was read for team, lineage and private references: the package READMEs rewritten where they linked team documents or described the team; 55 comment lines relabelled from `inherited`/`CONFORMANCE` to `requirement`; the two comments naming private material rewritten. Frozen files changed in comments and prose only — every changed module parses to the same program with docstrings and comments ignored — and so the evaluated system is re-frozen as freeze-2026-09-24-2, a new digest, before any pack runs. Tests: the allow-list, and no shipped document linking one that stays behind |

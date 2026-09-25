@@ -1,6 +1,6 @@
 """Step 1 of building validation/: proving the ground it stands on.
 
-C1 (CONFORMANCE.md) requires validation to "rebuild from frozen inputs" — that
+C1 (requirement) requires validation to "rebuild from frozen inputs" — that
 promise is only real if two things are true about the world validation rebuilds
 from: (a) rebuilding twice gives byte-identical data (determinism), and (b) two
 rebuilds are fully isolated from each other (no shared state a first validation

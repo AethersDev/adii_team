@@ -29,8 +29,10 @@ coverage.xml
 build/
 dist/
 
-# Logs
+# Logs — but an incident's evidence is data, whatever its extension: a .log under
+# 01_data/incidents is a package file the freeze digests, and every clone needs it
 *.log
+!01_data/incidents/**/*.log
 
 # the submission ZIP: built from a tag by 02_src/scripts/package_submission.py
 ADII_Group05_Code_v1.zip

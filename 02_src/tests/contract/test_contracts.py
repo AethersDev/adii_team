@@ -1,5 +1,5 @@
-"""The contracts are what four people and many coding-agent sessions share. If these
-break, everybody's assumptions break at once, so they are pinned first."""
+"""The contracts are what every package shares. If these break, every package's
+assumptions break at once, so they are pinned first."""
 from __future__ import annotations
 
 import pytest

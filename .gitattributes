@@ -1,8 +1,8 @@
 * text=auto eol=lf
 *.png binary
 
-# The team's working files stay in GitHub and out of the submission ZIP (git archive
-# honours export-ignore; README.md, "Submission packaging").
+# The submission ZIP ships by an allow-list (02_src/scripts/package_submission.py,
+# SHIPPED); these are the team's working files, left out of any export as well.
 .github/ export-ignore
 .claude/ export-ignore
 CLAUDE.md export-ignore

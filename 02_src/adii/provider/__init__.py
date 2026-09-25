@@ -6,8 +6,7 @@
 
 A `ChatProvider` sits behind A's `respond()` seam and speaks A's protocol to an
 OpenAI-compatible chat endpoint. Every request and every response is recorded at this
-boundary, before A parses anything, into the runtime's trace — the one history a run has
-(docs/trace_event_contract.md).
+boundary, before A parses anything, into the runtime's trace — the one history a run has.
 """
 from .credential import ENV_LOCAL, load_env_local
 from .openai_compatible import (

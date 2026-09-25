@@ -1,4 +1,4 @@
-"""The receipt: what is about to be spent, written and flushed before it is — inherited D8.
+"""The receipt: what is about to be spent, written and flushed before it is — requirement D8.
 
 A run's label folder is reserved before the run; the receipt goes into it next, before the
 investigator is invoked, and it stays whether the run ends in a decision, a bound, a

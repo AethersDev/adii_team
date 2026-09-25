@@ -1,6 +1,6 @@
 """C2: answer keys are frozen by hash and never edited.
 
-CONFORMANCE.md C2 — "each key is pinned by digest and loaded through a
+requirement C2 — "each key is pinned by digest and loaded through a
 function that refuses on mismatch. A correction is a new file, never an
 in-place edit."
 

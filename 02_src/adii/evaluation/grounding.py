@@ -1,7 +1,6 @@
 """C3: authorities that freeze at different times must be different artifacts.
 
-CONFORMANCE.md C3, and the incident it is drawn from in
-02_src/docs/inherited/AUTHORITY_LIFECYCLE.md: an answer key (disposition,
+requirement C3: an answer key (disposition,
 root cause, repair) and a grounding key (which tool calls a correct
 decision must actually have made) freeze at different times. The answer
 key is frozen the moment a scenario is first scored. The grounding key is

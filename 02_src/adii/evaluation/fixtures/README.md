@@ -2,10 +2,8 @@
 
 **Nothing in this directory may be used to claim unseen performance.** Every file here is
 team-visible development material: keys for incidents whose worlds are public in this
-repository, and drill keys for the scorer's own tests. Unseen keys, reserve material and
-private factory artefacts never enter this repository; blind incidents are
-custodian-controlled ([docs/DATA_WORLD_v0.md](../../../docs/DATA_WORLD_v0.md)). What each
-release level may claim is [docs/release_evidence.md](../../../docs/release_evidence.md).
+repository, and drill keys for the scorer's own tests. Unseen keys never enter this
+repository; blind incidents are held by a custodian.
 
 | file | incident | authored by | frozen | role |
 |---|---|---|---|---|

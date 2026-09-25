@@ -1,14 +1,14 @@
 """What a tool advertises to the model, and the check that makes the advertisement true.
 
-CONFORMANCE A1: a wrong-typed argument is a REJECTED result, not a crash. Binding checks
+requirement A1: a wrong-typed argument is a REJECTED result, not a crash. Binding checks
 arity; it never checks types. So arguments are validated against the advertised schema
 here, before any handler runs.
 
-CONFORMANCE A3: a schema form the validator cannot enforce is refused at registration.
+requirement A3: a schema form the validator cannot enforce is refused at registration.
 Four scalar types and `enum` are enforced; nested objects, arrays, and anything else are a
 `ValueError` when the spec is built, not a constraint quietly waved through at run time.
 
-CONFORMANCE B3: no tool takes a filesystem path. A parameter whose name says it is one is
+requirement B3: no tool takes a filesystem path. A parameter whose name says it is one is
 refused at registration. That is a naming guard — the real defence is that no handler in
 this package opens a caller-supplied path — but it catches the obvious case before review.
 """

@@ -13,7 +13,7 @@ arguments, and what it returned, so a decision can cite something that actually 
 and the same observation made twice gets the same id.
 
 The trace is not kept here. The loop that calls `execute` records the call and the result;
-counters come from that trace, never from this object (CONFORMANCE D2).
+counters come from that trace, never from this object (requirement D2).
 """
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ def evidence_id(name: str, arguments: Mapping[str, object], content: Mapping[str
 
 
 def canonical_json(value: object) -> str:
-    """Strict JSON (CONFORMANCE D3): no NaN, no Infinity, keys sorted. Raises if the value
+    """Strict JSON (requirement D3): no NaN, no Infinity, keys sorted. Raises if the value
     cannot be represented — a tool that returns something else has a bug."""
     return json.dumps(value, sort_keys=True, allow_nan=False, separators=(",", ":"))
 
@@ -47,7 +47,7 @@ class ToolExecutor:
     """Registry and dispatcher. One per investigation, so the call budget is per run."""
 
     def __init__(self, *, max_calls: int | None = None) -> None:
-        # CONFORMANCE A6/A7: a public API enforces its own bounds. A negative or boolean
+        # requirement A6/A7: a public API enforces its own bounds. A negative or boolean
         # budget would silently disable the limit while looking like one.
         if max_calls is not None:
             if isinstance(max_calls, bool) or not isinstance(max_calls, int):

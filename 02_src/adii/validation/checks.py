@@ -5,7 +5,7 @@ frozen world's own inputs — named, and declared per incident in its oracle. It
 must hold in a valid repaired world, never the patch or the repair that produces it: the
 validator knows the invariant, not the answer.
 
-CONFORMANCE C1(c): count alone is not enough. Invariants compare rows — identities and
+requirement C1(c): count alone is not enough. Invariants compare rows — identities and
 values — so two worlds with the same number of rows and different ones do not agree.
 """
 from __future__ import annotations

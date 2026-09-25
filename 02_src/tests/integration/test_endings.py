@@ -1,5 +1,5 @@
 """One committed record per way a run can end besides success, each produced by the runtime
-and each rendering to its committed report. Inherited D11: a rejected repair, a model
+and each rendering to its committed report. Requirement D11: a rejected repair, a model
 failure, a bound and an infrastructure failure read as legibly as a success, in their own
 terms — and a call the run died on is unanswered, never pending."""
 from __future__ import annotations

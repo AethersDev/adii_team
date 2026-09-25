@@ -5,9 +5,9 @@ A deliberately trivial incident whose only job is to make the architecture concr
 **This is not a scientific scenario and it is not one of the frozen development
 incidents.** You may read every file: its truth is in this folder for everyone. The
 evaluation authority holds a *development* key for it
-(`02_src/adii/evaluation/fixtures/demo-learning-001.answer.json`, authored by C, frozen
-15 September), which carries no evaluation claim: it exists so the scoring path can be
-exercised on the one world the validator can rebuild. It is a teaching
+(`02_src/adii/evaluation/fixtures/demo-learning-001.answer.json`, frozen 15 September),
+which carries no evaluation claim: it exists so the scoring path can be exercised on the
+teaching world. It is a teaching
 fixture that demonstrates and tests the runtime's mechanics; it is not the canonical ADII
 demo world (`01_data/demo/world/`) and produces no product or evaluation claim.
 
@@ -20,15 +20,15 @@ python -m adii.examples.walkthrough --step
 | # | What happens | Boundary |
 |---|---|---|
 | 1 | An alert arrives: 3 orders/day where there were 300 | operator → `IncidentContext` |
-| 2 | The investigator is handed the incident — no path, no DB handle, no key | → **A** |
-| 3 | It asks what the data looks like: `get_schema(table='orders')` | **A** → `ToolCall` → **B** |
-| 4 | The tool layer answers with columns | **B** → `ToolResult` → **A** |
+| 2 | The investigator is handed the incident — no path, no DB handle, no key | → **investigator** |
+| 3 | It asks what the data looks like: `get_schema(table='orders')` | **investigator** → `ToolCall` → **tools** |
+| 4 | The tool layer answers with columns | **tools** → `ToolResult` → **investigator** |
 | 5 | It checks the **source**: counts steady at ~300/day | `ToolCall` / `ToolResult` |
 | 6 | It checks the **mart**: 2.97 where the source says 297 | a 100× gap, located |
-| 7 | It tries `delete_table`. **DENIED** — B refuses | **B** is a boundary, not a helper |
-| 8 | It commits: `REPAIR` with a `repair_id` **and** a patch, citing the three observations by the ids the tool layer minted — an id the run never minted would be refused | **A** → `InvestigationDecision` → **C** |
-| 9 | The runtime records that the patch's target is a permitted path; the validator, asked regardless and told no permitted paths, rebuilds from frozen inputs and returns **ACCEPT**. Admissible is derived from both, stored nowhere | **D** → `RepairAuthorization`; **C** → `ValidationResult` |
-| 10 | Everything observable is persisted and rendered | → `TraceEvent` → **D** |
+| 7 | It tries `delete_table`. **DENIED** — the tool layer refuses | **tools** is a boundary, not a helper |
+| 8 | It commits: `REPAIR` with a `repair_id` **and** a patch, citing the three observations by the ids the tool layer minted — an id the run never minted would be refused | **investigator** → `InvestigationDecision` → **validation** |
+| 9 | The runtime records that the patch's target is a permitted path; the validator, asked regardless and told no permitted paths, rebuilds from frozen inputs and returns **ACCEPT**. Admissible is derived from both, stored nowhere | **runtime** → `RepairAuthorization`; **validation** → `ValidationResult` |
+| 10 | Everything observable is persisted and rendered | → `TraceEvent` → **runtime** |
 
 ## Files
 

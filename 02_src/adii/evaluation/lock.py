@@ -13,7 +13,7 @@ tree it digests, and the test below proves the two match.
 
 From then on the newest freeze is the contract: a test fails the gate when any frozen file
 changes, so an engineering change after the freeze is a new freeze version, never a silent
-one (inherited AUTHORITY_LIFECYCLE); and the grid refuses to run a registered pack unless
+one; and the grid refuses to run a registered pack unless
 the tree matches the freeze and the pack's terms are the frozen ones, byte for byte.
 """
 from __future__ import annotations
