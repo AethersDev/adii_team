@@ -17,9 +17,11 @@ with 01_data/, 02_src/, 03_assets/, requirements.txt and README.md — and pypro
 which requirements.txt installs ADII from. Inside those, SHIPPED names what goes, by path
 prefix, and LEFT_OUT what does not go from under a shipped prefix: the team's plans,
 research and process documents, its tooling and the tests of that tooling stay in the
-repository. A file is shipped only if a prefix names it. The manifest of every file by
-sha256 is written beside the ZIP, never in it. Standard library only; it reads the
-repository and writes the ZIP and its manifest, nothing else.
+repository. A file is shipped only if a prefix names it. Every file's sha256 is written
+beside the ZIP, never in it, as `ADII_Group05_Code_v1.sha256` in the format
+`shasum -a 256 -c` reads: run it next to the extracted folder and each file is checked.
+Standard library only; it reads the repository and writes the ZIP and its checksums,
+nothing else.
 """
 from __future__ import annotations
 
@@ -122,12 +124,11 @@ def leaks(files: dict[str, bytes], key: str | None) -> list[str]:
     return sorted(set(found))
 
 
-def manifest(files: dict[str, bytes], ref: str, packs: list[str], runs: list[str] = ()) -> str:
-    """Every file in the ZIP by sha256, with the ref and the evidence named — kept beside it."""
-    return json.dumps({"schema": "adii.submission/v1", "ref": ref, "packs": packs,
-                       "runs": list(runs), "files": {p: hashlib.sha256(b).hexdigest()
-                                                     for p, b in sorted(files.items())}},
-                      indent=2) + "\n"
+def checksums(files: dict[str, bytes]) -> str:
+    """Every file in the ZIP, `<sha256>  <FOLDER>/<path>` a line, in path order: what
+    `shasum -a 256 -c` (and `sha256sum -c`) checks against the extracted folder."""
+    return "".join(f"{hashlib.sha256(b).hexdigest()}  {FOLDER}/{p}\n"
+                   for p, b in sorted(files.items()))
 
 
 def package(files: dict[str, bytes]) -> bytes:
@@ -168,10 +169,13 @@ def main(argv: list[str] | None = None) -> int:
     data = package(files)
     out = Path(args.out)
     out.write_bytes(data)
-    listed = out.with_suffix(".manifest.json")
-    listed.write_text(manifest(files, args.ref, args.packs, args.runs), encoding="utf-8")
+    listed = out.with_suffix(".sha256")
+    listed.write_text(checksums(files), encoding="utf-8", newline="\n")
     print(f"wrote {out}: {len(files)} files, {len(data) / 1e6:.1f} MB, "
-          f"sha256 {hashlib.sha256(data).hexdigest()[:12]}; every file listed in {listed.name}")
+          f"sha256 {hashlib.sha256(data).hexdigest()}, from {args.ref}"
+          + (f", packs {' '.join(args.packs)}" if args.packs else "")
+          + (f", runs {' '.join(args.runs)}" if args.runs else "")
+          + f"; each file's sha256 in {listed.name} (shasum -a 256 -c {listed.name})")
     return 0
 
 

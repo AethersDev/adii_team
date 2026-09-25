@@ -48,11 +48,11 @@ def test_the_zip_is_the_tag_and_the_evidence_listed_by_digest_the_same_every_tim
     assert names == {"02_src/adii/x.py", "README.md", "01_data/packs/p.json",
                      "01_data/packs/p.report.md", "01_data/runs/p-a-full-r1/record.json",
                      "01_data/runs/square-x-not-allowed/record.json"}   # only the named packs'
-    listed = json.loads(packager.manifest(files, "freeze-x", ["p"], ["square-x-not-allowed"]))
-    assert set(listed["files"]) == names and "SUBMISSION.json" not in names    # beside, not in
-    assert listed["files"]["README.md"] == hashlib.sha256(b"# ADII\n").hexdigest()
-    assert (listed["ref"], listed["packs"], listed["runs"]) == \
-        ("freeze-x", ["p"], ["square-x-not-allowed"])
+    lines = packager.checksums(files).splitlines()       # beside the ZIP, never in it
+    assert [line.split("  ", 1)[1] for line in lines] == \
+        [f"{packager.FOLDER}/{n}" for n in sorted(names)]
+    assert f"{hashlib.sha256(b'# ADII' + bytes([10])).hexdigest()}  {packager.FOLDER}/README.md" \
+        in lines
     with pytest.raises(ValueError, match="no run 'other'"):          # a named run, or nothing
         packager.evidence(tmp_path, [], ["other"])
     with pytest.raises(ValueError, match="no pack 'q'"):
