@@ -964,13 +964,13 @@ def test_a_reply_cut_off_at_the_completion_limit_is_said_so_once(tmp_path, endpo
     endpoint's finish_reason is recorded, and a cut reply is named as cut, once, next turn."""
     FakeModel.script[:] = ['<DECISION>{"disposition": "ESCALATE", "root_cause_summary": "the',
                            TURNS[-1]]
-    FakeModel.finish = "length"
+    FakeModel.finish_reason = "length"
     try:
         assert cli.main(["--incident", INCIDENT, "--provider", "local", "--endpoint", endpoint,
                          "--model", "test-model-1", "--archive", str(tmp_path), "--label", "cut",
                          "--no-report"]) == 0
     finally:
-        FakeModel.finish = None
+        FakeModel.finish_reason = None
     r = read_record(tmp_path / "cut" / "record.json")
     assert [e.payload["finish_reason"] for e in r.trace if e.kind == "model_responded"] == \
         ["length", "length"]

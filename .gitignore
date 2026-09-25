@@ -36,6 +36,7 @@ dist/
 
 # the submission ZIP: built from a tag by 02_src/scripts/package_submission.py
 ADII_Group05_Code_v1.zip
+ADII_Group05_Code_v1.sha256
 
 # the film in progress; the finished film enters at Freeze B (final plan 7.5)
 03_assets/identity/filmadii/

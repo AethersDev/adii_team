@@ -308,7 +308,7 @@ Nothing frozen changes because of a result.
 
 **Qualification of the frozen commit, on clean macOS and Windows.** `python
 02_src/scripts/package_submission.py --ref freeze-<date>` builds `ADII_Group05_Code_v1.zip` from
-the tag (standard library only; an allow-list, `SHIPPED`, names what goes in; the manifest listing every file by sha256 is written beside the ZIP, never in it; the same
+the tag (standard library only; an allow-list, `SHIPPED`, names what goes in; every file's sha256 is written beside the ZIP, never in it, in the format `shasum -a 256 -c` reads; the same
 inputs build the same bytes; it refuses a `.env` file or the configured key's prefix in any
 file). Extracted on each machine, from nothing: `py -3.12 -m venv .venv` (`python3.12` on
 the Mac), `pip install -r requirements.txt`, `python 02_src/scripts/check_env.py`, `pytest`,
@@ -434,7 +434,7 @@ presentation material. Nothing under Freeze A changes; `test_the_freeze.py` prov
 
 1. The merged commit tagged `submission-<date>`; `python 02_src/scripts/package_submission.py
    --ref submission-<date> --packs final-sol final-luna final-gpt-4-1 final-held-out --runs
-   <the four square-freeze-… labels>`; its manifest, `ADII_Group05_Code_v1.manifest.json`, reviewed by the architect: the
+   <the four square-freeze-… labels>`; its checksum list, `ADII_Group05_Code_v1.sha256`, reviewed by the architect: the
    three top-level folders, the README, the requirements, the packs' receipts, reports and
    run folders the report cites, and the admissibility square's four runs the deck shows.
 2. No secret: the packager refuses a `.env` file and the configured key's prefix anywhere;
