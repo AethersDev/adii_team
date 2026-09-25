@@ -69,6 +69,7 @@ def test_the_zip_holds_what_the_brief_asks_for_and_not_the_teams_working_materia
              "01_data/walkthrough/record.json", "01_data/demo/csv/README.md",
              "02_src/docs/architecture.md", "02_src/docs/evaluation_report.md",
              "02_src/scripts/check_env.py", "02_src/scripts/admissibility_square.py",
+             "02_src/scripts/evaluation_report.py",
              "03_assets/identity/assets/logo/adii-symbol.svg"]
     stays = ["CLAUDE.md", "AGENTS.md", "TEAM.md", ".gitignore", ".gitattributes",
              ".env.example", ".github/workflows/ci.yml", ".claude/skills/x/SKILL.md",

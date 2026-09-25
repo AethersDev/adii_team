@@ -93,7 +93,8 @@ written from the run records once the final packs have run.
   adii/          the system — one package per part (see docs/architecture.md)
   tests/         the suite: contracts, architecture boundaries, units, integration, browser
   scripts/       check_env.py (is this machine ready?), admissibility_square.py (the four
-                 archived runs that show both authorities at work)
+                 archived runs that show both authorities at work), evaluation_report.py
+                 (the evaluation report, from the packs' records)
   docs/          architecture.md, and the evaluation report
 
 03_assets/       the logo, diagrams and screenshots
