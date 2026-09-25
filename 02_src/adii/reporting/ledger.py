@@ -47,7 +47,11 @@ class Price:
 # pre-flight's `reserve_premise` against a real bill, and every bill against its reserve
 # (`ReserveBreached`), which ends a run the moment the premise fails.
 GPT_6 = "gpt-6 (unpublished; byte-level checked, per bill)"
-BYTE_LEVEL_TOKENIZERS = frozenset({"o200k_base", "cl100k_base", GPT_6})
+# Added for Benchmark evaluation via OpenRouter (Review by D required later).
+# Claude's tokenizer is not published either; it is taken as byte-level on the same two
+# checks as GPT-6 — the reserve premise and `ReserveBreached` on every bill.
+CLAUDE = "anthropic (unpublished; byte-level checked, per bill)"
+BYTE_LEVEL_TOKENIZERS = frozenset({"o200k_base", "cl100k_base", GPT_6, CLAUDE})
 
 
 def _per_million(usd: str) -> Decimal:
@@ -59,6 +63,7 @@ def _per_million(usd: str) -> Decimal:
 # price is a wrong bound.
 _TABLE = "openai-list-2025-04 (verify on the day)"
 _TABLE_6 = "openai-list-2026-09-22 (verify on the day)"   # reasoning tokens bill as output
+_TABLE_OPENROUTER = "openrouter-list-2026-09-25 (verify on the day)"   # Benchmark; review by D
 PRICES: dict[str, Price] = {
     "gpt-4o-mini": Price(_per_million("0.15"), _per_million("0.60"), _TABLE, "o200k_base"),
     "gpt-4.1-mini": Price(_per_million("0.40"), _per_million("1.60"), _TABLE, "o200k_base"),
@@ -67,6 +72,10 @@ PRICES: dict[str, Price] = {
     "gpt-4o": Price(_per_million("2.50"), _per_million("10.00"), _TABLE, "o200k_base"),
     "gpt-6-sol": Price(_per_million("2.00"), _per_million("10.00"), _TABLE_6, GPT_6, True),
     "gpt-6-luna": Price(_per_million("0.10"), _per_million("0.50"), _TABLE_6, GPT_6, True),
+    # Added for Benchmark evaluation via OpenRouter (Review by D required later).
+    # $2 / $10 per 1M tokens, checked against OpenRouter's /models listing on 2026-09-25.
+    "anthropic/claude-sonnet-5": Price(_per_million("2.00"), _per_million("10.00"),
+                                       _TABLE_OPENROUTER, CLAUDE),
 }
 
 

@@ -263,12 +263,17 @@ def test_a_model_that_repeats_an_invalid_form_leaves_one_rejection_per_turn(tmp_
 
 
 def test_endings_translate_by_type_never_by_message(tmp_path, endpoint):
-    FakeModel.script[:] = [NO_TEXT]           # a reply in the API's shape that carries no text
+    # A reply in the API's shape that carries no text is rejected and asked again (Benchmark
+    # patch, review by D) — so the bound, not a model_failure, ends a model that stays mute.
+    FakeModel.script[:] = [NO_TEXT, NO_TEXT]
     assert cli.main(["--incident", INCIDENT, "--provider", "local", "--endpoint", endpoint,
-                     "--model", "test-model-1", "--archive", str(tmp_path), "--label", "mute",
-                     "--no-report"]) == 3
+                     "--model", "test-model-1", "--max-turns", "2", "--archive", str(tmp_path),
+                     "--label", "mute", "--no-report"]) == 3
     mute = read_record(tmp_path / "mute" / "record.json")
-    assert mute.termination == "model_failure" and "without text content" in mute.detail
+    assert mute.termination == "bound_hit"
+    rejected = [e for e in mute.trace if e.kind == "decision_rejected"]
+    assert len(rejected) == 2
+    assert all(e.payload["rejection_class"] == "invalid_envelope" for e in rejected)
     FakeModel.script[:] = ["<STOP>", "<STOP>"]     # not a form: rejected, and the bound ends it
     assert cli.main(["--incident", INCIDENT, "--provider", "local", "--endpoint", endpoint,
                      "--model", "test-model-1", "--max-turns", "2", "--archive", str(tmp_path),

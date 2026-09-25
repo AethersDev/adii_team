@@ -300,15 +300,16 @@ def test_a_bill_above_its_reserve_ends_the_run_as_the_providers_failure(tmp_path
 
 
 def test_a_reply_without_text_keeps_its_usage(tmp_path, answering):
-    """`content: null` — a filter, a tool-call-shaped reply — is the model's failure to
-    answer in the protocol, but the response's usage is evidence and is recorded before the
-    content is read, so the bill is never lost to a null."""
+    """`content: null` — a filter, a tool-call-shaped reply, a reasoning model that thought
+    and wrote nothing — reaches the loop as empty text for it to reject (Benchmark patch,
+    review by D), but the response's usage is evidence and is recorded before the content is
+    read, so the bill is never lost to a null. No empty assistant message joins the history."""
     recorder = Recorder()
     Answers.reply = {"choices": [{"message": {"role": "assistant", "content": None}}],
                      "usage": {"prompt_tokens": 7, "completion_tokens": 0}}
     provider = paid(tmp_path, recorder, answering, max_cost_usd=1.0)
-    with pytest.raises(ValueError, match="answered without text content"):
-        provider.respond()
+    assert provider.respond() == ""
+    assert not any(m["role"] == "assistant" for m in provider._messages)
     provider.close()
     responded = recorder.trace[-1]
     assert responded.kind == "model_responded" and responded.payload["content"] is None

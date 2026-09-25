@@ -436,7 +436,14 @@ class ChatProvider:
         if content is _NO_MESSAGE:          # the API's shape, not the model's answer, is missing
             raise ProviderFailure("malformed", status=answer.get("status"))
         if not isinstance(content, str):
-            raise ValueError("the endpoint answered without text content")
+            # Local patch for Benchmark evaluation via OpenRouter (Review by D required later).
+            # A reasoning model (Claude Sonnet 5) can end a turn with thinking only and no
+            # text. That reply is now handed to the loop as empty text, which rejects it as an
+            # invalid envelope like any other (no form special-cased: test_investigator_loop)
+            # and asks again within max_turns, instead of ending the run as model_failure.
+            # Nothing is appended to the history: some endpoints refuse an empty assistant
+            # message.
+            return ""
         text = content.strip()
         self._messages.append({"role": "assistant", "content": text})
         return text
