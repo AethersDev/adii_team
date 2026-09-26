@@ -57,4 +57,8 @@ def test_the_report_keeps_the_claims_apart_names_every_failure_and_says_what_did
     assert "| gpt-4.1 | not run |" in text
     assert results == {"freeze": "freeze-x · sha256 abababababab", "sol_full_correct": "1",
                        "sol_full_false_admits": "0", "sol_alert_only_correct": "0",
-                       "sol_alert_only_false_admits": "0", "floor_correct": "1"}
+                       "sol_alert_only_false_admits": "0", "floor_correct": "1",
+                       # the floor spends nothing, so three of the four runs are paid; one fix
+                       # was proposed, and it was right
+                       "paid_runs": "3", "all_repair_proposals": "1", "all_wrong_repairs": "0",
+                       "all_false_admits": "0"}

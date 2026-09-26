@@ -98,11 +98,11 @@ def test_notice_bundle_refuses_unbound_content(tmp_path):
         load_notice_sources(tmp_path)
 
 
-def test_notice_bundle_refuses_symlinked_content(tmp_path):
+def test_notice_bundle_refuses_symlinked_content(tmp_path, symlink):
     outside = tmp_path / "outside.txt"
     outside.write_text("secret", encoding="utf-8")
     write_bundle(tmp_path, {"vendor-unit-change": "vendor.txt"}, {})
-    (tmp_path / "notice_sources" / "vendor.txt").symlink_to(outside)
+    symlink((tmp_path / "notice_sources" / "vendor.txt"), outside)
 
     with pytest.raises(ValueError, match="regular files only"):
         load_notice_sources(tmp_path)

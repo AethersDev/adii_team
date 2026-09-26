@@ -129,11 +129,11 @@ def test_incident_bundle_refuses_unbound_content(tmp_path):
         load_transform_sources(tmp_path)
 
 
-def test_incident_bundle_refuses_a_symlinked_source(tmp_path):
+def test_incident_bundle_refuses_a_symlinked_source(tmp_path, symlink):
     outside = tmp_path / "outside.sql"
     outside.write_text("secret", encoding="utf-8")
     write_bundle(tmp_path, {"stg_orders": "orders.sql"}, {})
-    (tmp_path / "transform_sources" / "orders.sql").symlink_to(outside)
+    symlink((tmp_path / "transform_sources" / "orders.sql"), outside)
 
     with pytest.raises(ValueError, match="regular files only"):
         load_transform_sources(tmp_path)

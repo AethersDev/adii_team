@@ -447,8 +447,11 @@ presentation material. Nothing under Freeze A changes; `test_the_freeze.py` prov
    archived answer work in a browser.
 4. If anything changes after this, the ZIP is rebuilt and step 3 repeated on both machines.
    The ZIP that was qualified is the ZIP that is uploaded, by digest.
-5. Three uploads, side by side and finished together (decision by the project owner, 25 Sep):
-   the ZIP, `ADII_Group05_Presentation_v1.pptx` and `ADII_Group05_Video_v1.mp4`. Both are
+5. Four uploads, side by side and finished together (decisions by the project owner, 25–26 Sep):
+   the ZIP; `ADII_Group05_Presentation_v1.pptx`; `ADII_Group05_Final_Report_v1.docx`, the
+   bootcamp's report template filled; and `ADII_Group05_Video_v1.mp4`, a short demonstration of
+   the page answering the three samples, input and output, recorded on the frozen build. The
+   film *Before Enter* opens the pitch and is not an upload. Both are
    built outside the repository, in the git-ignored production folder, and never enter the
    ZIP; their result numbers are bound to the evaluation report, and neither is final while
    one is open.

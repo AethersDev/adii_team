@@ -149,14 +149,14 @@ def test_change_history_bundle_is_closed(tmp_path):
         load_change_histories(tmp_path)
 
 
-def test_change_history_bundle_refuses_symlinks(tmp_path):
+def test_change_history_bundle_refuses_symlinks(tmp_path, symlink):
     outside = tmp_path / "outside.md"
     outside.write_bytes(markdown())
     (tmp_path / "change_history_map.json").write_text(
         json.dumps({"transform-changes": "CHANGE_HISTORY.md"}), encoding="utf-8")
     sources = tmp_path / "change_history_sources"
     sources.mkdir()
-    (sources / "CHANGE_HISTORY.md").symlink_to(outside)
+    symlink((sources / "CHANGE_HISTORY.md"), outside)
 
     with pytest.raises(ValueError, match="regular files only"):
         load_change_histories(tmp_path)

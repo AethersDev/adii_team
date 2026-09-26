@@ -106,8 +106,10 @@ evaluation is a separate program (`02_src/tests/architecture/test_boundaries.py`
 
 ## Submitted with this folder
 
-Three files, uploaded side by side: this code ZIP, `ADII_Group05_Presentation_v1.pptx` (the
-ten-minute presentation) and `ADII_Group05_Video_v1.mp4` (the film, *Before Enter*).
+Four files, uploaded side by side: this code ZIP; `ADII_Group05_Presentation_v1.pptx`, the
+presentation; `ADII_Group05_Final_Report_v1.docx`, the final project report; and
+`ADII_Group05_Video_v1.mp4`, a short demonstration: the page answering the three samples,
+input and output.
 
 ## Read more
 
