@@ -35,14 +35,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from ..contracts import (
+from adii.contracts import (
     Disposition,
     IncidentContext,
     InvestigationDecision,
     ToolCall,
     ValidationResult,
 )
-from ..runtime.run import Terminated
+from adii.runtime.run import Terminated
 
 
 @dataclass(frozen=True)
