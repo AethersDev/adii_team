@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -37,12 +38,20 @@ def node() -> str:
 
 
 def view(fn: str, record: dict, *args):
-    script = (f"const V = require({json.dumps(str(VIEW))});"
-              f"const r = JSON.parse(require('fs').readFileSync(0, 'utf8'));"
-              f"const out = V[{json.dumps(fn)}](r, ...{json.dumps(args)});"
-              f"process.stdout.write(JSON.stringify(out));")
-    done = subprocess.run([node(), "-e", script], input=json.dumps(record), capture_output=True,
-                          text=True, encoding="utf-8", check=True)
+    """Evaluate one projection of view.js in node. The record goes through a file, not stdin:
+    reading stdin as a file (`readFileSync(0)`) is fragile on Windows pipes; and node's own
+    error is reported when it fails, never only its exit status."""
+    with tempfile.TemporaryDirectory() as folder:
+        given = Path(folder) / "record.json"
+        given.write_text(json.dumps(record), encoding="utf-8")
+        script = (f"const V = require({json.dumps(str(VIEW))});"
+                  f"const r = JSON.parse(require('fs').readFileSync("
+                  f"{json.dumps(str(given))}, 'utf8'));"
+                  f"const out = V[{json.dumps(fn)}](r, ...{json.dumps(args)});"
+                  f"process.stdout.write(JSON.stringify(out));")
+        done = subprocess.run([node(), "-e", script], capture_output=True, text=True,
+                              encoding="utf-8")
+    assert done.returncode == 0, f"node failed on {fn}:\n{done.stderr.strip()}"
     return json.loads(done.stdout)
 
 

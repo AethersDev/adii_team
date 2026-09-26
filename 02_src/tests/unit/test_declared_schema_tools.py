@@ -105,11 +105,11 @@ def test_missing_and_extra_artifacts_are_refused(tmp_path):
         load_declared_schemas(extra)
 
 
-def test_symlinked_artifact_is_refused(tmp_path):
+def test_symlinked_artifact_is_refused(tmp_path, symlink):
     outside = tmp_path / "outside.json"
     outside.write_text(json.dumps(DECLARATION), encoding="utf-8")
     write_bundle(tmp_path, sources={})
-    (tmp_path / "declared_schema_sources" / "raw_orders.json").symlink_to(outside)
+    symlink((tmp_path / "declared_schema_sources" / "raw_orders.json"), outside)
     with pytest.raises(ValueError, match="regular files only"):
         load_declared_schemas(tmp_path)
 

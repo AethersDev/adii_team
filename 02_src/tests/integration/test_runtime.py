@@ -144,7 +144,8 @@ def test_one_bundle_alone_adds_only_its_own_tool_and_receipt_names(tmp_path):
     assert tools.names == ("get_schema", "run_sql", "get_notice") and set(evidence) == {"notices"}
 
 
-def test_keeping_an_incident_copies_every_bundle_byte_for_byte_and_only_regular_files(tmp_path):
+def test_keeping_an_incident_copies_every_bundle_byte_for_byte_and_only_regular_files(
+        tmp_path, symlink):
     """The run's folder receives the package as it is — the map files, every file under the
     bundle directories — and a symbolic link, which the loaders refuse where it stands, is
     refused here too, before a copy could turn it into a regular file."""
@@ -158,7 +159,7 @@ def test_keeping_an_incident_copies_every_bundle_byte_for_byte_and_only_regular_
     outside = tmp_path / "outside.sql"
     outside.write_text("select secret from answer_key", encoding="utf-8")
     (folder / "transform_sources" / "orders.sql").unlink()
-    (folder / "transform_sources" / "orders.sql").symlink_to(outside)
+    symlink((folder / "transform_sources" / "orders.sql"), outside)
     again = tmp_path / "again"
     again.mkdir()
     with pytest.raises(ValueError, match="must be a regular file"):

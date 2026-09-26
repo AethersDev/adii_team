@@ -197,6 +197,17 @@ def write(reports: dict[str, dict], freeze: dict | None) -> tuple[str, dict[str,
             if false_key:
                 results[false_key] = str(sum(bool(r["admissible"]) and r["category"] not in RIGHT
                                              for r in rows))
+    # the denominators a claim about wrong fixes needs: how many fixes were proposed, how many of
+    # them the key calls wrong, and how many paid runs there were in all
+    paid = [row for rep in reports.values() for row in rep["runs"]
+            if row["arm"] != "always-escalate"]
+    repairs = [row for row in paid if row["disposition"] == "REPAIR"]
+    wrong = [row for row in repairs if row["category"] not in RIGHT]
+    if reports:
+        results.update({
+            "paid_runs": str(len(paid)), "all_repair_proposals": str(len(repairs)),
+            "all_wrong_repairs": str(len(wrong)),
+            "all_false_admits": str(sum(bool(row["admissible"]) for row in wrong))})
     put("sol_full_correct", "final-sol", "full", "sol_full_false_admits")
     put("sol_alert_only_correct", "final-sol", "alert-only", "sol_alert_only_false_admits")
     put("floor_correct", "final-sol", "always-escalate")

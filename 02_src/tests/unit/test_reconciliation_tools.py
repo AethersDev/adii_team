@@ -139,11 +139,11 @@ def test_missing_declared_source_fails_loading(tmp_path):
         load_reconciliation_sources(tmp_path)
 
 
-def test_symlinked_source_is_refused(tmp_path):
+def test_symlinked_source_is_refused(tmp_path, symlink):
     outside = tmp_path / "outside.log"
     outside.write_text("secret\n", encoding="utf-8")
     write_bundle(tmp_path, {"upstream-feed": "upstream.log"}, {})
-    (tmp_path / "reconciliation_sources" / "upstream.log").symlink_to(outside)
+    symlink((tmp_path / "reconciliation_sources" / "upstream.log"), outside)
 
     with pytest.raises(ValueError, match="regular files only"):
         load_reconciliation_sources(tmp_path)

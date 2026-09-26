@@ -57,8 +57,8 @@ def test_a_table_keyed_bundle_accepts_any_non_empty_key(tmp_path):
         load_bundle(tmp_path, "map.json", "sources")
 
 
-def test_a_dangling_or_linked_map_is_refused_not_treated_as_absent(tmp_path):
-    (tmp_path / "map.json").symlink_to(tmp_path / "nowhere")
+def test_a_dangling_or_linked_map_is_refused_not_treated_as_absent(tmp_path, symlink):
+    symlink((tmp_path / "map.json"), tmp_path / "nowhere")
     with pytest.raises(ValueError, match="regular file beside"):
         load_bundle(tmp_path, "map.json", "sources")
     (tmp_path / "map.json").unlink()
@@ -66,6 +66,6 @@ def test_a_dangling_or_linked_map_is_refused_not_treated_as_absent(tmp_path):
     real.mkdir()
     (real / "x.txt").write_bytes(b"x")
     (tmp_path / "map.json").write_text('{"a": "x.txt"}', encoding="utf-8")
-    (tmp_path / "sources").symlink_to(real)
+    symlink((tmp_path / "sources"), real)
     with pytest.raises(ValueError, match="regular file beside"):
         load_bundle(tmp_path, "map.json", "sources")
