@@ -1,5 +1,10 @@
 """The freeze: what the final packs run on, named by digest before any of them runs.
 
+Taken **once**, when the system is green on macOS and Windows and the next command is the final
+packs — never during development (final plan, decision FR). Before it, everything changes
+freely and every run keeps the commit it ran on; freezes taken earlier live in
+`freezes/development/`, which is history, not a contract.
+
     python -m adii.evaluation.lock --name freeze-2026-09-24     # write freezes/<name>.json
     python -m adii.evaluation.lock --check                      # does the tree still match?
 
@@ -38,6 +43,10 @@ NAME = re.compile(r"freeze-(\d{4}-\d{2}-\d{2})(?:-(\d+))?")
 TREES = ("02_src/adii", "01_data/incidents")
 FILES = ("requirements.txt", "pyproject.toml")
 SKIPPED = ("__pycache__", ".DS_Store")
+# What cannot change the experiment, and so is never frozen: the page, and prose. A README typo
+# or a page fix after the benchmark does not touch what was measured.
+NOT_THE_EXPERIMENT = ("02_src/adii/demo/",)
+PROSE = (".md",)
 FREEZES_DIR = "02_src/adii/evaluation/freezes"     # a freeze does not digest freezes
 
 # The final packs, as decision E registered them: one repeat, twenty turns, a 4,096-token
@@ -68,7 +77,8 @@ def files(root: Path = REPO) -> dict[str, str]:
     """Every frozen file, by repository-relative path, to its sha256."""
     paths = [p for tree in TREES for p in (root / tree).rglob("*")
              if p.is_file() and not any(s in p.parts for s in SKIPPED)
-             and not p.relative_to(root).as_posix().startswith(FREEZES_DIR)]
+             and not p.relative_to(root).as_posix().startswith((FREEZES_DIR, *NOT_THE_EXPERIMENT))
+             and p.suffix not in PROSE]
     paths += [root / f for f in FILES]
     return {p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
             for p in sorted(paths)}

@@ -20,7 +20,7 @@ REPO = Path(__file__).resolve().parents[2]
 ROOT = REPO.parent  # the workspace beside the repo: case data, incidents and results stay out of it
 sys.path.insert(0, str(REPO / "02_src"))
 
-from adii.examples.case_specimens import SPECIMENS  # noqa: E402
+from case_specimens import SPECIMENS  # beside this script  # noqa: E402
 
 INCIDENTS = ROOT / "benchmark_incidents"
 PLACEHOLDER = ("-- [Auto-generated mock file for ADII Benchmark by Jouri - "

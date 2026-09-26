@@ -21,7 +21,11 @@ def test_the_newest_freeze_is_the_tree_the_gate_runs_on():
 
 def test_a_freeze_digests_the_system_and_notices_any_change(tmp_path):
     for path in ("02_src/adii/a.py", "02_src/adii/__pycache__/a.pyc", "01_data/incidents/x/w.sql",
-                 "02_src/adii/evaluation/freezes/f.json", "requirements.txt", "pyproject.toml"):
+                 "02_src/adii/evaluation/freezes/f.json", "requirements.txt", "pyproject.toml",
+                 # cannot change the experiment, so never frozen: the page, and prose
+                 "02_src/adii/demo/web/app.js", "02_src/adii/README.md",
+                 "01_data/incidents/x/README.md",
+                 "02_src/adii/evaluation/freezes/development/o.json"):
         (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / path).write_text("x", encoding="utf-8")
     frozen = lock.files(tmp_path)
