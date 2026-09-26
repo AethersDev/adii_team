@@ -1,0 +1,40 @@
+{
+  "schema": "adii.pack/v1",
+  "pack": "final-sol",
+  "provider": "openai",
+  "model": "gpt-6-sol",
+  "endpoint": null,
+  "served_as": null,
+  "arms": [
+    "full",
+    "alert-only",
+    "always-escalate"
+  ],
+  "repeats": 1,
+  "incidents": [
+    "revenue-drop-03df8b",
+    "revenue-drop-18b88d",
+    "revenue-drop-2c077d",
+    "revenue-drop-4c1f15",
+    "revenue-drop-594c0f",
+    "revenue-drop-610a79",
+    "revenue-drop-6fb41f",
+    "revenue-drop-70d601",
+    "revenue-drop-70e933",
+    "revenue-drop-8e68f4",
+    "revenue-drop-982e8e",
+    "revenue-drop-d22c8a"
+  ],
+  "max_turns": 20,
+  "max_cost_usd": 0.5,
+  "max_tokens": 4096,
+  "pack_cap_usd": 12.24,
+  "judge_model": "gpt-4.1-mini",
+  "reasoning_effort": "low",
+  "freeze": {
+    "name": "freeze-2026-09-26",
+    "digest": "3d53782df4c5e866b18ae816da46505d790a65e6351b1b77011252af2e8c8fcc"
+  },
+  "created_at": "2026-09-26T13:32:41+00:00",
+  "source_revision": "736ae4308bf24e552dd08b77d10894a901fb09ca"
+}

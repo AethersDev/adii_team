@@ -1,0 +1,126 @@
+{
+  "schema": "adii.benchmark_report/v1",
+  "pack": "final-held-out",
+  "arms": {
+    "full": {
+      "runs": 6,
+      "right": 6,
+      "right_by_truth": {
+        "REPAIR": "2/2",
+        "NO_REPAIR": "2/2",
+        "ESCALATE": "2/2"
+      },
+      "right_by_tier": {
+        "explicit": "3/3",
+        "implicit": "3/3"
+      },
+      "categories": {
+        "success": 4,
+        "correct_abstention": 2
+      },
+      "decisive_observed": 5,
+      "admitted_where_no_repair_was_right": 0,
+      "cost_usd_lower_bound": 0.4554
+    }
+  },
+  "unscored": [],
+  "repeat_disagreements": [],
+  "runs": [
+    {
+      "label": "final-held-out-revenue-drop-244c4a-full-r1",
+      "incident": "revenue-drop-244c4a",
+      "arm": "full",
+      "repeat": 1,
+      "truth": "REPAIR",
+      "tier": "implicit",
+      "termination": "submitted",
+      "disposition": "REPAIR",
+      "category": "success",
+      "decisive": true,
+      "validation": "ACCEPT",
+      "admissible": true,
+      "cost_usd": 0.098436,
+      "latency_ms": 37889
+    },
+    {
+      "label": "final-held-out-revenue-drop-2a9cdc-full-r1",
+      "incident": "revenue-drop-2a9cdc",
+      "arm": "full",
+      "repeat": 1,
+      "truth": "NO_REPAIR",
+      "tier": "implicit",
+      "termination": "submitted",
+      "disposition": "NO_REPAIR",
+      "category": "success",
+      "decisive": false,
+      "validation": null,
+      "admissible": false,
+      "cost_usd": 0.07335,
+      "latency_ms": 33546
+    },
+    {
+      "label": "final-held-out-revenue-drop-431a97-full-r1",
+      "incident": "revenue-drop-431a97",
+      "arm": "full",
+      "repeat": 1,
+      "truth": "REPAIR",
+      "tier": "explicit",
+      "termination": "submitted",
+      "disposition": "REPAIR",
+      "category": "success",
+      "decisive": true,
+      "validation": "ACCEPT",
+      "admissible": true,
+      "cost_usd": 0.073088,
+      "latency_ms": 30421
+    },
+    {
+      "label": "final-held-out-revenue-drop-88ca63-full-r1",
+      "incident": "revenue-drop-88ca63",
+      "arm": "full",
+      "repeat": 1,
+      "truth": "ESCALATE",
+      "tier": "implicit",
+      "termination": "submitted",
+      "disposition": "ESCALATE",
+      "category": "correct_abstention",
+      "decisive": true,
+      "validation": null,
+      "admissible": false,
+      "cost_usd": 0.063108,
+      "latency_ms": 52843
+    },
+    {
+      "label": "final-held-out-revenue-drop-bf1f93-full-r1",
+      "incident": "revenue-drop-bf1f93",
+      "arm": "full",
+      "repeat": 1,
+      "truth": "ESCALATE",
+      "tier": "explicit",
+      "termination": "submitted",
+      "disposition": "ESCALATE",
+      "category": "correct_abstention",
+      "decisive": true,
+      "validation": null,
+      "admissible": false,
+      "cost_usd": 0.062106,
+      "latency_ms": 25062
+    },
+    {
+      "label": "final-held-out-revenue-drop-ef9687-full-r1",
+      "incident": "revenue-drop-ef9687",
+      "arm": "full",
+      "repeat": 1,
+      "truth": "NO_REPAIR",
+      "tier": "explicit",
+      "termination": "submitted",
+      "disposition": "NO_REPAIR",
+      "category": "success",
+      "decisive": true,
+      "validation": null,
+      "admissible": false,
+      "cost_usd": 0.08536,
+      "latency_ms": 33156
+    }
+  ]
+}
