@@ -177,6 +177,12 @@ def write(reports: dict[str, dict], freeze: dict | None) -> tuple[str, dict[str,
             if r["category"] not in RIGHT:
                 lines.append(f"| `{r['label']}` | {r['truth']} | {r['disposition'] or '—'} | "
                              f"{r['category']} | {r['termination']} |")
+    # the denominators a claim about wrong fixes needs: how many fixes were proposed, how many of
+    # them the key calls wrong, and how many paid runs there were in all
+    paid = [row for rep in reports.values() for row in rep["runs"]
+            if row["arm"] != "always-escalate"]
+    repairs = [row for row in paid if row["disposition"] == "REPAIR"]
+    wrong = [row for row in repairs if row["category"] not in RIGHT]
     unscored = [u for p in reports.values() for u in p["unscored"]]
     lines += ["", "Runs not scored: " + (", ".join(f"`{u}`" for u in unscored) or "none") + ".",
               "", "## Limitations", "",
@@ -185,10 +191,21 @@ def write(reports: dict[str, dict], freeze: dict | None) -> tuple[str, dict[str,
               "- Twelve benchmark cases and one repeat: differences of a case or two between "
               "investigators are not evidence of a difference.",
               "- The six held-out cases are a demonstration, not a statistic.",
+              "- \"Decisive evidence seen\" is the one call each case's grounding key names, not "
+              "every route to a supported answer: a right answer reached another way counts as "
+              "not seen. A right answer is not the same as a well-supported one, so the two are "
+              "reported apart.",
               "- API models are identified by name; a provider can change what a name serves.",
               "- Nothing was executed: a fix that stands is a proposal both authorities "
               "admitted, recorded and never applied.",
-              "- ADII has not been deployed in a production customer environment.", ""]
+              "- ADII has not been deployed in a production customer environment."]
+    if reports and not wrong:        # the benchmark measures judgment; admission is tested apart
+        lines.append(f"- The paid runs happened to contain no incorrect model-proposed repair "
+                     f"({len(repairs)} proposals, all right), so rejecting a bad one is not "
+                     "inferred from them: the authorities are tested directly by the scripted "
+                     "admissibility square (`01_data/runs/square-<freeze>-*`), one known proposal "
+                     "on each side of both boundaries.")
+    lines.append("")
 
     def put(key: str, pack: str, arm: str, false_key: str | None = None):
         if pack in reports:
@@ -197,12 +214,6 @@ def write(reports: dict[str, dict], freeze: dict | None) -> tuple[str, dict[str,
             if false_key:
                 results[false_key] = str(sum(bool(r["admissible"]) and r["category"] not in RIGHT
                                              for r in rows))
-    # the denominators a claim about wrong fixes needs: how many fixes were proposed, how many of
-    # them the key calls wrong, and how many paid runs there were in all
-    paid = [row for rep in reports.values() for row in rep["runs"]
-            if row["arm"] != "always-escalate"]
-    repairs = [row for row in paid if row["disposition"] == "REPAIR"]
-    wrong = [row for row in repairs if row["category"] not in RIGHT]
     if reports:
         results.update({
             "paid_runs": str(len(paid)), "all_repair_proposals": str(len(repairs)),

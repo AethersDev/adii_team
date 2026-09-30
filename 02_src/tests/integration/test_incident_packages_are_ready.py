@@ -237,7 +237,8 @@ def test_the_same_decisions_when_the_world_is_twenty_times_larger():
 def test_the_partition_is_registered_whole_and_nothing_held_out_has_been_run():
     """Decision E: every labelled case is in exactly one of benchmark, held-out, demo or
     burned; benchmark holds two per truth and tier and held-out one; and no held-out or demo
-    case is in any pack receipt in the repository — the final pack is their first run."""
+    case is in any pack receipt in the repository but one: the registered final-held-out pack,
+    their first run, which ran the held-out six on the freeze. No pack ever ran a demo case."""
     keys = {p.name.removesuffix(".answer.json"): load_frozen_answer_key(p)["correct_disposition"]
             for p in CATALOGUE.glob("*.answer.json")}
     named = [*BURNED, *(i for part in PARTITION.values() for i in part)]
@@ -249,8 +250,12 @@ def test_the_partition_is_registered_whole_and_nothing_held_out_has_been_run():
     unseen = set(PARTITION["held_out"]) | set(PARTITION["demo"])
     for receipt in PACKS.glob("*.json"):
         if not receipt.name.endswith(".report.json"):
-            ran = set(json.loads(receipt.read_text(encoding="utf-8"))["incidents"])
-            assert not ran & unseen, f"{receipt.name} ran a held-out or demo case"
+            pack = json.loads(receipt.read_text(encoding="utf-8"))
+            ran = set(pack["incidents"]) & unseen
+            if receipt.name == "final-held-out.json":
+                assert ran == set(PARTITION["held_out"]) and pack.get("freeze"), receipt.name
+            else:
+                assert not ran, f"{receipt.name} ran a held-out or demo case"
 
 
 def day_revenue(family, state) -> float:

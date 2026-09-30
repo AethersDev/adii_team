@@ -1,7 +1,7 @@
 {
   "schema": "adii.archive_manifest/v1",
-  "written_at": "2026-09-22T23:43:47+00:00",
-  "source_revision": "3914d234199fc74d0b714cdafd219c647a5a17b6",
+  "written_at": "2026-09-26T14:28:39+00:00",
+  "source_revision": "385114118cff81f3ea5016fcc8923444af458c46",
   "entries": [
     {
       "path": "customer-region-misassigned-20260916T092358-161Z/receipt.json",
@@ -256,6 +256,1608 @@
       "retention": "evidence"
     },
     {
+      "path": "film-local-qwen3-4b-929623/receipt.json",
+      "bytes": 1910,
+      "digest": "sha256:ed7c61258f3d45bebfa746c3be4c3caa6a1ced56d7b9cc0a0f292415bd54c237",
+      "retention": "evidence"
+    },
+    {
+      "path": "film-local-qwen3-4b-929623/record.json",
+      "bytes": 26351,
+      "digest": "sha256:d1d6affab16a381210534bff263ff9b5398439a79cb6ab78bef8ae00c2415b0a",
+      "retention": "evidence"
+    },
+    {
+      "path": "film-local-qwen3-4b-929623/trace.jsonl",
+      "bytes": 19074,
+      "digest": "sha256:2127330d11cae3c64ed435df4ab482d2842e5a807f4c65af58b45f15ed0f3125",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-03df8b-full-r1/evaluation_report.json",
+      "bytes": 809,
+      "digest": "sha256:5c084d505adc16c511d9adb2d3e3330870d068a252b1b948535050f1b009a78b",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-03df8b-full-r1/receipt.json",
+      "bytes": 2718,
+      "digest": "sha256:cec46bb904a75c605d1d6a1d49559e64e1ac5f2de69dc31a0ea405734c5d7473",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-03df8b-full-r1/record.json",
+      "bytes": 44763,
+      "digest": "sha256:e43e6790f683f53bdbbdbbcb5adfe7835b13c9cf2228a1706184b2e72a1691da",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-03df8b-full-r1/trace.jsonl",
+      "bytes": 31083,
+      "digest": "sha256:f797e431721636e64c37b55a396b950b4b31b456f910264950a223e537221327",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-18b88d-full-r1/evaluation_report.json",
+      "bytes": 1719,
+      "digest": "sha256:07c0bc852112fdeb9cd38c8a152f7ff6829ef2fd0a5af1f0d8ee57c5bd6ce41a",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-18b88d-full-r1/receipt.json",
+      "bytes": 2718,
+      "digest": "sha256:15d2485211bc39a401a94963bb3d149f14dd3654ba22ee18486fb8e1f9bec406",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-18b88d-full-r1/record.json",
+      "bytes": 40000,
+      "digest": "sha256:0b435d4f2ec79966194f427ac03fca947918078f19f02530e4186734f04f7058",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-18b88d-full-r1/trace.jsonl",
+      "bytes": 24904,
+      "digest": "sha256:343eb28204b024e26d114303120e05c42311b1d4fe5b07833ea291006059ac64",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-2c077d-full-r1/evaluation_report.json",
+      "bytes": 693,
+      "digest": "sha256:4a7b866c4ca5652a20d8d810ee67f18be7bd9309d415d55e07b9b92c949267d9",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-2c077d-full-r1/receipt.json",
+      "bytes": 2718,
+      "digest": "sha256:0ea3925426f65388f31be264d9d82e5063d6ff10e59978a4449d17fd523a55d5",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-2c077d-full-r1/record.json",
+      "bytes": 31124,
+      "digest": "sha256:73d77564ad16a7078d12ba380fc1629c6293d8192abce6e8b783fcf7940f761e",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-2c077d-full-r1/trace.jsonl",
+      "bytes": 21338,
+      "digest": "sha256:75a52a73d39066d52b80f56d33805abec5f95b9b2d96b700c8517aaed39d4eb1",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-4c1f15-full-r1/evaluation_report.json",
+      "bytes": 778,
+      "digest": "sha256:ee3ab456c8aa55c4a3ecfc7e475187d47d0aa70980d8deefeaf0fb85f813a7b4",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-4c1f15-full-r1/receipt.json",
+      "bytes": 2718,
+      "digest": "sha256:1c51da2678d705b2523a22cc4484338d4a4ade2760f8462f30e7447b1b810b77",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-4c1f15-full-r1/record.json",
+      "bytes": 43082,
+      "digest": "sha256:7c984286c40c663dd6122f2072dce0f1f8a17d0f3a9234003dc1c2819ef82322",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-4c1f15-full-r1/trace.jsonl",
+      "bytes": 29652,
+      "digest": "sha256:d3af930d23d2195f91d52cb909ea2594617a9f5374d637b670968be701b55190",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-594c0f-full-r1/evaluation_report.json",
+      "bytes": 1779,
+      "digest": "sha256:b2e0f3d7ad490f4bdca8684e982404829250d14d3d119f5fc9d35d7ef85ea9e1",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-594c0f-full-r1/receipt.json",
+      "bytes": 2718,
+      "digest": "sha256:c44283c46dfff506f44d2d4d83b7edd8d6ac0d850a1f2245b5114c1470ec6455",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-594c0f-full-r1/record.json",
+      "bytes": 30912,
+      "digest": "sha256:fdf6081a386345d65d10d3d49d1e6267367f205e4923ed44000463863624fe3b",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-594c0f-full-r1/trace.jsonl",
+      "bytes": 20206,
+      "digest": "sha256:6877c8c330f99fa2cf9eea0098141132961bfb15abf8ea3640e3a3fdde0c375f",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-610a79-full-r1/evaluation_report.json",
+      "bytes": 371,
+      "digest": "sha256:28c85692234a0491232b0bc50d0e7b2481cd55f201ea2c8dcbccae43e9e52294",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-610a79-full-r1/receipt.json",
+      "bytes": 2718,
+      "digest": "sha256:910924f2a165107427a3b96dd869bfa472f1e3bc322c81cc304db372112b94b1",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-610a79-full-r1/record.json",
+      "bytes": 16768,
+      "digest": "sha256:eacc5cd6cd82d5b690db970953d8e5d271e811de3655998f223309ca3a6a6a37",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-610a79-full-r1/trace.jsonl",
+      "bytes": 11665,
+      "digest": "sha256:102d158414395f426c02b8598465ac7b25191e405ceeee5708053d515f095fd7",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-6fb41f-full-r1/evaluation_report.json",
+      "bytes": 751,
+      "digest": "sha256:9adf4c72c50512e31fff1b6438ce24186b2250e72a40d866fa1b2a61d7ebd7d9",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-6fb41f-full-r1/receipt.json",
+      "bytes": 2718,
+      "digest": "sha256:52a04e2cefeaa7a4e933ddf298f157528721fc544bea90cd5375618d74c28564",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-6fb41f-full-r1/record.json",
+      "bytes": 39251,
+      "digest": "sha256:2377e6e6a2ceafa67ea284ba7542daa867d2c55b0a5436e2b55e9fa6897b305e",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-6fb41f-full-r1/trace.jsonl",
+      "bytes": 27375,
+      "digest": "sha256:07806a23fbbba1d45691cadb16ba7902ac6a0ad620bb933aba991b5d0effab73",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-70d601-full-r1/evaluation_report.json",
+      "bytes": 870,
+      "digest": "sha256:34a54b103a1db7ac63dd33e197bfd9d79d207e0dd5552abd66715933b17f2ae2",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-70d601-full-r1/receipt.json",
+      "bytes": 2718,
+      "digest": "sha256:10b2b837cc38e30df815729c76e358191053e96b3f2a7961e90009e23a1e5d37",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-70d601-full-r1/record.json",
+      "bytes": 31934,
+      "digest": "sha256:1ed9d3a0eb25f774b9d2464f6d35dcaacc6a079b2bec66c29dfe55a105395efd",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-70d601-full-r1/trace.jsonl",
+      "bytes": 22037,
+      "digest": "sha256:83ddd20f165372d326ffe0a89cee9528dd358f4648135635c28fd3f9bcd5e41d",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-70e933-full-r1/evaluation_report.json",
+      "bytes": 841,
+      "digest": "sha256:adbcfdc3d4327002b88e84a6d781e7c85dd13df66ccc9c67e526c16411e1df68",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-70e933-full-r1/receipt.json",
+      "bytes": 2718,
+      "digest": "sha256:d5f48a01761d8d52beacaa9d0ef845512bb87620fd24802522e249aada50463b",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-70e933-full-r1/record.json",
+      "bytes": 36642,
+      "digest": "sha256:b173d01291f276dfa728abdce841e9b64eefe75c51f68137ad948e791adf851d",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-70e933-full-r1/trace.jsonl",
+      "bytes": 25584,
+      "digest": "sha256:49c41a8c30cdf70b3fae4902f2f1fb3d55de434453209ed2bb474812b227f7f2",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-8e68f4-full-r1/evaluation_report.json",
+      "bytes": 778,
+      "digest": "sha256:1d81020946ab03caa947134f19e4da18320e4bf9f22f5a9149bc9f2b2f5727fb",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-8e68f4-full-r1/receipt.json",
+      "bytes": 2718,
+      "digest": "sha256:6d0c5224ecfe526c89ef27454040a6ad23e33af9df2842e4b9280c65975da0df",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-8e68f4-full-r1/record.json",
+      "bytes": 37822,
+      "digest": "sha256:376f4a527e02e6bd57e6f732d891dac7601aa11c98572e27a2247a2dbb4a824f",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-8e68f4-full-r1/trace.jsonl",
+      "bytes": 25992,
+      "digest": "sha256:b548b4f9eb6904413b2468ba9d31c90dd528d6d13c1e8bd30f27bc03c6f1f05e",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-982e8e-full-r1/evaluation_report.json",
+      "bytes": 632,
+      "digest": "sha256:a9eab44e8458e86b614c5e0c273fe4da3c725f2ccdbf2f8211d701da7929af99",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-982e8e-full-r1/receipt.json",
+      "bytes": 2718,
+      "digest": "sha256:16e21b91f1deb106f03201ffab8f3c924c63df55bfb816ef36440a5ad2e01529",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-982e8e-full-r1/record.json",
+      "bytes": 29892,
+      "digest": "sha256:a9792d96bec5b2ca669c1a6f465bdd38cb900ad944fe7e130f113040abc74f4b",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-982e8e-full-r1/trace.jsonl",
+      "bytes": 20812,
+      "digest": "sha256:ec14f38149395f77309d4a7177f10472c6a458022089144f3a88e0c7fc9033f5",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-d22c8a-full-r1/evaluation_report.json",
+      "bytes": 751,
+      "digest": "sha256:a01a93728dc455001363683a752eb1b0cdbd197aee8c12b7794b2b90442f546a",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-d22c8a-full-r1/receipt.json",
+      "bytes": 2718,
+      "digest": "sha256:8a1983d2effecee770ec3d0414ae3288831d1d319b2ca08a2b25c9a50da4a4b0",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-d22c8a-full-r1/record.json",
+      "bytes": 38388,
+      "digest": "sha256:5f5f1631c9e81095927c224cbe7a4ad53d38e1fd90ed6b59b21a4bb47bdf7295",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-gpt-4-1-revenue-drop-d22c8a-full-r1/trace.jsonl",
+      "bytes": 26386,
+      "digest": "sha256:51f48c2a3b301df878634338d414917e0524611c99215972812ff1177319c474",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-held-out-revenue-drop-244c4a-full-r1/evaluation_report.json",
+      "bytes": 1884,
+      "digest": "sha256:b10477aa8db8ac3838127379d8a01d33296901023d9c191d6023545a5bc88a0b",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-held-out-revenue-drop-244c4a-full-r1/receipt.json",
+      "bytes": 2783,
+      "digest": "sha256:97891cd2d78bf88413aa9cdaf91d492ffe77f24c3ceab9ccd87204dc88bcdf52",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-held-out-revenue-drop-244c4a-full-r1/record.json",
+      "bytes": 64969,
+      "digest": "sha256:9a109345eee3cf7f6c784f3b9a22be09f57e6acb20ff76f7206ae10a6d6bad80",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-held-out-revenue-drop-244c4a-full-r1/trace.jsonl",
+      "bytes": 44968,
+      "digest": "sha256:36048bb5370e03bfabb8cb7111544073b275561f0bc809a947d3547076f89732",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-held-out-revenue-drop-2a9cdc-full-r1/evaluation_report.json",
+      "bytes": 810,
+      "digest": "sha256:162775b1aa4ff13c495e74cf7c2badf1ba48b2ca7a56d2898b3cec990e344ca4",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-held-out-revenue-drop-2a9cdc-full-r1/receipt.json",
+      "bytes": 2783,
+      "digest": "sha256:eda225cb93cd47efc86e4760e60eef0e1558961c5a6e2eda32b43080df9191d2",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-held-out-revenue-drop-2a9cdc-full-r1/record.json",
+      "bytes": 52660,
+      "digest": "sha256:d1936033c2242f16214789bf1d4ef12f7cc1f59378cfdb23fcf1c1cbc6ee8b8f",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-held-out-revenue-drop-2a9cdc-full-r1/trace.jsonl",
+      "bytes": 37717,
+      "digest": "sha256:e9231964afa05b8a8317f8162a1f148ff33b5080e4c5f40248bc90a42b91c135",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-held-out-revenue-drop-431a97-full-r1/evaluation_report.json",
+      "bytes": 1803,
+      "digest": "sha256:f0ae1ced4249bded15add1b13ac2121cae4a2908e2d0ecd8573383e73b027b05",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-held-out-revenue-drop-431a97-full-r1/receipt.json",
+      "bytes": 2783,
+      "digest": "sha256:d9c43b63521251cad2c74ea6268a537205dc364d0a2069ff1318896577cb680e",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-held-out-revenue-drop-431a97-full-r1/record.json",
+      "bytes": 56269,
+      "digest": "sha256:34e024e3da347676fb983dc4a5a3ec1d2a67db37a3965fe295d28dc8132dd865",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-held-out-revenue-drop-431a97-full-r1/trace.jsonl",
+      "bytes": 38832,
+      "digest": "sha256:8bf89212cdf76a8dc18fed97bfffc0c2ba8615fcc57a8291d1445d702e22cf88",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-held-out-revenue-drop-88ca63-full-r1/evaluation_report.json",
+      "bytes": 689,
+      "digest": "sha256:8bdd4e6d4a6f9e7f495cbe29ce0ba62da16e2e8c1c106492f16227ad4224bdfe",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-held-out-revenue-drop-88ca63-full-r1/receipt.json",
+      "bytes": 2783,
+      "digest": "sha256:2f01e7f4f840b18c70b5a70e11f25863869f3b60b4dc728b8c92f6b240a5ad42",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-held-out-revenue-drop-88ca63-full-r1/record.json",
+      "bytes": 49864,
+      "digest": "sha256:5209b3cec6067a3ef3c396934bbfc1191a12513eb13101ec449458fab70f75f6",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-held-out-revenue-drop-88ca63-full-r1/trace.jsonl",
+      "bytes": 34915,
+      "digest": "sha256:db7b1c8b747df67655751f79f8d74281eb1f538992f38cffba634f21cc7c1029",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-held-out-revenue-drop-bf1f93-full-r1/evaluation_report.json",
+      "bytes": 689,
+      "digest": "sha256:71b5fd5d161e39b2dda9e0dcc2e24993699c9a0753669aea374f5d453456d065",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-held-out-revenue-drop-bf1f93-full-r1/receipt.json",
+      "bytes": 2783,
+      "digest": "sha256:72bc0581e21c74b5bc1ae20cb11056882373cdd647a5fe7271d22999e82bfabe",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-held-out-revenue-drop-bf1f93-full-r1/record.json",
+      "bytes": 48965,
+      "digest": "sha256:adf400a68b120be7fb8a165142533abf77b6cd4acd6dea9d8c64920abdd7897a",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-held-out-revenue-drop-bf1f93-full-r1/trace.jsonl",
+      "bytes": 34265,
+      "digest": "sha256:a40bb5af3f1c899b6bf7f3dcfb8098c4cdfac86281b1360d3156b2eb0b7c3ad7",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-held-out-revenue-drop-ef9687-full-r1/evaluation_report.json",
+      "bytes": 707,
+      "digest": "sha256:bf7eea9691266ed09434f7cf85ef9b2a3643f27cb98333f473f92c184c1789dd",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-held-out-revenue-drop-ef9687-full-r1/receipt.json",
+      "bytes": 2783,
+      "digest": "sha256:df40f4c2fc188226a56b32206a939ee907c8ffdf45f952708726a1e9eef9e5b8",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-held-out-revenue-drop-ef9687-full-r1/record.json",
+      "bytes": 56337,
+      "digest": "sha256:35710e356fe58da1c2ec1a4c9438ad49d01a6ccd99e15e988a491cb34a2af95d",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-held-out-revenue-drop-ef9687-full-r1/trace.jsonl",
+      "bytes": 39742,
+      "digest": "sha256:60142b9851991ed62d3b4e19c69e5f17613eeb4302a7faf0849cdddedbbb96aa",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-03df8b-full-r1/evaluation_report.json",
+      "bytes": 777,
+      "digest": "sha256:ae65c00a323f2a1adf7c8e1643aadba12d0daa7c110813cc9129fed437776a6c",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-luna-revenue-drop-03df8b-full-r1/receipt.json",
+      "bytes": 2778,
+      "digest": "sha256:c1147aa749315cb84d458b84582e3a29deabe722226e5bd8f0049640cb6caad0",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-03df8b-full-r1/record.json",
+      "bytes": 43662,
+      "digest": "sha256:d9568ff1959af34bff1f4af22773d5ce5ec5f4d6075e54c2e691767784ee876d",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-03df8b-full-r1/trace.jsonl",
+      "bytes": 31010,
+      "digest": "sha256:d0d8888c4e4c9987f41f61238d6c3e83102cf24185c74a0ec751c712e0508ca3",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-18b88d-full-r1/evaluation_report.json",
+      "bytes": 778,
+      "digest": "sha256:45b3e532d0ef59dd9a664a90151e8cdcaba0f871315039b81c929d620112fff4",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-luna-revenue-drop-18b88d-full-r1/receipt.json",
+      "bytes": 2778,
+      "digest": "sha256:6f37efbc4f92807abd3174b15cbf3d13aa9a1083b192c82b3dac8c54a36d5f55",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-18b88d-full-r1/record.json",
+      "bytes": 44740,
+      "digest": "sha256:ef559899d4dc5074e9ed92caef9acd8b11a924b91f144a346a4bfef393484e10",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-18b88d-full-r1/trace.jsonl",
+      "bytes": 31551,
+      "digest": "sha256:b6bfc7f5748cd7dc3a746f0fb1602fa23fdb69b07f62f764785af356b609e5fe",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-2c077d-full-r1/evaluation_report.json",
+      "bytes": 674,
+      "digest": "sha256:69f8bcfa876afbf4eca612982695747e7a9770f25ed29584498491ed38ce8f0e",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-luna-revenue-drop-2c077d-full-r1/receipt.json",
+      "bytes": 2778,
+      "digest": "sha256:f8bfd04ac878e6439e418909a3360db1a43e399c978ba191fcb25e81ee64fa66",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-2c077d-full-r1/record.json",
+      "bytes": 45406,
+      "digest": "sha256:af1e48e2a76d8243904383613d8dd4ea93444bbf5c03dbc89a99fbb75119cb0e",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-2c077d-full-r1/trace.jsonl",
+      "bytes": 31033,
+      "digest": "sha256:19ec84091186bd2a3edffb06b8673a00d18ab15ecbe57be045180bea239721f5",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-4c1f15-full-r1/evaluation_report.json",
+      "bytes": 801,
+      "digest": "sha256:cdb08d65b3367fc69d1c18b39082c58c43753d00173d790bffca8abd60923556",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-luna-revenue-drop-4c1f15-full-r1/receipt.json",
+      "bytes": 2778,
+      "digest": "sha256:137c15e1f9db2529839715991d2aaebf5a372776d64614efbb48e4837004a5a5",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-4c1f15-full-r1/record.json",
+      "bytes": 47155,
+      "digest": "sha256:be87245fbd65b9d73ba28a1133ad82cc59578fa5c856aa88970684ee754c24cb",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-4c1f15-full-r1/trace.jsonl",
+      "bytes": 33260,
+      "digest": "sha256:d28621bab39d6be3d36160c4a6e0e397bd6862fcc2e2f51a06147a7494b5a977",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-594c0f-full-r1/evaluation_report.json",
+      "bytes": 1846,
+      "digest": "sha256:b7115b83229465524a283f7c1a0222681e21285a6794d87bd21a0ca61c87cba1",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-luna-revenue-drop-594c0f-full-r1/receipt.json",
+      "bytes": 2778,
+      "digest": "sha256:6d71ef7cba8f2eb7ccd36d09cd56da88a4b39c07726fbf736f6b88a5662896fb",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-594c0f-full-r1/record.json",
+      "bytes": 46657,
+      "digest": "sha256:f6711382a8803bc044c7c686fe6e7d59c06f1ffc504c18e120d5f8c44a0cda75",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-594c0f-full-r1/trace.jsonl",
+      "bytes": 31843,
+      "digest": "sha256:94a947874198977f5284a8cc324125b45cdd35fbdd95c92ebb8ea7fc711de8ce",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-610a79-full-r1/evaluation_report.json",
+      "bytes": 691,
+      "digest": "sha256:365d4ae0a9d18b86529cff217da59a50df85d5ac5418293f6fa361d1f95be218",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-luna-revenue-drop-610a79-full-r1/receipt.json",
+      "bytes": 2778,
+      "digest": "sha256:f9b5a60d389f750eeae954b5acd190bef5da5507d287601f8247b2efe256e8f7",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-610a79-full-r1/record.json",
+      "bytes": 49214,
+      "digest": "sha256:7aa6416f3d5d94c52e038d517716fa1e8657d2919a30267245f1b63fa8d6ef84",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-610a79-full-r1/trace.jsonl",
+      "bytes": 34960,
+      "digest": "sha256:e48d47e27c9abec7717604906e7e51cc008a4cf3a0adcf9d20259d734f10723f",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-6fb41f-full-r1/evaluation_report.json",
+      "bytes": 674,
+      "digest": "sha256:6cc55048dc10f15f1fffbc2060e826dd12ee7ee868df9579d65a49ac67b99340",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-luna-revenue-drop-6fb41f-full-r1/receipt.json",
+      "bytes": 2778,
+      "digest": "sha256:54ae7ba4c976e9f2059e2c39376467fea8700ff07689c16f2509d42c5c2a27ff",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-6fb41f-full-r1/record.json",
+      "bytes": 40885,
+      "digest": "sha256:110adfbd95aa7c5db3c70301c319cc410c2518550d05809655bcdbf522f59e8c",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-6fb41f-full-r1/trace.jsonl",
+      "bytes": 28773,
+      "digest": "sha256:ac5463d020005b885f3c57576ea4229626ad2df91f3b79fb356d4434a133e1f4",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-70d601-full-r1/evaluation_report.json",
+      "bytes": 714,
+      "digest": "sha256:07f67f4b7d2a3e418e63f08292093764a5154646162926a6e9ca1f23e35af7d7",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-luna-revenue-drop-70d601-full-r1/receipt.json",
+      "bytes": 2778,
+      "digest": "sha256:66fa0bf8d3f644ec44da358aef24bd06c046d600a2d55db7527ec3cf2e989bca",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-70d601-full-r1/record.json",
+      "bytes": 46877,
+      "digest": "sha256:0d61cc56e2a9daf328a65c83c70ac747c891da5956621fb685b8c9451dc3cab7",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-70d601-full-r1/trace.jsonl",
+      "bytes": 33250,
+      "digest": "sha256:c67199ee973024d27c66be4a471ddb16a1a50a12307b306f69fece2582797959",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-70e933-full-r1/evaluation_report.json",
+      "bytes": 775,
+      "digest": "sha256:70ce75f21329ab9dc4ec12a7b1d588eea83298316dcd7a41ae2527dead1102b9",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-luna-revenue-drop-70e933-full-r1/receipt.json",
+      "bytes": 2778,
+      "digest": "sha256:86da5e530843c4008114d0ab6b58a4a5a6c5101a05446d804ea97447053812d7",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-70e933-full-r1/record.json",
+      "bytes": 42415,
+      "digest": "sha256:91507db086ff08289ee64a53d628caa9776ec7ddf3fe4ddc4fc753c7f9450409",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-70e933-full-r1/trace.jsonl",
+      "bytes": 29934,
+      "digest": "sha256:10640089012d192788b161899718e66577be59edce0b6e1a3a0de1f0fd190871",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-8e68f4-full-r1/evaluation_report.json",
+      "bytes": 647,
+      "digest": "sha256:35fbf1ba45363bbd17ded8b7146aa6ff9350aa758b4567279e46465875aa5f39",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-luna-revenue-drop-8e68f4-full-r1/receipt.json",
+      "bytes": 2778,
+      "digest": "sha256:7123a584b737e48f6d702a5ff02dc75386bf3ff94e3f4ddb90d6e496bac42251",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-8e68f4-full-r1/record.json",
+      "bytes": 43105,
+      "digest": "sha256:d87152383b30c1c13e3a35b21d8cb90cb1b436ce65a829d0126d35326554a31d",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-8e68f4-full-r1/trace.jsonl",
+      "bytes": 30409,
+      "digest": "sha256:f028dcc9a530303636a19aea7bc29069fe16256a1422f7a431b4de6e99464536",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-982e8e-full-r1/evaluation_report.json",
+      "bytes": 1869,
+      "digest": "sha256:10a6f16449efaf4548c186a4cc1cbce8bfa883d3bfe30b82e53675ac3270ecae",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-luna-revenue-drop-982e8e-full-r1/receipt.json",
+      "bytes": 2778,
+      "digest": "sha256:fc8379c7b7b8ed48195000afed8988da63b0cc8b04f6f75d5edd6487da284e44",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-982e8e-full-r1/record.json",
+      "bytes": 64389,
+      "digest": "sha256:7e4005e53d694bb3c2483443c3e6728895a9767260b949e3398860855e3a11bb",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-982e8e-full-r1/trace.jsonl",
+      "bytes": 42522,
+      "digest": "sha256:0d34fd239a25d1ffcd0b5e24eaa5717ca8933c53d7f793ce00dcb4074fd53f2f",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-d22c8a-full-r1/evaluation_report.json",
+      "bytes": 823,
+      "digest": "sha256:03c7ce9869523261ae6d351eb72af01008b3746bd924548a0414ca49a86cd334",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-luna-revenue-drop-d22c8a-full-r1/receipt.json",
+      "bytes": 2778,
+      "digest": "sha256:6f811d246ab301ae0dadf42292b944ef737bb241818f8a3cca8de5ba8ca028bb",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-d22c8a-full-r1/record.json",
+      "bytes": 43885,
+      "digest": "sha256:1c9946353d440697798a830a073a39ed90c0c8a8bf9f7dcc3887dc2b336c9bd2",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-luna-revenue-drop-d22c8a-full-r1/trace.jsonl",
+      "bytes": 30946,
+      "digest": "sha256:44ec26284098a66d4a959b4ac5505c9a11be45f55e5ad166de6c1663798c2fda",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-03df8b-alert-only-r1/evaluation_report.json",
+      "bytes": 622,
+      "digest": "sha256:ee65eb024bbbcec3208c44a6bb479c22a31b3081541420b3178eae9cd2778bc8",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-03df8b-alert-only-r1/receipt.json",
+      "bytes": 2644,
+      "digest": "sha256:13ced5a658cfff75f88163d16406b3e0a749be46071f7ce954d3b5114ebc08fb",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-03df8b-alert-only-r1/record.json",
+      "bytes": 9585,
+      "digest": "sha256:3c6e894da4dad3707535e30a1ffc65912793ccfc77bf8a70570600db0d96ce1b",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-03df8b-alert-only-r1/trace.jsonl",
+      "bytes": 5296,
+      "digest": "sha256:0138290c2ca4f8086eb8587b7f8e712b74e3782cdf6d136cad8c5b83a815b172",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-03df8b-always-escalate-r1/evaluation_report.json",
+      "bytes": 627,
+      "digest": "sha256:c438eb35ecdebf7936ddde888b7bde2439ffd83795c93748c6299582076dd46d",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-03df8b-always-escalate-r1/receipt.json",
+      "bytes": 1553,
+      "digest": "sha256:0c39966f6bc98c5cf443de4579ba50ffaf4f7c01d60ed83098584f791512d28e",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-03df8b-always-escalate-r1/record.json",
+      "bytes": 3081,
+      "digest": "sha256:a4637bc06c0fa6b6e76809f4ef2b86809ba6517c992ae28f10436a138c530c3a",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-03df8b-always-escalate-r1/trace.jsonl",
+      "bytes": 797,
+      "digest": "sha256:88c451d0ffb946ed40ed78514dae68194455412e2c3939d8d4d02f35eb0e48af",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-03df8b-full-r1/evaluation_report.json",
+      "bytes": 776,
+      "digest": "sha256:dfaadb2a827909980d84d97a60138b2ffe03b00d16d8db56b98dda346599ad75",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-03df8b-full-r1/receipt.json",
+      "bytes": 2773,
+      "digest": "sha256:47501dea81d41fb29ac35e83091561d4e73a12d884df66aab275791a64cf627b",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-03df8b-full-r1/record.json",
+      "bytes": 54353,
+      "digest": "sha256:745796ae465a6e1252d117070d0aed1cef50720a4a9c7c1354f464163d711eed",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-03df8b-full-r1/trace.jsonl",
+      "bytes": 38886,
+      "digest": "sha256:91d61f575689a9ebd525b77ebcf3db92cf9211c711d1e0fe3dc593d592129448",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-18b88d-alert-only-r1/evaluation_report.json",
+      "bytes": 721,
+      "digest": "sha256:dd3dd51f21630f247379e106b2f13adb37e801ba85673faf21e9210497625c9a",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-18b88d-alert-only-r1/receipt.json",
+      "bytes": 2644,
+      "digest": "sha256:43e727e759ce8fc0220abe1edc5806ab9743b49693c84219a2ea1f7d2f9c84b0",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-18b88d-alert-only-r1/record.json",
+      "bytes": 9663,
+      "digest": "sha256:a19b18669d507e4ed2cae12aeb1591107a72f8b57fcb2816b47530e19836c692",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-18b88d-alert-only-r1/trace.jsonl",
+      "bytes": 5334,
+      "digest": "sha256:c56f3d2085404cdbfb473e4d0ad2cef1c6d00c71612108ce18c6005f4eeba5f5",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-18b88d-always-escalate-r1/evaluation_report.json",
+      "bytes": 726,
+      "digest": "sha256:7e3e26d9b12c41a744867275ee5c374c1f4edeb7ffdd28323eed08ac4e82d487",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-18b88d-always-escalate-r1/receipt.json",
+      "bytes": 1553,
+      "digest": "sha256:30f214082a32c641311d1f59c885f36d9c6ba4f946026b658b36cbe155ca56a6",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-18b88d-always-escalate-r1/record.json",
+      "bytes": 3080,
+      "digest": "sha256:ff52c8b52a093dbda0a7eb9833ffb4411c4cc725278c2f3f1896f7fcaf247bf8",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-18b88d-always-escalate-r1/trace.jsonl",
+      "bytes": 797,
+      "digest": "sha256:60b97845a0f7ae4f3efd5f19949869ae03a287de062ec7cd687801a707a36134",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-18b88d-full-r1/evaluation_report.json",
+      "bytes": 1911,
+      "digest": "sha256:ee5933ee13d4fbc53c40f6b83ad4440866a83fadce92d5d67c4252c12efed1c7",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-18b88d-full-r1/receipt.json",
+      "bytes": 2773,
+      "digest": "sha256:f1356a8e462d8bae0c6e4f8d2538617b26ae570750eecc2087090ff396177471",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-18b88d-full-r1/record.json",
+      "bytes": 61606,
+      "digest": "sha256:a0d1a8d5f3d671aa7b47fa86377f93a9950024b87a2e0e90359f5027a1b7a7a6",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-18b88d-full-r1/trace.jsonl",
+      "bytes": 43346,
+      "digest": "sha256:0031b4216d691e1018c69778e749672e5dcc1ccf20e441c623ef9298efb11c1c",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-2c077d-alert-only-r1/evaluation_report.json",
+      "bytes": 622,
+      "digest": "sha256:5e785e4ae66da74aa5ea5e784001dc5aa89fe9505a070fc95af60510b3d92122",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-2c077d-alert-only-r1/receipt.json",
+      "bytes": 2644,
+      "digest": "sha256:1b756727345ead05d83528b5b029066ba04048947ae05d448f2f003329ab891a",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-2c077d-alert-only-r1/record.json",
+      "bytes": 9556,
+      "digest": "sha256:4ddc36c6a68c84b15aade6778ac177c30dc82039846b3e9c6f0f2a67c3462cbd",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-2c077d-alert-only-r1/trace.jsonl",
+      "bytes": 5281,
+      "digest": "sha256:e3b8c2b7c6bbb18e7385d716dd7a29bfb7574c03665be5a4b324f7c6d31c1661",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-2c077d-always-escalate-r1/evaluation_report.json",
+      "bytes": 627,
+      "digest": "sha256:625b27709fa7fa2867412df8d14ec715f72321a3a3fc87a3eb0866552f649c41",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-2c077d-always-escalate-r1/receipt.json",
+      "bytes": 1553,
+      "digest": "sha256:db6873b118799b52d9e1b3b10e61cd33f4c48f6f0fe32c8c676529c406d0cab1",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-2c077d-always-escalate-r1/record.json",
+      "bytes": 3080,
+      "digest": "sha256:26fce2696ab710d4b058d551bf8b1b8e00be2e30900626933c91d7c68418a58a",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-2c077d-always-escalate-r1/trace.jsonl",
+      "bytes": 797,
+      "digest": "sha256:25bdf13f490d8080bb26ce4491589e1a48d1609370fb43674a185cce165f78bc",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-2c077d-full-r1/evaluation_report.json",
+      "bytes": 673,
+      "digest": "sha256:28628483def3006df85021ff7eb2d998da0c2aada7fed55f9a69cc6e3cc64f58",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-2c077d-full-r1/receipt.json",
+      "bytes": 2773,
+      "digest": "sha256:d2544c48bee246d801119258759f460c7ecbf753b5e9e32f0e585a575565568a",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-2c077d-full-r1/record.json",
+      "bytes": 45150,
+      "digest": "sha256:733797b0a3de1e47c0ec24890773de1b2f3b11f136f56eccb7424fabff405c00",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-2c077d-full-r1/trace.jsonl",
+      "bytes": 31792,
+      "digest": "sha256:52acabab7364cf06469b95894ddeb16608a2d07a35ec2145300f6a282aefaf7b",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-4c1f15-alert-only-r1/evaluation_report.json",
+      "bytes": 733,
+      "digest": "sha256:16c32e0b60da1bc917b4e54592ff4ef3abbf2d1d52072f51197f29c48bd6e987",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-4c1f15-alert-only-r1/receipt.json",
+      "bytes": 2644,
+      "digest": "sha256:72656ef37f2ea081e70835a6ce407ce7f55d58d5b1ea94427936184c9d14c97a",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-4c1f15-alert-only-r1/record.json",
+      "bytes": 9633,
+      "digest": "sha256:37a44881b22f89dba6a41c695c6ace28ff23ea2e04090437a04495fe762cb1d4",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-4c1f15-alert-only-r1/trace.jsonl",
+      "bytes": 5323,
+      "digest": "sha256:141d334bdbe289aa4f1ee17eac1a67811179e3ccf68a73daeddd9db7fb929f56",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-4c1f15-always-escalate-r1/evaluation_report.json",
+      "bytes": 738,
+      "digest": "sha256:e3e1c0f8e7ce45431af1ce707db3dd733128605f5cc5720e9b86c342aeb257c8",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-4c1f15-always-escalate-r1/receipt.json",
+      "bytes": 1553,
+      "digest": "sha256:8327537559d5b131c2b8732f8bc6493bc2795d9ff60cc4cb9c4dfdf181e2754b",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-4c1f15-always-escalate-r1/record.json",
+      "bytes": 3086,
+      "digest": "sha256:c446cdc72341c976a1f29f1e3915d90b7b68f6b0ea48953d0d3b1991fd4a5b0d",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-4c1f15-always-escalate-r1/trace.jsonl",
+      "bytes": 803,
+      "digest": "sha256:159b8c85007ea02e89ef7d19f59d831817a910da430025082e027fea9f5d3bfe",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-4c1f15-full-r1/evaluation_report.json",
+      "bytes": 684,
+      "digest": "sha256:20941b7f4778114d0bd8040601be3cfed927b934b5f44cc0c5f5922d44c97a06",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-4c1f15-full-r1/receipt.json",
+      "bytes": 2773,
+      "digest": "sha256:df885ff0e7ab45692244b934be72d1c497d9badc0284e28debb8b7881d21e63e",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-4c1f15-full-r1/record.json",
+      "bytes": 63323,
+      "digest": "sha256:0259ee3646aedcc91d20fbd52d6dd00a441d6ccdceafffa4ac810b48551e6a5b",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-4c1f15-full-r1/trace.jsonl",
+      "bytes": 45220,
+      "digest": "sha256:91163d187dc10ce2064c183a9eb7999dbaf7d04361feff401bb8fd67e8ab449a",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-594c0f-alert-only-r1/evaluation_report.json",
+      "bytes": 721,
+      "digest": "sha256:065c8878ac452a1b466895466c4e07198e58b6546cb9167432ebcfbc6e47f92a",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-594c0f-alert-only-r1/receipt.json",
+      "bytes": 2644,
+      "digest": "sha256:05c18409e721230e2bab3fa151d436eb57de277d25c49ae80b6fae95f72e89e9",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-594c0f-alert-only-r1/record.json",
+      "bytes": 9570,
+      "digest": "sha256:cdba87fed049f073a211b79935c319c4d3f6e009fd995b9eb7acc2bd0234ee55",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-594c0f-alert-only-r1/trace.jsonl",
+      "bytes": 5288,
+      "digest": "sha256:719b5f41eaa71e4453adafb3c88b4af3b98e59b255b17c6ffff91826d1238cd3",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-594c0f-always-escalate-r1/evaluation_report.json",
+      "bytes": 726,
+      "digest": "sha256:7dd64b6d5a4a49c8b9ea7345881bd978f7b8560762b3b25067e4f2467e8cd6df",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-594c0f-always-escalate-r1/receipt.json",
+      "bytes": 1553,
+      "digest": "sha256:129368819eb699c019c8c71156b324fed7c13458a5bdeec22b0abde6a731055b",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-594c0f-always-escalate-r1/record.json",
+      "bytes": 3080,
+      "digest": "sha256:6856c1a9944bf1bf1519faf137d6e089f5d488856f5cee76c0d534d757fecda8",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-594c0f-always-escalate-r1/trace.jsonl",
+      "bytes": 796,
+      "digest": "sha256:e0a7eee2fa98fc52b4a3f94aa8da322912260ae5f49581ad80329cae511293b1",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-594c0f-full-r1/evaluation_report.json",
+      "bytes": 1860,
+      "digest": "sha256:bb3f8e5f042cd43d486bfb336c00b4f9082f6dc2012abef8da12880cf8324628",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-594c0f-full-r1/receipt.json",
+      "bytes": 2773,
+      "digest": "sha256:3e1ff8a3323a047ceec300b75762005275bb1b766b0e2cfbc89d90a631f1c2b8",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-594c0f-full-r1/record.json",
+      "bytes": 55070,
+      "digest": "sha256:a7a4753bc3098738049408f94a091bb1c11d1e28b7ddca8c60821ef8c135b044",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-594c0f-full-r1/trace.jsonl",
+      "bytes": 38442,
+      "digest": "sha256:02718c19e316bcfdd53f72ace439fceebb1b3b2a34a332a461cb874bed57b440",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-610a79-alert-only-r1/evaluation_report.json",
+      "bytes": 721,
+      "digest": "sha256:758c04b2a14c32f4307bdc0fcea63d09a5b6c19ef72a81824bed100650699fe0",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-610a79-alert-only-r1/receipt.json",
+      "bytes": 2644,
+      "digest": "sha256:83fb5496835a3d880f71204f4a49b14a38bdfe23145e40d0966ae9d862f84bae",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-610a79-alert-only-r1/record.json",
+      "bytes": 9687,
+      "digest": "sha256:9596fdd2cfc4453976148d72429c2ebd300286105f29d4dc4396935fc392f9a8",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-610a79-alert-only-r1/trace.jsonl",
+      "bytes": 5347,
+      "digest": "sha256:9a8144df191ab7d4d57dd0183b575b73e587b2b78af2b4c1a970100dcd62279a",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-610a79-always-escalate-r1/evaluation_report.json",
+      "bytes": 726,
+      "digest": "sha256:cff565647799b280acf1beb5620c18eeb48d7f073041e45318d88f9e9047b1ab",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-610a79-always-escalate-r1/receipt.json",
+      "bytes": 1553,
+      "digest": "sha256:738be9f948ca77adb146ce12adb004fc4a2edcb48513189af384366b382372a9",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-610a79-always-escalate-r1/record.json",
+      "bytes": 3080,
+      "digest": "sha256:ff8222c445103cf1dda2a4c66c30d7bb0a592bfdcb178144c156dbbc0d67aa30",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-610a79-always-escalate-r1/trace.jsonl",
+      "bytes": 797,
+      "digest": "sha256:64c36ac5606d5e31915c9f9cf4d87a74e7b8134ff82caa544a739614936222c1",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-610a79-full-r1/evaluation_report.json",
+      "bytes": 1783,
+      "digest": "sha256:3ebeb6a2e5c1160c4bf8e6f2e6f509925912178fe1ae9dcabf35151279ce5b1d",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-610a79-full-r1/receipt.json",
+      "bytes": 2773,
+      "digest": "sha256:bcb95d748953883eb5557957b8d399d14ff41b867da377ad4489275546de531f",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-610a79-full-r1/record.json",
+      "bytes": 53250,
+      "digest": "sha256:aeb52a5553b0b09dd605e3a0ec49342bde14977603fbdfeed315431851bd3836",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-610a79-full-r1/trace.jsonl",
+      "bytes": 37343,
+      "digest": "sha256:f24ddda863f7c2730f6793ef90070e4ce748381f212c776879289c251a78b9c7",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-6fb41f-alert-only-r1/evaluation_report.json",
+      "bytes": 622,
+      "digest": "sha256:23c53be2b9383801e12105e73801f450ba7db69f3976188b7258c34b75d8d02f",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-6fb41f-alert-only-r1/receipt.json",
+      "bytes": 2644,
+      "digest": "sha256:8b1469ff0b2c8c4362c2fc749d826c88f59cc282c167491f9a195bef513ccc53",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-6fb41f-alert-only-r1/record.json",
+      "bytes": 9728,
+      "digest": "sha256:3b12b279a963cb0c3e992953e793088e2a7785f08d0301b709d1aa1c03800ddc",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-6fb41f-alert-only-r1/trace.jsonl",
+      "bytes": 5367,
+      "digest": "sha256:831ccbafddc15aa3002e2a8c10d88fe0dfd48a91133d33eb09ad08b616ae7f8c",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-6fb41f-always-escalate-r1/evaluation_report.json",
+      "bytes": 627,
+      "digest": "sha256:4e83b08227ba13ca019b4aba1d937168ed450606f327a46a45493212130fb1ed",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-6fb41f-always-escalate-r1/receipt.json",
+      "bytes": 1553,
+      "digest": "sha256:91e6761917419737b8269dd3c2e7e046510e04e39c028e1635e58c95acecd5b0",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-6fb41f-always-escalate-r1/record.json",
+      "bytes": 3080,
+      "digest": "sha256:33c2ee35d46945d073df7fac3d9ac2e0decbc2dacada8f755b5279da73775fa7",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-6fb41f-always-escalate-r1/trace.jsonl",
+      "bytes": 796,
+      "digest": "sha256:a492a97e926d2f5e00aacc10a08d15dc9da53b0825da09dbb8d6ae9f00f9d440",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-6fb41f-full-r1/evaluation_report.json",
+      "bytes": 644,
+      "digest": "sha256:93d3ba5ff464c60a1b08ab0ce4527be9311bd4b7dc1078a45eb243d5d70f8e3b",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-6fb41f-full-r1/receipt.json",
+      "bytes": 2773,
+      "digest": "sha256:28a82c4514c1ac14a540cf75cd3a0623c6b180e11df67d032045aa68510728f3",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-6fb41f-full-r1/record.json",
+      "bytes": 46898,
+      "digest": "sha256:7db18d26c9bed184d83282bdcafaf6461378322045b48ab4fe3dd703946f0fe3",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-6fb41f-full-r1/trace.jsonl",
+      "bytes": 33065,
+      "digest": "sha256:5e94ca2fa1d54e81c2aefa317b69cc51c3bcc352df51752343cebe805b115f41",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-70d601-alert-only-r1/evaluation_report.json",
+      "bytes": 733,
+      "digest": "sha256:cdb224aabc926001685437760aac2bbfda53caabfd36ba989d424b57d2f07b58",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-70d601-alert-only-r1/receipt.json",
+      "bytes": 2644,
+      "digest": "sha256:fd91991b750ebe039422c418e26e5b9f59761319f37ceea9822b5bcf410c0eb9",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-70d601-alert-only-r1/record.json",
+      "bytes": 9685,
+      "digest": "sha256:8b0e1ce5b9454910d0b39fc221d5aed2a02683fd3959f300a4061b635f098e71",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-70d601-alert-only-r1/trace.jsonl",
+      "bytes": 5345,
+      "digest": "sha256:e9bba9608084b78d37bc8233e0b015440e243dc931fb777c1032f6a9f1a29bcf",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-70d601-always-escalate-r1/evaluation_report.json",
+      "bytes": 738,
+      "digest": "sha256:882f470cc4bcc893e67a495dcf705af8a4e8e101789d059f551717b20d14572d",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-70d601-always-escalate-r1/receipt.json",
+      "bytes": 1553,
+      "digest": "sha256:fb10942256cb961d8010230a9032560ad111a3b7cbdf85e66085ef31d9bf924d",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-70d601-always-escalate-r1/record.json",
+      "bytes": 3079,
+      "digest": "sha256:216d95ccf3b798a52fe2ecbd72598bb745f04c9a555f68d94eefdb99d9f29432",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-70d601-always-escalate-r1/trace.jsonl",
+      "bytes": 796,
+      "digest": "sha256:0bcb0bb5ce05266273405fdcb36d38dabaaef50fa9aa8b7f8b246d7ca5fcfa15",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-70d601-full-r1/evaluation_report.json",
+      "bytes": 713,
+      "digest": "sha256:842c4c026cb4d747005a89a7ff2bcfcff7b1963ff6b5f292b5c62fa812acfb00",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-70d601-full-r1/receipt.json",
+      "bytes": 2773,
+      "digest": "sha256:7d9a6945f930f4a833787002627425003f09f7850025ad7750deaf93b94ac345",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-70d601-full-r1/record.json",
+      "bytes": 47027,
+      "digest": "sha256:87d733bac47a9499f7059b3eb88a5086758786db065adbb097d6e68e122f4683",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-70d601-full-r1/trace.jsonl",
+      "bytes": 33945,
+      "digest": "sha256:3892c22a4f8da0107104152b4b1dfde0cb8dd3485b4f4efab4e6d4e0651cfd0b",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-70e933-alert-only-r1/evaluation_report.json",
+      "bytes": 733,
+      "digest": "sha256:8d72dfce20262f1cd273714eb74f92805e049f23b49192aed369a708adca5f3f",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-70e933-alert-only-r1/receipt.json",
+      "bytes": 2644,
+      "digest": "sha256:5e0b54352da4b3c7d2c89d8a60e8db13ecfec6823b869eeac76de0abfe055fbc",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-70e933-alert-only-r1/record.json",
+      "bytes": 9583,
+      "digest": "sha256:9f34247d9352ceac5c2ad7e232a085e8d4c9d43a18be947101622f5cb08402b2",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-70e933-alert-only-r1/trace.jsonl",
+      "bytes": 5295,
+      "digest": "sha256:6eb90b15820a0ac90e8e731382ad0f84f788d0158f6e2fe1c7fde500b783a784",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-70e933-always-escalate-r1/evaluation_report.json",
+      "bytes": 738,
+      "digest": "sha256:a216cf7dd308a2a8951146f805df8e9a5b42c218b4ea37fce8246a40603f3e9e",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-70e933-always-escalate-r1/receipt.json",
+      "bytes": 1553,
+      "digest": "sha256:6cbbf3ea4dce069d67cdde977df8cc70f6591c9202eadc65b034aca7dabc6ae9",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-70e933-always-escalate-r1/record.json",
+      "bytes": 3080,
+      "digest": "sha256:bde975645fe0b71ec019e94cf9ec93dfcdd28eb5284224b776c3f5dd7f9550c4",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-70e933-always-escalate-r1/trace.jsonl",
+      "bytes": 797,
+      "digest": "sha256:228e34dddec1cb3543486b15d1504be05770cabb2c8f0b394ee0bb4b60477a0b",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-70e933-full-r1/evaluation_report.json",
+      "bytes": 742,
+      "digest": "sha256:a7498b5f06f336b349aa750892ced21ae064464517cc7a18151de06b1e5da696",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-70e933-full-r1/receipt.json",
+      "bytes": 2773,
+      "digest": "sha256:34c59c478d9ab4166d3ca687156576e4c92231ea79d5795abb330803d34c133e",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-70e933-full-r1/record.json",
+      "bytes": 59099,
+      "digest": "sha256:85917db89aba058c511956f3a704a71b0faea0deb7ba735d0588ad55d60aef51",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-70e933-full-r1/trace.jsonl",
+      "bytes": 41993,
+      "digest": "sha256:ab06861aa601b653d6c6ed45360ab5f3e70857254d0613c452d4cf763dfe4445",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-8e68f4-alert-only-r1/evaluation_report.json",
+      "bytes": 733,
+      "digest": "sha256:2b5a990dfa60173ea3a5662c1b5a4c4c242c7c2269dfac62f1809934c9494850",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-8e68f4-alert-only-r1/receipt.json",
+      "bytes": 2644,
+      "digest": "sha256:18b8d364281d5246917b08077447486f767b1471af8c7b1ba63a44b01ed9185b",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-8e68f4-alert-only-r1/record.json",
+      "bytes": 9557,
+      "digest": "sha256:baf8d8870fe401f941d32826045a7e0d7b706ed63754f00f2490771651bd13d1",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-8e68f4-alert-only-r1/trace.jsonl",
+      "bytes": 5282,
+      "digest": "sha256:7d1ae7eb76eec542e353c486ea75ef77876ce960ffd5f8dace4ec0635539e88d",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-8e68f4-always-escalate-r1/evaluation_report.json",
+      "bytes": 738,
+      "digest": "sha256:3d34a15b31032daed68d24334a17f2f803d9c3ad8e5add13c39df398bf7561c8",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-8e68f4-always-escalate-r1/receipt.json",
+      "bytes": 1553,
+      "digest": "sha256:cb1bdce39544bb5ef84b5e9cf54703a56352dcd82cd0bcd3fb89a15f9c3eb7e6",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-8e68f4-always-escalate-r1/record.json",
+      "bytes": 3080,
+      "digest": "sha256:a812e4200bd2337dda13a79c397e747104d8f0917675e5953502d6dc8d4a0dbd",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-8e68f4-always-escalate-r1/trace.jsonl",
+      "bytes": 797,
+      "digest": "sha256:eb61d5425c9fb01f3f5e737c4502953f5e3cd787c85e73310c12d51a5cf1cc00",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-8e68f4-full-r1/evaluation_report.json",
+      "bytes": 742,
+      "digest": "sha256:7a35da0d3b8bbce5728f27b7f481096c04096937b35c257f10bd10bd9489329d",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-8e68f4-full-r1/receipt.json",
+      "bytes": 2773,
+      "digest": "sha256:28fd16daade4f842edfa86bbdd994ceeb8ec8784bd9e72b1c594d393f049e36b",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-8e68f4-full-r1/record.json",
+      "bytes": 64269,
+      "digest": "sha256:d69268d00cd87a00436158554d17c76370c7c4eb2ee683ca4b1e65a544b930c5",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-8e68f4-full-r1/trace.jsonl",
+      "bytes": 45894,
+      "digest": "sha256:942af764699b2b76930e8f07a720a1f5088bb23207839beae5a690051f9813e9",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-982e8e-alert-only-r1/evaluation_report.json",
+      "bytes": 721,
+      "digest": "sha256:d9c818f88f708e6b3c81a523783506240bc6ce8e21c1292368bdcb85bdcc93a2",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-982e8e-alert-only-r1/receipt.json",
+      "bytes": 2644,
+      "digest": "sha256:c019ccea8fe0f4feb2170f4585390b02970a1f2aafd322d541865026d98a47f4",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-982e8e-alert-only-r1/record.json",
+      "bytes": 9693,
+      "digest": "sha256:0e44e96282dda794f0fad996f4a320174fbc1579d5b60b4c32686528caeca364",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-982e8e-alert-only-r1/trace.jsonl",
+      "bytes": 5352,
+      "digest": "sha256:57eeb7150603d24b99c264cc5475305c158b3759a1b3ca0769c91791adf4cd0f",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-982e8e-always-escalate-r1/evaluation_report.json",
+      "bytes": 726,
+      "digest": "sha256:a39cba49ba6ec0cf94fc6a85d61e5dea4f0c05596a0f7baa620981c23f6d776e",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-982e8e-always-escalate-r1/receipt.json",
+      "bytes": 1553,
+      "digest": "sha256:986a8ee9e5ae8d2fd703f2df80a34b76356211f9507b5d8bf4b198b62601e799",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-982e8e-always-escalate-r1/record.json",
+      "bytes": 3086,
+      "digest": "sha256:7eaf3a4634a04c43796fa322394844cffcd186105d6dde29bded0c9ab2bf71c5",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-982e8e-always-escalate-r1/trace.jsonl",
+      "bytes": 803,
+      "digest": "sha256:e1e2abbecdc4567ed3f079c281b4c2bea4c4e90a8ff948449750642ef5d09a0c",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-982e8e-full-r1/evaluation_report.json",
+      "bytes": 1805,
+      "digest": "sha256:077135de6f56bf13d41424d570f8ed6932a1ea928d042aac4ae7d235024b3dd2",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-982e8e-full-r1/receipt.json",
+      "bytes": 2773,
+      "digest": "sha256:790169257d1d5148bfe10bbaa6bc91d6a9123d93f46653e5813784561c017a04",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-982e8e-full-r1/record.json",
+      "bytes": 61537,
+      "digest": "sha256:de1a5bda49e2680ff4bc0b54708e2ea59f3914d04b5efe3a4bfb036ec5f06dfa",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-982e8e-full-r1/trace.jsonl",
+      "bytes": 42345,
+      "digest": "sha256:e9e2714ac680e43d4e9f34b78c13c84d82dc4c00f2ed3d15cb1cee564c05b435",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-d22c8a-alert-only-r1/evaluation_report.json",
+      "bytes": 622,
+      "digest": "sha256:a8964dbc5b2eec1726b6bdc71fb752c51af3e4f09a83aaa1e4b8050d6abf3d3b",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-d22c8a-alert-only-r1/receipt.json",
+      "bytes": 2644,
+      "digest": "sha256:1957f79061e2361177450356fd199bde69982b0dbd5c48e133713e9291a7c980",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-d22c8a-alert-only-r1/record.json",
+      "bytes": 9689,
+      "digest": "sha256:a79d10f64c4aa269594bf396a2329ac5a780bc7f945e482b637ad9aad13adc35",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-d22c8a-alert-only-r1/trace.jsonl",
+      "bytes": 5351,
+      "digest": "sha256:bea6ed59c4c3664eec34b9291391b68857bf7e52b44ab2343472474e1ca2b652",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-d22c8a-always-escalate-r1/evaluation_report.json",
+      "bytes": 627,
+      "digest": "sha256:06ba5390624f0ca0468e673b490504a8fba73d1d1496901b1dbfbe74cdc5ce6f",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-d22c8a-always-escalate-r1/receipt.json",
+      "bytes": 1553,
+      "digest": "sha256:ae4130977d429c92d243eb298ef6a86646c6dd14fb75dd26ce081c338aa994d7",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-d22c8a-always-escalate-r1/record.json",
+      "bytes": 3086,
+      "digest": "sha256:e32974d0d67eed38aa659761c90957ff51aa26bc1556436a2c885e60c8e1e21c",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-d22c8a-always-escalate-r1/trace.jsonl",
+      "bytes": 803,
+      "digest": "sha256:2398c3f67a3472ee1b81f07b99912d340c512be63335c67d8da0bb57fee3d9cf",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-d22c8a-full-r1/evaluation_report.json",
+      "bytes": 747,
+      "digest": "sha256:8a930c3b359a5183568942adc89e123f5ecd168c830b685805f06de9c1b8d20c",
+      "retention": "evaluation"
+    },
+    {
+      "path": "final-sol-revenue-drop-d22c8a-full-r1/receipt.json",
+      "bytes": 2773,
+      "digest": "sha256:7ed2c30bfc78ac3b731b7a8aca346e73ce7d77f4daf8b04d3574c0fcb7570770",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-d22c8a-full-r1/record.json",
+      "bytes": 44529,
+      "digest": "sha256:c34c989c5f31f15c531692b04d05ac563d29898851569dfaf5f73fc4d337d8d1",
+      "retention": "evidence"
+    },
+    {
+      "path": "final-sol-revenue-drop-d22c8a-full-r1/trace.jsonl",
+      "bytes": 31701,
+      "digest": "sha256:f419a1cb55d0c9125ba033fc670411078341da5661aef43b86ac53bb9e4152b2",
+      "retention": "evidence"
+    },
+    {
       "path": "orders-missing-day-20260916T111954-473Z/receipt.json",
       "bytes": 848,
       "digest": "sha256:4c1c68053bf048d682c4ea2da9988a0cf080f9379b060476a3b50057c05d904b",
@@ -337,6 +1939,1104 @@
       "path": "paid-smoke-1/trace.jsonl",
       "bytes": 1083,
       "digest": "sha256:c157535ed335d993ffd4d140ac168fdf2a84fb9ef98d135ac0b61edf4e82418f",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-29c766-alert-only-r1/evaluation_report.json",
+      "bytes": 737,
+      "digest": "sha256:3640ce487a2bc47b24f9f8405e28b6de69c02a1de0a073eee7ce0943b09005a7",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-29c766-alert-only-r1/receipt.json",
+      "bytes": 2558,
+      "digest": "sha256:c8fe178536577a0c2a55efeb8ef1be8890cff701b15c4f5b36e7cdac815dadd8",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-29c766-alert-only-r1/record.json",
+      "bytes": 7825,
+      "digest": "sha256:68a4ea896e760acfd295b5a6923e8cf18d876e7a7cf66f1128bcbf06f2dd4114",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-29c766-alert-only-r1/trace.jsonl",
+      "bytes": 4520,
+      "digest": "sha256:b01f15121f2a59b16d203d199dad43a1ebfdd6e4f9f18485b450cbdac36d0768",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-29c766-full-r1/evaluation_report.json",
+      "bytes": 749,
+      "digest": "sha256:96c773e61a5c8b996b3ba6bc88951e1fd2f14e675b30e2f573c95ed8619e75a6",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-29c766-full-r1/receipt.json",
+      "bytes": 2687,
+      "digest": "sha256:11359cf2d927ac2ebad5f6147363c17d4fd7ed6f8115de2d7d5cf7940713b27d",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-29c766-full-r1/record.json",
+      "bytes": 48467,
+      "digest": "sha256:cb11413b78a01a0e47296b475f5356635162f1eea8648dea2b174597152302a1",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-29c766-full-r1/trace.jsonl",
+      "bytes": 31857,
+      "digest": "sha256:7cf17fd832d2d527d3d9ce0aaf4659c1e666d378d0da8c44a1e325721dd60c04",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-3ca544-alert-only-r1/evaluation_report.json",
+      "bytes": 626,
+      "digest": "sha256:f2b759b757913daab3bb3190c05cbeded704e8cfc8a3dd06699551555db31c4b",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-3ca544-alert-only-r1/receipt.json",
+      "bytes": 2558,
+      "digest": "sha256:bd9b622c868fe69a3645b2422a9e0c808cb9887fdfd372cf7da48954d4f95fd2",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-3ca544-alert-only-r1/record.json",
+      "bytes": 7808,
+      "digest": "sha256:d3b5db7cb2e240648750e5da6eea0c6f7a9c9e35245ebc4610ff69ebed047a08",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-3ca544-alert-only-r1/trace.jsonl",
+      "bytes": 4512,
+      "digest": "sha256:f5dfbd96fd94c07ca970b5680164e190c87861b1c4926d07e6fe9acc46398af1",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-3ca544-full-r1/evaluation_report.json",
+      "bytes": 809,
+      "digest": "sha256:8639cdfedb1fcb35bb285b2fd4bead18eac6d182f33e7ff7feaa6599d896fce2",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-3ca544-full-r1/receipt.json",
+      "bytes": 2687,
+      "digest": "sha256:268619724a178c076bad77ed8c96380ed55e72c9ed84ed5c45e0202155b1e660",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-3ca544-full-r1/record.json",
+      "bytes": 44612,
+      "digest": "sha256:187849fcfc9debb10ee9340c24fc4250dc83bf8523f7835b3da786b10148012e",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-3ca544-full-r1/trace.jsonl",
+      "bytes": 31137,
+      "digest": "sha256:895dd8e7e1fa69331f3fad41243100ddd027ee55108f1aaf2ecb0ba1b3b011aa",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-68c0c2-alert-only-r1/evaluation_report.json",
+      "bytes": 626,
+      "digest": "sha256:d96da0d587d84c5dc94bd546b93e47446cda27032fd7a1f63700fd29f70f748f",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-68c0c2-alert-only-r1/receipt.json",
+      "bytes": 2558,
+      "digest": "sha256:c6746bec4892b68b4ed80fafad0784ee7cfced7726a9a49cf2b8e6081d3724c5",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-68c0c2-alert-only-r1/record.json",
+      "bytes": 7831,
+      "digest": "sha256:3e1b6fc76687e39f63eada0fc2519139ef966914714097462f6ee6b9a681a7ae",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-68c0c2-alert-only-r1/trace.jsonl",
+      "bytes": 4522,
+      "digest": "sha256:5d0fc4f48d47642807ab07ed66eb7da7a5476bf6da99bcfdb6d04078fac59240",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-68c0c2-full-r1/evaluation_report.json",
+      "bytes": 693,
+      "digest": "sha256:662cc6f162ee9adad9da94c362e027501994741545770c7e1e9a5fba005c1522",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-68c0c2-full-r1/receipt.json",
+      "bytes": 2687,
+      "digest": "sha256:8a1c322a02cd5a15399d9b497cc72d40fbf63d41cf728422c1dba501006c8661",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-68c0c2-full-r1/record.json",
+      "bytes": 33347,
+      "digest": "sha256:ceb70c70aa9cfbdd15ba3899556a9f8909ee8597bf74ade96e60ed51f01313b8",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-68c0c2-full-r1/trace.jsonl",
+      "bytes": 23365,
+      "digest": "sha256:b99ebb2523fa541cc40e354a4936b199589439574012d9d112ad69e61992d321",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-7b89be-alert-only-r1/evaluation_report.json",
+      "bytes": 723,
+      "digest": "sha256:bb0864cb65132757faa0828a7e5e4175175b7800ad119dba8870e2fe42fdd569",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-7b89be-alert-only-r1/receipt.json",
+      "bytes": 2558,
+      "digest": "sha256:72934d8486067d6483b45b702baa1a57c70103e1f7baaf639ec37b37fe0f1d97",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-7b89be-alert-only-r1/record.json",
+      "bytes": 7803,
+      "digest": "sha256:746dd927a729637c3ff89cef3014a2aff77c4b1cdc399d3a5d1794f23b7cbe93",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-7b89be-alert-only-r1/trace.jsonl",
+      "bytes": 4508,
+      "digest": "sha256:9e59ef290b25917c3907f6526fdcb19b9a7baa877477544ff71c9604d92f5a1c",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-7b89be-full-r1/evaluation_report.json",
+      "bytes": 661,
+      "digest": "sha256:601c5b727e89709be4caf3e3b64c933d70dbcddf991fc4356c226fdc073382d3",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-7b89be-full-r1/receipt.json",
+      "bytes": 2687,
+      "digest": "sha256:86e371338c2f47914112eda8087981b86ffae01d975af0a0ff019a770b89b734",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-7b89be-full-r1/record.json",
+      "bytes": 34450,
+      "digest": "sha256:f193126734fdebeb0db2c646b11d5b5c38cd92dba40e5d436d07167a0c551b1e",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-7b89be-full-r1/trace.jsonl",
+      "bytes": 24267,
+      "digest": "sha256:ec01f0f25d92703c67397fdb3809b0933c62c6f4fde8254c712392639810ba30",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-87a370-alert-only-r1/evaluation_report.json",
+      "bytes": 723,
+      "digest": "sha256:f22d4a62be6ec2947c9c307d2a6995c3e452d7101e363f8877e2da6780a86c45",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-87a370-alert-only-r1/receipt.json",
+      "bytes": 2558,
+      "digest": "sha256:e66a2d68b4d4db4c13130b5c97b21ee0823eb5495f280d7fec22ad742cbd1a66",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-87a370-alert-only-r1/record.json",
+      "bytes": 10436,
+      "digest": "sha256:a3f2353bd6b839bc062f95897dfcf59d02c9a53755bd3c8c3b87e906e3bf33a5",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-87a370-alert-only-r1/trace.jsonl",
+      "bytes": 6568,
+      "digest": "sha256:63bb1e277ca5997b5d802a7c846c1082ec43c76eb26199be07dcb575a7427178",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-87a370-full-r1/receipt.json",
+      "bytes": 2687,
+      "digest": "sha256:ef0b83ae49c62c56fd1d3d32073083b65bf959cd05ef5e77798c357b6c5328c7",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-87a370-full-r1/record.json",
+      "bytes": 33464,
+      "digest": "sha256:ef1ad4cb622589adeaff5e26cca676df8532ef7e8d77b50344155c77db565079",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-87a370-full-r1/trace.jsonl",
+      "bytes": 22761,
+      "digest": "sha256:ab24e2a10d3677624beb7145980714658b7fceabd005d7645dcf75e65668ab82",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-8d2dab-alert-only-r1/evaluation_report.json",
+      "bytes": 737,
+      "digest": "sha256:8640cf3daaee66a467f9269f273c7b3a7e0db6dcb67355989016019da8af5731",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-8d2dab-alert-only-r1/receipt.json",
+      "bytes": 2558,
+      "digest": "sha256:f3ca7b13a65e45a2aafd76a3b62e11df7400719231683ea4b6b042809cb38066",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-8d2dab-alert-only-r1/record.json",
+      "bytes": 7831,
+      "digest": "sha256:74be44ba387eeb80f601b04e1c9df3095e8a85c3438ca954738ae4be3aeb3b83",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-8d2dab-alert-only-r1/trace.jsonl",
+      "bytes": 4522,
+      "digest": "sha256:08a51b84b5a06861203be5fc3e622ef3f3862adb11a8a7c309b1d6696bfcb276",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-8d2dab-full-r1/evaluation_report.json",
+      "bytes": 621,
+      "digest": "sha256:5d8b26b581c588b6728863fab7c13fce464dc8a36d96477a448cfba936ad8182",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-8d2dab-full-r1/receipt.json",
+      "bytes": 2687,
+      "digest": "sha256:039faab74fce029135d838d4a304ae61d3fe6d19e4e8f844954ba8cacc5b6e76",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-8d2dab-full-r1/record.json",
+      "bytes": 49975,
+      "digest": "sha256:38ccecf1190ce6ec2686f6bf3c599c447f924fa786863da17f3d9bbeded0fe58",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-8d2dab-full-r1/trace.jsonl",
+      "bytes": 35180,
+      "digest": "sha256:d5fc0cef7210e03124e1e19ca5ba572f9ea1e9956c0ecbe5688b04f11a29e04c",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-96e69b-alert-only-r1/evaluation_report.json",
+      "bytes": 737,
+      "digest": "sha256:6476f9a700418a80f64879727ee8f6b940ae208a7f39132421504cf7c63c93a4",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-96e69b-alert-only-r1/receipt.json",
+      "bytes": 2558,
+      "digest": "sha256:c94c66d7eefce7d1a448d6f052a75e4150266c146a9695391e663e783e9760e7",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-96e69b-alert-only-r1/record.json",
+      "bytes": 7803,
+      "digest": "sha256:df96392d2b1b9a44c0639937aa2885455c2a234f2493e84b0dc4b34cde3544d3",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-96e69b-alert-only-r1/trace.jsonl",
+      "bytes": 4508,
+      "digest": "sha256:7a1cd6b67fe054789d349c1e1c7f72c96d8338dc7cb1f87749197900dd8fe322",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-96e69b-full-r1/evaluation_report.json",
+      "bytes": 720,
+      "digest": "sha256:c4cc16d157e169629bdc971b5005bcf3ad16f619bfa0d1f2fc27f5b2f80e5806",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-96e69b-full-r1/receipt.json",
+      "bytes": 2687,
+      "digest": "sha256:38c4d924b5a359a471ff0b8ae64c7b2c52fd77a691708a2302d21fdfad7250a9",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-96e69b-full-r1/record.json",
+      "bytes": 41738,
+      "digest": "sha256:bfed8ebffa8525a523f850cc19e0638889dfdc90b2cbb9a485f49cb17c26fd36",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-96e69b-full-r1/trace.jsonl",
+      "bytes": 28737,
+      "digest": "sha256:5ffb2c7cee77f313a2b0cd6103e8a588b99d52bafcd53b6b860a153faf0c2daa",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-9e8afe-alert-only-r1/evaluation_report.json",
+      "bytes": 723,
+      "digest": "sha256:469804455adaa735acbc0720132aa0c1887f8e633d54698fae416c7b6cb4d905",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-9e8afe-alert-only-r1/receipt.json",
+      "bytes": 2558,
+      "digest": "sha256:63a2d729d35d380735188985f3eed90040ad8d6238376026ca2f5d50a683ffb0",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-9e8afe-alert-only-r1/record.json",
+      "bytes": 27704,
+      "digest": "sha256:f0d29fe3cb78f2fe973728e2d5ab814e8a77d97da1447317bfb94028695eaa84",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-9e8afe-alert-only-r1/trace.jsonl",
+      "bytes": 20706,
+      "digest": "sha256:00649f06dc34a08a0cf7c5be2f6d628961d2434d6a421983a4addae8fc32b4be",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-9e8afe-full-r1/evaluation_report.json",
+      "bytes": 603,
+      "digest": "sha256:fcb17e45b6418ae76fe74fb1260a5bd82391148c694e04bdb86be62068f5c664",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-9e8afe-full-r1/receipt.json",
+      "bytes": 2687,
+      "digest": "sha256:cbbf20956c20d801c60786efa0da784ce97291b854d871605b096da684a7d750",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-9e8afe-full-r1/record.json",
+      "bytes": 28338,
+      "digest": "sha256:63bd5ed54e23ef308b30672bd5171bdf26c74d1010c1a8984ed34beb11fb8019",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-9e8afe-full-r1/trace.jsonl",
+      "bytes": 19649,
+      "digest": "sha256:e85c0f5a2ef12b6f391eb661beeadf7118cba1197d6a611c90df09d31af3b573",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-a8c042-alert-only-r1/evaluation_report.json",
+      "bytes": 723,
+      "digest": "sha256:60db1a0a58463b76e5a017e96b3948b964e3d2fa55d8e18f6045e220a2e80c38",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-a8c042-alert-only-r1/receipt.json",
+      "bytes": 2558,
+      "digest": "sha256:2acdc92f04bc463df42965f304c6a59d121ecd60112c2c9c53769a8f815bd73f",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-a8c042-alert-only-r1/record.json",
+      "bytes": 10498,
+      "digest": "sha256:bd5f5f84bc7800fc789c8a7005513575a8f6c5131c60e8a30fa6608a4593f89a",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-a8c042-alert-only-r1/trace.jsonl",
+      "bytes": 6628,
+      "digest": "sha256:9f68b65082a086e5e6aef30332b8bb37adf9341f7b2ee33c8f466c37fad2e61a",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-a8c042-full-r1/evaluation_report.json",
+      "bytes": 603,
+      "digest": "sha256:cd3bd7aeced74fd9528f93db601889e63576c2588f3ff44ac0f30e9b1dd74940",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-a8c042-full-r1/receipt.json",
+      "bytes": 2687,
+      "digest": "sha256:f867688506808894998ba3e89e06826e10e82eb285c090bc939bc7b6e8650aeb",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-a8c042-full-r1/record.json",
+      "bytes": 31300,
+      "digest": "sha256:cee36773837759cefef5de4350939cf0a42c4169e001f94c4e6298e504cd3d92",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-a8c042-full-r1/trace.jsonl",
+      "bytes": 21886,
+      "digest": "sha256:0b2c8fe7c53badc202863b556041d76f288f33d6fa648b2898e9ae1bc415bf62",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-df8351-alert-only-r1/evaluation_report.json",
+      "bytes": 626,
+      "digest": "sha256:d738a9581dc9bc4e5cb4ce1c9cd72935a92d2ec4469cebdd52ca70eeb0fc8dce",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-df8351-alert-only-r1/receipt.json",
+      "bytes": 2558,
+      "digest": "sha256:ca7c5460d206f28cd00d929e65879ca5cb59b2548129b67ab14b4e1b36ca7f7b",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-df8351-alert-only-r1/record.json",
+      "bytes": 7893,
+      "digest": "sha256:4f7f64b44b7d7a4074ee092b1cd4a6786cc93923d5e05351c8b9784dabf4f2a3",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-df8351-alert-only-r1/trace.jsonl",
+      "bytes": 4553,
+      "digest": "sha256:ad45aff6dac542216abb06c5bcc6f41714886f16ce7c827e20886a26f34189f8",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-df8351-full-r1/evaluation_report.json",
+      "bytes": 693,
+      "digest": "sha256:711679661245e9ace0539413adc4be06117716f7ef2d7f11271cd66c656b3501",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-df8351-full-r1/receipt.json",
+      "bytes": 2687,
+      "digest": "sha256:7f70abdb849206b9df938579a8efd981530dd66660babcfa8b258d16009cbf93",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-df8351-full-r1/record.json",
+      "bytes": 39959,
+      "digest": "sha256:f666a0f65836aa0cfc06c93732186b6b3fa61fa39efd6b41066c50cdbde8bb8f",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v1-revenue-drop-df8351-full-r1/trace.jsonl",
+      "bytes": 28323,
+      "digest": "sha256:318cc2f25b8344128c2782d309d7b03276b99a4538c9f384b63d056874a74729",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-29c766-alert-only-r1/evaluation_report.json",
+      "bytes": 737,
+      "digest": "sha256:85c6693aab5e37d25ee7b9d1fd645edc3ece38cdbce3a6a502e4580333decafa",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-29c766-alert-only-r1/receipt.json",
+      "bytes": 2652,
+      "digest": "sha256:c0694a0f2329410f7ccc650b530c3870fe7b11f7899e80e983673b204c574bac",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-29c766-alert-only-r1/record.json",
+      "bytes": 8111,
+      "digest": "sha256:3d80ae408c8dee1d596d1df8d0943363cf429fa4689ec5fb911232cecb1f0b6d",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-29c766-alert-only-r1/trace.jsonl",
+      "bytes": 4653,
+      "digest": "sha256:5483b550b1da550f92eaf7893f5f1c0c710ffa6f4d80c3a71586e0472fa78011",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-29c766-full-r1/evaluation_report.json",
+      "bytes": 746,
+      "digest": "sha256:dc363213098ae802111acc095d5b098a5245ad1b41c169e2d09b7a200b287d95",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-29c766-full-r1/receipt.json",
+      "bytes": 2781,
+      "digest": "sha256:482fdf602b3619625e4531b9fdfa16fe693df6cd996623f9a58261a4b388106e",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-29c766-full-r1/record.json",
+      "bytes": 53173,
+      "digest": "sha256:43b0e46f0b9d415bbf163224588a08a47c91d5818052b78343e6961c4e6d6be8",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-29c766-full-r1/trace.jsonl",
+      "bytes": 38265,
+      "digest": "sha256:d6a1f4980c7c02ab348557483b669f5214d601cb4b268185fe2709d9decb8ede",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-3ca544-alert-only-r1/evaluation_report.json",
+      "bytes": 626,
+      "digest": "sha256:ec35693813ad1988ef8e9f77efb34d0c83693cbeb2cee33030362ec43d01bab9",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-3ca544-alert-only-r1/receipt.json",
+      "bytes": 2652,
+      "digest": "sha256:9daaa1d2670f7773ad36fba8fd58a6f6e9e8cb594a600c9dbaaf9669627f25d4",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-3ca544-alert-only-r1/record.json",
+      "bytes": 8232,
+      "digest": "sha256:b14a2cb813784154bd9b63652470eb9953f4af89c7e370fa3fbca89d0b317a40",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-3ca544-alert-only-r1/trace.jsonl",
+      "bytes": 4714,
+      "digest": "sha256:2567d782043a9e128c365cf66b99c690492cc1c58a467dc97c8d6f9c3136aa77",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-3ca544-full-r1/evaluation_report.json",
+      "bytes": 677,
+      "digest": "sha256:313170025234f0d45bd2cc3e334edf99bd0049089393152623d095b267e3345a",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-3ca544-full-r1/receipt.json",
+      "bytes": 2781,
+      "digest": "sha256:a76bdd56887c78834cfd644e1031376e2c713307d3f1d96f0ab79943c81fe7c7",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-3ca544-full-r1/record.json",
+      "bytes": 45597,
+      "digest": "sha256:3e88059dbf2ebf9099ccf6bbc6843b4a3f369cda4ca82497d9a88b69cc518c2e",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-3ca544-full-r1/trace.jsonl",
+      "bytes": 31025,
+      "digest": "sha256:98b88601d9d60e6bbd51ba12a74252a7cd704cf72a4aa885673b3728f9137ab2",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-68c0c2-alert-only-r1/evaluation_report.json",
+      "bytes": 626,
+      "digest": "sha256:e26f40b1f8488e0929459c13453acbbcbad09bc0e90243c609c25ee9547ebbd6",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-68c0c2-alert-only-r1/receipt.json",
+      "bytes": 2652,
+      "digest": "sha256:655da4762bab1c1bf0832766ab1a49a76ac82ae9d12fcd5253a2568ad9ed5ced",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-68c0c2-alert-only-r1/record.json",
+      "bytes": 8239,
+      "digest": "sha256:3c4d2f32d9d840c8dfd48d1512f93713f22816f9ce9a3cae570baf8119084795",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-68c0c2-alert-only-r1/trace.jsonl",
+      "bytes": 4717,
+      "digest": "sha256:9cd18ff4b91fcb671c03439e5c90b33d0e7c5839ee9c3fb702e91954cc55b15c",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-68c0c2-full-r1/evaluation_report.json",
+      "bytes": 768,
+      "digest": "sha256:64cc1e233be717ca438b12c2f1851486ea1c2fa11491c5c90ecf14f998e1b7a6",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-68c0c2-full-r1/receipt.json",
+      "bytes": 2781,
+      "digest": "sha256:28a52daa7df6538f5d9be91d8a2565a5b87f8acf7ef08b7e8561b5563e1fc886",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-68c0c2-full-r1/record.json",
+      "bytes": 55854,
+      "digest": "sha256:c478ca5947a616eacbd54d043f60d54f5bf0a60ccfffba6d5c9a6fab93531b7a",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-68c0c2-full-r1/trace.jsonl",
+      "bytes": 41026,
+      "digest": "sha256:4eb8dcca63afe328405e58cf1549ad11fbd1bed8cb960b1157b151c4d5043951",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-7b89be-alert-only-r1/evaluation_report.json",
+      "bytes": 723,
+      "digest": "sha256:aae63165dbed20074fbd318c6cd54f9860bcb8d4169216bc1092e9f8387c6cc7",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-7b89be-alert-only-r1/receipt.json",
+      "bytes": 2652,
+      "digest": "sha256:8cb41c3e50aab997fcc4a1c27009079e21fc643898c479c78834d933aac7f5fd",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-7b89be-alert-only-r1/record.json",
+      "bytes": 8216,
+      "digest": "sha256:576f8a1c1e046b39c896dcaa28cfed5cd1f41ac7b517bdb1712872517954bf3e",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-7b89be-alert-only-r1/trace.jsonl",
+      "bytes": 4706,
+      "digest": "sha256:8cb6b4cdbc8c7e3062e44640d12bed68ba688dfd50d08be333d7e99ffce5b283",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-7b89be-full-r1/evaluation_report.json",
+      "bytes": 694,
+      "digest": "sha256:de7b0ee524f9862993477f92835cd8f250d72192e9c99a115ec589f9503f6a97",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-7b89be-full-r1/receipt.json",
+      "bytes": 2781,
+      "digest": "sha256:ebca975ebd0821d9006ffbec4522e311194339d8acf230c6d0b71be2f96a0240",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-7b89be-full-r1/record.json",
+      "bytes": 49218,
+      "digest": "sha256:3265fee43cc3c92740f088ad96e95814426ff8b9a78a7c528351f56afb0bb2f7",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-7b89be-full-r1/trace.jsonl",
+      "bytes": 34638,
+      "digest": "sha256:41c6bd853425715c5574a21746213fc65ff0df4409f57b354fb03781684c296c",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-87a370-alert-only-r1/evaluation_report.json",
+      "bytes": 723,
+      "digest": "sha256:59040e5c9386bdd69a41f3f6d388076b357332c533f3f89b042f8df070446688",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-87a370-alert-only-r1/receipt.json",
+      "bytes": 2652,
+      "digest": "sha256:0bc2cd93bd5f343c6e3d121bb13581bcca9a358efa65827fd6f77a78072a2899",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-87a370-alert-only-r1/record.json",
+      "bytes": 8091,
+      "digest": "sha256:9153ae19563cb9811febb16f47895fda316452dc40c5fa2365cac050832079f2",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-87a370-alert-only-r1/trace.jsonl",
+      "bytes": 4643,
+      "digest": "sha256:7813f83e086d5f436bd7d22f33bbcb72e9c088c75a483fdfadf6025063d7b55e",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-87a370-full-r1/evaluation_report.json",
+      "bytes": 665,
+      "digest": "sha256:48acaa01f8e670785b3a1cdf7d5deafab5cbc1e43ba2e4b30a3d37a98377bfd3",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-87a370-full-r1/receipt.json",
+      "bytes": 2781,
+      "digest": "sha256:dc54a640269a1f460b13be6c1d2294c72f8898ce65b5bb1f5b64afe2a7a25d2c",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-87a370-full-r1/record.json",
+      "bytes": 39970,
+      "digest": "sha256:d4433d6f2e1f47f2989f84e3ff2b454b133685300f29b1a91066068f9b1116e4",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-87a370-full-r1/trace.jsonl",
+      "bytes": 28322,
+      "digest": "sha256:08220ada5f5b843ceb0938df60ef9a0687f90d758c605f3589a4c5310dae8c99",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-8d2dab-alert-only-r1/evaluation_report.json",
+      "bytes": 737,
+      "digest": "sha256:00889071ea24666de9da55e699946c2b10bf7543bc2dc6616a632e7f2d67b8b2",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-8d2dab-alert-only-r1/receipt.json",
+      "bytes": 2652,
+      "digest": "sha256:4534599223a51f19df8f16eceafd78fa9bcfa9e9719923af5948ae86a80acb21",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-8d2dab-alert-only-r1/record.json",
+      "bytes": 8299,
+      "digest": "sha256:85ca3468a323db151af154b3b7404f49243eed8e157be723235536ab344c7096",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-8d2dab-alert-only-r1/trace.jsonl",
+      "bytes": 4748,
+      "digest": "sha256:85a8483f7c9410100ba16fcb7bd5202403afe2e4b96c5c8623bb267a7b57cf2e",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-8d2dab-full-r1/evaluation_report.json",
+      "bytes": 717,
+      "digest": "sha256:75f696a47adb5fe3322fffef30fc05567efb1e90a8d739e9948526bec2735b72",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-8d2dab-full-r1/receipt.json",
+      "bytes": 2781,
+      "digest": "sha256:f9e885f18d99e9697442727a137cbd44f47f740c95ffe1ed6181f68b5edf986d",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-8d2dab-full-r1/record.json",
+      "bytes": 53616,
+      "digest": "sha256:9c943ad41538fa62c9c224d8220ee09a2b15d450ce789163572bdaaf7f77b3e2",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-8d2dab-full-r1/trace.jsonl",
+      "bytes": 37128,
+      "digest": "sha256:2a42adfdddc20ae907b078a117698313c3aa309bd9759541504b026731e0ffaa",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-96e69b-alert-only-r1/evaluation_report.json",
+      "bytes": 737,
+      "digest": "sha256:6efd70f6fe16dddafe5cf499b518db1d75a911cfdef8204bdcd3dcd4f82db4d1",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-96e69b-alert-only-r1/receipt.json",
+      "bytes": 2652,
+      "digest": "sha256:17832dfc5588aa68a71a1100ceca2f53d4a994c7ec38eb95ae4e7cf2988b1357",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-96e69b-alert-only-r1/record.json",
+      "bytes": 8210,
+      "digest": "sha256:ec0cea081f95ea924224ef7804f6100d9d1b17cd618d9e54b608daf40bba548e",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-96e69b-alert-only-r1/trace.jsonl",
+      "bytes": 4703,
+      "digest": "sha256:b368ed908a320985864f883f4b36557157c59c5d8a97cefbd30147774f7fd99d",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-96e69b-full-r1/evaluation_report.json",
+      "bytes": 717,
+      "digest": "sha256:76580efc771505917589ae31943ad085ae54745328bb1691d43f7e24f700fe32",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-96e69b-full-r1/receipt.json",
+      "bytes": 2781,
+      "digest": "sha256:c80cde1e453d2181936efed99a6b4a29178d0d5c70c8bcce975f2845d3d2676a",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-96e69b-full-r1/record.json",
+      "bytes": 59253,
+      "digest": "sha256:6ab354c2c4dbbf86fb5d0c988e773309c6774e18fca8ad3e9557ad1b50dd2d39",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-96e69b-full-r1/trace.jsonl",
+      "bytes": 41691,
+      "digest": "sha256:a0e509c37a31d722bb0c9b805f5a2ca09dac0dc4f3ef85e214681a70f61dd0eb",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-9e8afe-alert-only-r1/evaluation_report.json",
+      "bytes": 723,
+      "digest": "sha256:1d22ac535f6076048babb7d39f2e4b985317577216a0f10d097455580ac9f1c1",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-9e8afe-alert-only-r1/receipt.json",
+      "bytes": 2652,
+      "digest": "sha256:eefdc65c55661ad5fc041053978b404b14a84f088e75b97fc0ffbed912c7340b",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-9e8afe-alert-only-r1/record.json",
+      "bytes": 8245,
+      "digest": "sha256:e44da923600ea98341eb183bd2c4fc54444f086f099bbef37d8b2fa34d4b2c96",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-9e8afe-alert-only-r1/trace.jsonl",
+      "bytes": 4720,
+      "digest": "sha256:9ff3398432646c91ab714a090619f485afc3074a1cc0b5808f066fb1438b335a",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-9e8afe-full-r1/evaluation_report.json",
+      "bytes": 636,
+      "digest": "sha256:df62af3cf6b15fa622e927c9137686d58e2f269a0b34b4fecbbb1b8a46bc0083",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-9e8afe-full-r1/receipt.json",
+      "bytes": 2781,
+      "digest": "sha256:de2478c0276579ba87f4c6fe1f8a5feec8fe0b1351d74584f83fceb28c2a8a0c",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-9e8afe-full-r1/record.json",
+      "bytes": 48304,
+      "digest": "sha256:869c5718b10ffe1b17bd856585cebbf3eeb72edfa4318c9eb5c069d908ce43a7",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-9e8afe-full-r1/trace.jsonl",
+      "bytes": 34428,
+      "digest": "sha256:2c9c795257f5e317c649214b3e7ec208bc74f0fd9c9d8f5609b2c84859ff2bed",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-a8c042-alert-only-r1/evaluation_report.json",
+      "bytes": 723,
+      "digest": "sha256:2536a0c48ce4e12fd4bda3017d6a48c5bf85b0b7655d629134db38bc08f812aa",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-a8c042-alert-only-r1/receipt.json",
+      "bytes": 2652,
+      "digest": "sha256:59696b3ac46cedc14164f8089be8cd1cb600f00d6bfa7929ce4fe1a71136f599",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-a8c042-alert-only-r1/record.json",
+      "bytes": 8248,
+      "digest": "sha256:b98204e59c51132cddbf604ac9eb6b1e361e7a099ef0d4ed6f92015a3de3351b",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-a8c042-alert-only-r1/trace.jsonl",
+      "bytes": 4722,
+      "digest": "sha256:9f040005fa6b2a83618e0495a18f9c4ffc3be555e11952ab9ff6b15dd5c22ee6",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-a8c042-full-r1/evaluation_report.json",
+      "bytes": 665,
+      "digest": "sha256:8c1b5f23d323a9e6367204a79847d8b9f292fa3c6032b4869562fb469b499030",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-a8c042-full-r1/receipt.json",
+      "bytes": 2781,
+      "digest": "sha256:54f60c3835dd295b868dc2da6d199c2fb30d492aa6a21c8d1a85480386e1a56e",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-a8c042-full-r1/record.json",
+      "bytes": 42240,
+      "digest": "sha256:151365716e9133ed20fb66a98dcf14314781504c15ed5c54d39918cf1915d64b",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-a8c042-full-r1/trace.jsonl",
+      "bytes": 29988,
+      "digest": "sha256:961d6790862aa56fb3445ca2fe0cbf577f364a9aec4824e8bb264e7b154d693f",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-df8351-alert-only-r1/evaluation_report.json",
+      "bytes": 626,
+      "digest": "sha256:12b109c0dd9c9d443d1a75d9a2330aab71dac596497b57722db95a32e76324b5",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-df8351-alert-only-r1/receipt.json",
+      "bytes": 2652,
+      "digest": "sha256:9d87b889094b17cccbb7d648513abe9d9f25f9fa6d00ec86ae69c1a0424b93c2",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-df8351-alert-only-r1/record.json",
+      "bytes": 8254,
+      "digest": "sha256:2a00d44a2e301fc1b8ebca5d75a5ff47599420435e9df42d408707c1e18e7398",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-df8351-alert-only-r1/trace.jsonl",
+      "bytes": 4724,
+      "digest": "sha256:2e4d93d184ec285743840bcba2039e2bd20eaf72256155c7600877fd3b4a7beb",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-df8351-full-r1/evaluation_report.json",
+      "bytes": 706,
+      "digest": "sha256:dd8230276a1e21a8b558b186ae13ae055362bb59363b47fc74ee903d7cba97fb",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-df8351-full-r1/receipt.json",
+      "bytes": 2781,
+      "digest": "sha256:467309737a904db47bdfbcf5b98f4c8b70cedb094d1fb0d657d2a4b289124ae9",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-df8351-full-r1/record.json",
+      "bytes": 50208,
+      "digest": "sha256:9d1efdbc5b4feb81eba480aae51e2612cde998894516890305dd19c6e8401c8c",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v2-revenue-drop-df8351-full-r1/trace.jsonl",
+      "bytes": 33699,
+      "digest": "sha256:5d9e03d4d8e6ab3486bfbc0f874d608b176bb6c63500d2c2a5fff87a4439f8ec",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v3-revenue-drop-7b89be-full-r1/evaluation_report.json",
+      "bytes": 694,
+      "digest": "sha256:00248bc233ce4c1b35ad944e96bfa4c3e617fd7563dbc978e61b6e2b6a20e47e",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v3-revenue-drop-7b89be-full-r1/receipt.json",
+      "bytes": 2784,
+      "digest": "sha256:e833747712814a15dfc497c639a8004de1098bfc966104de093e9434e85e1515",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v3-revenue-drop-7b89be-full-r1/record.json",
+      "bytes": 44067,
+      "digest": "sha256:3a3dbd28e355277cc0a1c366e68665dc04047ca6760c131ab2aa7a04a5e90f32",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v3-revenue-drop-7b89be-full-r1/trace.jsonl",
+      "bytes": 31473,
+      "digest": "sha256:4c2ce3d50d70918e0f0b03320ce3caf07e0a28948ddb9c7da8d3fe7b89ec08bf",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v3-revenue-drop-87a370-full-r1/evaluation_report.json",
+      "bytes": 723,
+      "digest": "sha256:0ba08be191f98ab3984c949f5e52418d1a4d430a5e5a3c98c1c62fbfd8fb3abd",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v3-revenue-drop-87a370-full-r1/receipt.json",
+      "bytes": 2784,
+      "digest": "sha256:d9c9ad6045f81c7509cf8bba474aaa402ae1a002a9eb7bb9e7387ace78af39bc",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v3-revenue-drop-87a370-full-r1/record.json",
+      "bytes": 40311,
+      "digest": "sha256:380cc3ae59b76a7aa8b0c56359e07ad5fb78efe3d1ab8b263e69f0e89fad3903",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v3-revenue-drop-87a370-full-r1/trace.jsonl",
+      "bytes": 28686,
+      "digest": "sha256:c273b21770fc71affc9fd76c2f57c3eae42c84850f5b19f51374ac1981056b4e",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v3-revenue-drop-9a76e9-full-r1/evaluation_report.json",
+      "bytes": 694,
+      "digest": "sha256:aab1415eb627adae3bdd6af264ada564c58b392a2fa2749f986b6b2a1aefe65c",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v3-revenue-drop-9a76e9-full-r1/receipt.json",
+      "bytes": 2784,
+      "digest": "sha256:f5ae89096d16549b71f3f279601c88ac996ac1c7258376e612e0f79d7a84bd2d",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v3-revenue-drop-9a76e9-full-r1/record.json",
+      "bytes": 41039,
+      "digest": "sha256:4d56d0d15090508bc113e961207b7c51e25e420c35d64744912894dc4815d2fb",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v3-revenue-drop-9a76e9-full-r1/trace.jsonl",
+      "bytes": 28899,
+      "digest": "sha256:6b580f9bc1d921d942d8c28db0836791e0b9e8441b41594ba1d0bf2303a6c6ca",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v3-revenue-drop-9e8afe-full-r1/evaluation_report.json",
+      "bytes": 665,
+      "digest": "sha256:a129e3877f5644a190b0f2905c040d689a929b555b56990d0a922881110e5f1c",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v3-revenue-drop-9e8afe-full-r1/receipt.json",
+      "bytes": 2784,
+      "digest": "sha256:4db6ae9d49d9668b9cbb176b232adcf2a756ddf3f3df0fdff4998c00066681ec",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v3-revenue-drop-9e8afe-full-r1/record.json",
+      "bytes": 44588,
+      "digest": "sha256:e8153c3e3ab793ddf5500b3e1d5a97eb023a5143307e582084436790fc8e94f7",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v3-revenue-drop-9e8afe-full-r1/trace.jsonl",
+      "bytes": 31834,
+      "digest": "sha256:907c91ae3420d353a898d2aa9195c66dc6a453a69a85ef2e61e5ce84edec15f6",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v3-revenue-drop-a8c042-full-r1/evaluation_report.json",
+      "bytes": 665,
+      "digest": "sha256:058f8458c79086cdb348566e585731cc2aa415d41a7ac23cdf372b72933ffc36",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v3-revenue-drop-a8c042-full-r1/receipt.json",
+      "bytes": 2784,
+      "digest": "sha256:48e368ad5346e17d3dc8a5ccee09b65841cbe78c18cc94eab54d31b5adf142b4",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v3-revenue-drop-a8c042-full-r1/record.json",
+      "bytes": 39037,
+      "digest": "sha256:638c19326ac88d6b250bc40713c8c368d64239cbf2e9e6ca682cd55b264c4ec0",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v3-revenue-drop-a8c042-full-r1/trace.jsonl",
+      "bytes": 27557,
+      "digest": "sha256:28777f88a4b6e248b928c31707705b3d715f361d16e64816cf63f352def1687f",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v3-revenue-drop-b9ddd0-full-r1/evaluation_report.json",
+      "bytes": 723,
+      "digest": "sha256:c0e9d7fdf4a15723e40b206046559afdf6b2bc6d23d3ed3b5a3f6aad5e7fa14c",
+      "retention": "evaluation"
+    },
+    {
+      "path": "pilot-paid-v3-revenue-drop-b9ddd0-full-r1/receipt.json",
+      "bytes": 2784,
+      "digest": "sha256:e7691cf2a701fc409deba928c7412ca9d544f2639e7a3065626adc94d3a3eab7",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v3-revenue-drop-b9ddd0-full-r1/record.json",
+      "bytes": 44946,
+      "digest": "sha256:f7270d35cbf11dbcb2a46e3a50dc6b78086aebb64098ef1b6aba412893589d74",
+      "retention": "evidence"
+    },
+    {
+      "path": "pilot-paid-v3-revenue-drop-b9ddd0-full-r1/trace.jsonl",
+      "bytes": 31273,
+      "digest": "sha256:690dfd8f53a4e71367125ba3a7259aa23930a210a19dd46e3618fd3a3019d4c8",
       "retention": "evidence"
     },
     {
@@ -586,6 +3286,186 @@
       "retention": "evidence"
     },
     {
+      "path": "revenue-drop-4a37da-20260923T185750-664Z/receipt.json",
+      "bytes": 2875,
+      "digest": "sha256:2739a722955316397865a6be04cd435297e7d2bcbd67db86464570e5ad348579",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-4a37da-20260923T185750-664Z/record.json",
+      "bytes": 55448,
+      "digest": "sha256:423542a3b19c2cfdc3aecd0c6b0aaffeff2c01f0b774f58160d94fe68bf5596a",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-4a37da-20260923T185750-664Z/trace.jsonl",
+      "bytes": 39397,
+      "digest": "sha256:705cf4a998c5d8c811c65f7554c50e00ec49b5470f535f9be76317ee51824872",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260924T123933-826Z/receipt.json",
+      "bytes": 2878,
+      "digest": "sha256:bacc2ffd85b5aa945fb13c3713411dfcd70dfa923e641955f6e044a03203802d",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260924T123933-826Z/record.json",
+      "bytes": 61138,
+      "digest": "sha256:efb9ed4d5efb20ed812954f4d2cd4cedeed7ce15c3727c83aaa4d9f092b820a8",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260924T123933-826Z/trace.jsonl",
+      "bytes": 40244,
+      "digest": "sha256:e9fa4b249ab916bc7164c7f07e09e16f85652b068b200ed1388f60144228b2f9",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260924T124233-625Z/receipt.json",
+      "bytes": 2878,
+      "digest": "sha256:ca61c1bc8811dc4dcf502a8a5a2056891ea0e2896f37f81d703def17589df2f8",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260924T124233-625Z/record.json",
+      "bytes": 49688,
+      "digest": "sha256:8819c11e9880feaf507fbdb84b364342c7d04cdc840aefd6736deca2a0fd60ef",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260924T124233-625Z/trace.jsonl",
+      "bytes": 34326,
+      "digest": "sha256:04a5a7958996a857776f9654e918d78fa6276f7f616068b9f5c083260c1c441d",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260924T154039-898Z/receipt.json",
+      "bytes": 2875,
+      "digest": "sha256:aa725e95d3cce7f566497c117bed54e20e1f690f70fcbe3584944c3a4c7215c2",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260924T154039-898Z/record.json",
+      "bytes": 59399,
+      "digest": "sha256:0ca850cb3d364808b1bee52bb7e39b3f2341ec73869ad5f650f5ceb415e967d6",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260924T154039-898Z/trace.jsonl",
+      "bytes": 41774,
+      "digest": "sha256:3c75c69fbced57968321bf81a17648d3add1c7c3852332d9dbc2eaa6696810c7",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260924T154325-867Z/receipt.json",
+      "bytes": 2875,
+      "digest": "sha256:fbf2c6d7a826667a7827cfd4c0ad4a45575425b7b17b8eb36d1d975d3a066c08",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260924T154325-867Z/record.json",
+      "bytes": 66839,
+      "digest": "sha256:9edecdd4ca86abfad78d8815677f96b1dc5bf4e4904e9b452ccf967e94ea6335",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260924T154325-867Z/trace.jsonl",
+      "bytes": 47604,
+      "digest": "sha256:c8fc24b890a151135652e51638a9cd019f0b35fcad4e1e7151f9749d99144fea",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-716c81-20260924T062826-478Z/receipt.json",
+      "bytes": 2878,
+      "digest": "sha256:4989fc4b8e44e74fa200cd472890e2f9c4e6db4c48bb90feaaea1c2fbf6e9f3d",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-716c81-20260924T062826-478Z/record.json",
+      "bytes": 43627,
+      "digest": "sha256:967300cb25e1dff325bfa92a28cdcecf0603ded4621c366f7ddb259e04f26ecf",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-716c81-20260924T062826-478Z/trace.jsonl",
+      "bytes": 31059,
+      "digest": "sha256:50190ace4053b7700d6aeed03c37ea56897a2f594f5b64e6a660a90d617e6d5a",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-716c81-20260924T123701-059Z/receipt.json",
+      "bytes": 2878,
+      "digest": "sha256:f7d17a747dad959e9493b44d9818244ef71a2c661e02502daa3f4e580c3dce56",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-716c81-20260924T123701-059Z/record.json",
+      "bytes": 44323,
+      "digest": "sha256:82cbcc643f33800253cd05a3a8917ed1abeb7a539f7a746a3c1814fe173aaa12",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-716c81-20260924T123701-059Z/trace.jsonl",
+      "bytes": 31522,
+      "digest": "sha256:6c9c8576229a957ffa724b65cf9ce4cce781aaf604c7ee753088315b0e8e130e",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-929623-20260924T124330-161Z/receipt.json",
+      "bytes": 2878,
+      "digest": "sha256:5cae8db2e63d54ea572531267d825985f4b0837570a6a0cb3b72b62bb91ad0a2",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-929623-20260924T124330-161Z/record.json",
+      "bytes": 40213,
+      "digest": "sha256:ea31c98d56f9d4a0d7a0c70d40e8baa4ab0612b693eedee0a9773d24f63bfc12",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-929623-20260924T124330-161Z/trace.jsonl",
+      "bytes": 28148,
+      "digest": "sha256:d028d02912ebd9320b55508253fdc627de386e4277d22ec75fb3424b6e0c43ba",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-d0888f-20260923T190024-097Z/receipt.json",
+      "bytes": 2875,
+      "digest": "sha256:53181ae20eb9d50627159aa6bbef37808589e43e001a2f51f846eef9c76a87f0",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-d0888f-20260923T190024-097Z/record.json",
+      "bytes": 66839,
+      "digest": "sha256:f50344abb2619cde8d00ba154de6c941261aad7fcbf4c2d7755a6717027123bf",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-d0888f-20260923T190024-097Z/trace.jsonl",
+      "bytes": 46688,
+      "digest": "sha256:37b2bea09b0045ea9a03e09fbb56ff10c55cf954308b6a05a4a897f514304ca1",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-df8905-20260923T190210-330Z/receipt.json",
+      "bytes": 2875,
+      "digest": "sha256:4c2cb89974959b68b06813a02397fbd11264aee636df96808603ac80a2f38479",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-df8905-20260923T190210-330Z/record.json",
+      "bytes": 44050,
+      "digest": "sha256:b374a1303f8df8ae2612e1cc4b55feaa20e7971303f8b756ba361a39ed59fb42",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-df8905-20260923T190210-330Z/trace.jsonl",
+      "bytes": 30635,
+      "digest": "sha256:861ba24fbcd08dec7ea51531d1d92e1a335a7e6ed55dd8610e48f5d787745edd",
+      "retention": "evidence"
+    },
+    {
       "path": "settlement-conflict-R0/receipt.json",
       "bytes": 831,
       "digest": "sha256:4c32287237163020b321b2053b2157b674a00355179e7eda208c2fd38fa62b62",
@@ -679,6 +3559,222 @@
       "path": "shipment-counts-disagree-run-1/record.json",
       "bytes": 4793,
       "digest": "sha256:bbe188c18358f0661ae8fa64f338dfe119ea5e68fd2f635fdd5cb7f7c082e005",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-24-2-admissible/receipt.json",
+      "bytes": 1649,
+      "digest": "sha256:b88880a68647d8effc58f164d553b8dc02e8cec29484400a3fe7def19f87d904",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-24-2-admissible/record.json",
+      "bytes": 7247,
+      "digest": "sha256:ee74626ad0d1bed99a423e2fafc56bcbc1f5ef7d97f10da209a1f90fa44568ff",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-24-2-admissible/trace.jsonl",
+      "bytes": 2271,
+      "digest": "sha256:7cf82e91d34f6fab8a24eb81ec64cf8926c4ac8208db3b3b03df1d3f0c4f944d",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-24-2-cannot-apply/receipt.json",
+      "bytes": 1655,
+      "digest": "sha256:150cde894d3976657c1bbc11b0eae2a1453108a085d4057ea6b605ee5330ff56",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-24-2-cannot-apply/record.json",
+      "bytes": 5923,
+      "digest": "sha256:9f48ac16d14c318affe0eb5f09767443f935af1ab4faf44dec747f5b9cbde1c1",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-24-2-cannot-apply/trace.jsonl",
+      "bytes": 2272,
+      "digest": "sha256:7c8761d84a2ad8cfcc85a9679989c17752971e3f4eba776c0833bad9ba99cbfd",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-24-2-hides-the-symptom/receipt.json",
+      "bytes": 1670,
+      "digest": "sha256:b8a8976c375b67d77d48825048b14ed0d10db658dbce12a42a0c316d3d4d6b02",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-24-2-hides-the-symptom/record.json",
+      "bytes": 7814,
+      "digest": "sha256:13dc17c7e056a194211aecf8d2e862b74462fb92979f12647e2ff27ddb5e9637",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-24-2-hides-the-symptom/trace.jsonl",
+      "bytes": 2272,
+      "digest": "sha256:7c8761d84a2ad8cfcc85a9679989c17752971e3f4eba776c0833bad9ba99cbfd",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-24-2-not-allowed/receipt.json",
+      "bytes": 1652,
+      "digest": "sha256:678b0b70b6e60cf13c1b9b2a52e9d7125a65e48f31660bdb658abb42a40eaa69",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-24-2-not-allowed/record.json",
+      "bytes": 7598,
+      "digest": "sha256:093f457794c64ddf27c50d3f9458afbb6e0561d327b98b9b13204abe3683c6f5",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-24-2-not-allowed/trace.jsonl",
+      "bytes": 2271,
+      "digest": "sha256:7cf82e91d34f6fab8a24eb81ec64cf8926c4ac8208db3b3b03df1d3f0c4f944d",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-24-admissible/receipt.json",
+      "bytes": 1645,
+      "digest": "sha256:ee63618a118a60574973fd8c597cac2387d10e11d8619bc8797508146e176562",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-24-admissible/record.json",
+      "bytes": 7243,
+      "digest": "sha256:e0530a3e93102abc336e68984acdd0bfb5cb423e9bd06e176d7c5005e530abdf",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-24-admissible/trace.jsonl",
+      "bytes": 2271,
+      "digest": "sha256:7cf82e91d34f6fab8a24eb81ec64cf8926c4ac8208db3b3b03df1d3f0c4f944d",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-24-cannot-apply/receipt.json",
+      "bytes": 1651,
+      "digest": "sha256:4c26e3e8ea01591c2e812bff1a59f9ca93a298e134a83a8cc4998b5e0fd4e6be",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-24-cannot-apply/record.json",
+      "bytes": 5919,
+      "digest": "sha256:5382db7e9a9abf98156983ee57160d8758554047f5f75bf5912855b5a2cee590",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-24-cannot-apply/trace.jsonl",
+      "bytes": 2272,
+      "digest": "sha256:7c8761d84a2ad8cfcc85a9679989c17752971e3f4eba776c0833bad9ba99cbfd",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-24-hides-the-symptom/receipt.json",
+      "bytes": 1666,
+      "digest": "sha256:6d8005fd26a8e0460bdc8669b7ccb12b02edcd487206615f84b1e1c0d08583a9",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-24-hides-the-symptom/record.json",
+      "bytes": 7810,
+      "digest": "sha256:77c47312b23c4c0eef3d574d8d137c5896400f2e15f61d1e00d0130b97bf73c0",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-24-hides-the-symptom/trace.jsonl",
+      "bytes": 2272,
+      "digest": "sha256:7c8761d84a2ad8cfcc85a9679989c17752971e3f4eba776c0833bad9ba99cbfd",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-24-not-allowed/receipt.json",
+      "bytes": 1648,
+      "digest": "sha256:b7bc60d7a6696799c61c4b1e1629721b1d38d33617943060fca235da52eec099",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-24-not-allowed/record.json",
+      "bytes": 7594,
+      "digest": "sha256:dce80a4818221ce3fd8131ed84f94b987133ae3f31ad374b58aeae404dcac121",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-24-not-allowed/trace.jsonl",
+      "bytes": 2271,
+      "digest": "sha256:7cf82e91d34f6fab8a24eb81ec64cf8926c4ac8208db3b3b03df1d3f0c4f944d",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-26-admissible/receipt.json",
+      "bytes": 1645,
+      "digest": "sha256:1319b59fbfe691cf1bd00dc53794dd6a5585b10457b9814ffda3a92c28b7d08b",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-26-admissible/record.json",
+      "bytes": 7244,
+      "digest": "sha256:89e45778068459556f73d18061e2e0cb7b3b336bb2906e964e9cedd577af955d",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-26-admissible/trace.jsonl",
+      "bytes": 2271,
+      "digest": "sha256:7cf82e91d34f6fab8a24eb81ec64cf8926c4ac8208db3b3b03df1d3f0c4f944d",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-26-cannot-apply/receipt.json",
+      "bytes": 1651,
+      "digest": "sha256:3278c06be2fbc59fe90d961793301d7cc41e543990ed882edf3f5cd437e9c79e",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-26-cannot-apply/record.json",
+      "bytes": 5919,
+      "digest": "sha256:82a674c8596c7a1bd11b56d847b1df2ba074a526066a3c6ef1acbddaad22cbca",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-26-cannot-apply/trace.jsonl",
+      "bytes": 2272,
+      "digest": "sha256:7c8761d84a2ad8cfcc85a9679989c17752971e3f4eba776c0833bad9ba99cbfd",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-26-hides-the-symptom/receipt.json",
+      "bytes": 1666,
+      "digest": "sha256:be54ba231dc0fc87326e53620f3b15ade7eabda10c37fbeb97c4e1b50c8f8577",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-26-hides-the-symptom/record.json",
+      "bytes": 7810,
+      "digest": "sha256:54b7e37f54ec20825356d2efe25381fe6c6eaf07510777763052372715a7a660",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-26-hides-the-symptom/trace.jsonl",
+      "bytes": 2272,
+      "digest": "sha256:7c8761d84a2ad8cfcc85a9679989c17752971e3f4eba776c0833bad9ba99cbfd",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-26-not-allowed/receipt.json",
+      "bytes": 1648,
+      "digest": "sha256:cb661e5ad8326065f9c172b91217785280535091c4377d4eac368b8afd7395ae",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-26-not-allowed/record.json",
+      "bytes": 7595,
+      "digest": "sha256:91732d9a48547e56284ab8025e1ce8ffa34090b0118cd40eb3547164c448a2eb",
+      "retention": "evidence"
+    },
+    {
+      "path": "square-freeze-2026-09-26-not-allowed/trace.jsonl",
+      "bytes": 2271,
+      "digest": "sha256:7cf82e91d34f6fab8a24eb81ec64cf8926c4ac8208db3b3b03df1d3f0c4f944d",
       "retention": "evidence"
     },
     {
