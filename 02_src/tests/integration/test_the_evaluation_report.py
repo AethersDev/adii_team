@@ -4,6 +4,7 @@ registered before any final run."""
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 
 import pytest
@@ -48,8 +49,11 @@ def test_the_report_keeps_the_claims_apart_names_every_failure_and_says_what_did
                         arm="alert-only"),
                     run("s-floor-1", "ESCALATE", "ESCALATE", "correct_abstention",
                         arm="always-escalate")], "unscored": []}
-    freeze = {"name": "freeze-x", "digest": "ab" * 32, "source_revision": "c0ffee", "packs": {}}
-    text, results = report.write({"final-sol": sol}, freeze)
+    freeze = {"name": "freeze-x", "digest": "ab" * 32, "source_revision": "c0ffee",
+              "packs": {"final-sol": {"model": "gpt-6-sol", "arms": ["full"], "incidents": ["i"],
+                                      "max_turns": 20, "max_tokens": 4096,
+                                      "max_cost_usd": 0.5, "pack_cap_usd": 1.0}}}
+    text, results = report.write({"final-sol": sol}, {"final-sol": freeze})
     assert "## Claim 1" in text and "## Claim 2" in text and "## Claim 3" in text
     assert "| gpt-6-sol | 1/2 |" in text and "| alert only | 0/1 |" in text
     assert "`s-full-2`" in text and "`s-alert-1`" in text and "`s-full-1`" not in text
@@ -62,3 +66,15 @@ def test_the_report_keeps_the_claims_apart_names_every_failure_and_says_what_did
                        # was proposed, and it was right
                        "paid_runs": "3", "all_repair_proposals": "1", "all_wrong_repairs": "0",
                        "all_false_admits": "0"}
+
+
+def test_the_committed_report_is_what_the_packs_and_their_own_freeze_produce():
+    """Each pack is reported under the freeze its receipt names. A newer freeze registers more
+    packs (the local extension, with no pack cap); stamping the newest on decision E's four
+    misstated which system they ran on, and no longer even rendered."""
+    reports = {p.name.removesuffix(".report.json"): json.loads(p.read_text(encoding="utf-8"))
+               for p in sorted(report.PACKS.glob("final-*.report.json"))}
+    freezes = report.freezes_of(list(reports))
+    assert {f["name"] for f in freezes.values()} == {"freeze-2026-09-26"}
+    text, _ = report.write(reports, freezes)
+    assert text == report.OUT.read_text(encoding="utf-8")
