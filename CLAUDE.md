@@ -126,9 +126,31 @@ Top-level `01_data/ 02_src/ 03_assets/` is the submission structure, used from d
 there is no packaging migration at the deadline. Code goes in `02_src/`, data the system
 reads goes in `01_data/`, and nothing that states an answer goes in either.
 
+Keep other checkouts, backups and private repositories outside the repository root. The
+architecture and answer-key tests walk the whole working copy, so a stray `test_*.py`, a
+dead Markdown link or an answer-key-shaped JSON anywhere under the root fails the gate.
+
+## The freeze is in force
+
+Feature development ended at Freeze A (`02_src/docs/final_plan.md`, phase 4, decision FR).
+The newest file in `02_src/adii/evaluation/freezes/` (tagged `freeze-<date>` in git) holds
+the sha256 of every file under `02_src/adii` except `demo/` and `*.md`, plus
+`01_data/incidents/`, `requirements.txt` and `pyproject.toml`. `test_the_freeze.py` fails on
+any change to one of them, and the grid refuses a registered pack on a drifted tree.
+
+- A change to a frozen file needs a new freeze version (`python -m adii.evaluation.lock
+  --name freeze-<date>`), which is a team decision. Never take one just to turn the gate green.
+- `02_src/scripts/`, `02_src/tests/`, `02_src/docs/`, the page and prose sit outside the
+  freeze and can change without one.
+- A pack scored under one freeze is never re-read under another.
+
 ## Commands
 
 ```bash
+python3.12 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt  # README has Windows
+python 02_src/scripts/check_env.py                              # prints Ready.
+python -m adii.evaluation.lock --check                          # does the tree match the newest freeze?
+python -m adii.runtime --incident demo-learning-001 --provider scripted   # one archived run, no model
 python -m pytest 02_src/tests/unit/test_env_local.py -k twice   # one file, one test by name
 python -m pytest 02_src/tests/architecture -q                   # the boundaries alone — run these first
 python 02_src/scripts/guard_check.py --only D                   # one track's guards; --list prints the registry
