@@ -37,8 +37,8 @@ Six bounds, each its own resource, each named in the `bound_hit` it causes: `--m
 (A's model turns), `--max-tool-calls` (the executor's), `--max-model-requests` (the
 provider's; when omitted, as many as the turns) and `--max-wall-clock-seconds` (the
 provider's: no request is sent past it, and a request in flight is cut at the deadline —
-the local run never waits past it), `--max-cost-usd` and `--max-tokens` (paid only). All
-six are in the receipt and the record.
+the local run never waits past it), `--max-cost-usd` (paid only) and `--max-tokens` (sent
+to any model, priced only when paid). All six are in the receipt and the record.
 
 Exit codes, one per way a run can end:
     0  a decision was archived          3  the loop ended the run without a decision; archived
@@ -299,9 +299,12 @@ def configure(args, tool_names) -> tuple[dict[str, object], str, dict[str, objec
               "max_model_requests": args.max_model_requests,
               "max_wall_clock_seconds": args.max_wall_clock_seconds, "timeout_s": TIMEOUT_S}
     if args.provider == "local":
+        # the completion bound is sent and recorded here too: unsent, a server's own default
+        # binds instead (mlx-lm's is 512) and no receipt says so
         return ({"provider": "local", "model": args.model, "endpoint": args.endpoint,
-                 "served_as": args.served_as, **bounds, "tools": tools,
-                 "execution_mode": "live", "cost_basis": "local endpoint, no price"},
+                 "served_as": args.served_as, **bounds, "max_tokens": args.max_tokens,
+                 "tools": tools, "execution_mode": "live",
+                 "cost_basis": "local endpoint, no price"},
                 f"a local model, {args.model}, at {args.endpoint}: no nominal price, "
                 f"nothing is spent; requested from {args.requested_from}", {})
     price = PRICES[args.model]
@@ -327,9 +330,8 @@ def configure(args, tool_names) -> tuple[dict[str, object], str, dict[str, objec
               f"${args.max_cost_usd:.2f} at nominal prices ({price.table}), a hard cap — no "
               f"request is sent whose worst case would cross it; requested from "
               f"{args.requested_from}; permitted by the operator running this process")
-    paid = {"credential": os.environ["OPENAI_API_KEY"], "max_tokens": args.max_tokens,
-            "price": price, "max_cost_usd": args.max_cost_usd,
-            "reasoning_effort": args.reasoning_effort}
+    paid = {"credential": os.environ["OPENAI_API_KEY"], "price": price,
+            "max_cost_usd": args.max_cost_usd, "reasoning_effort": args.reasoning_effort}
     return configuration, reason, paid
 
 
@@ -401,7 +403,7 @@ def main(argv: list[str] | None = None) -> int:
                         help="openai only: the hard spend cap — a request whose worst case "
                              "would cross it is not sent (default 0.25)")
     parser.add_argument("--max-tokens", type=int, default=512,
-                        help="openai only: the completion bound per request (default 512); "
+                        help="the completion bound per request (default 512); on openai, "
                              "priced in full in every request's reserve")
     parser.add_argument("--reasoning-effort", choices=REASONING_EFFORTS,
                         help="openai only, a reasoning model: sent as given in place of "
@@ -547,7 +549,8 @@ def main(argv: list[str] | None = None) -> int:
                                         max_turns=args.max_turns, recorder=recorder,
                                         served_as=args.served_as,
                                         max_model_requests=args.max_model_requests,
-                                        max_wall_clock_s=args.max_wall_clock_seconds, **paid)
+                                        max_wall_clock_s=args.max_wall_clock_seconds,
+                                        max_tokens=args.max_tokens, **paid)
         validator = ValidatorOnLivePath()
 
     try:

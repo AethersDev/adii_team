@@ -116,6 +116,36 @@ def test_a_reasoning_effort_is_a_pack_term_that_reaches_every_paid_cell(tmp_path
     assert not (tmp_path / "packs").exists()
 
 
+def test_a_local_models_weights_are_a_term_its_pack_resumes_only_with(tmp_path, endpoint,
+                                                                       capsys):
+    """A local subject is named by its bytes: a hidden file is not the model, and a pack begun
+    on one set of weights is refused on any other — a registered one, on any but the frozen."""
+    weights = tmp_path / "model"
+    (weights / ".cache").mkdir(parents=True)
+    (weights / "model.safetensors").write_bytes(b"weights")
+    (weights / ".cache" / "download").write_text("a", encoding="utf-8")
+    FakeModel.script[:] = [END] * 4
+    assert grid.main(args(tmp_path, endpoint, "--arms", "full", "--weights", str(weights))) == 0
+    receipt = json.loads((tmp_path / "packs" / "t.json").read_text(encoding="utf-8"))
+    assert receipt["weights_sha256"] == grid.weights_digest(weights)
+    (weights / ".cache" / "download").write_text("b", encoding="utf-8")
+    assert grid.weights_digest(weights) == receipt["weights_sha256"]
+    (weights / "model.safetensors").write_bytes(b"other weights")
+    assert grid.main(args(tmp_path, endpoint, "--arms", "full", "--weights", str(weights))) == 2
+    assert "resumes only as it began" in capsys.readouterr().out
+
+
+def test_a_local_pack_sends_and_records_its_completion_bound(tmp_path, endpoint):
+    """Unsent, a local server's own default binds instead — mlx-lm's is 512 — and no receipt
+    says so: the pack's bound reaches the endpoint and every run's receipt."""
+    FakeModel.script[:] = [END] * 4
+    assert grid.main(args(tmp_path, endpoint, "--arms", "full", "--max-tokens", "4096")) == 0
+    assert {body.get("max_completion_tokens") for body in FakeModel.seen} == {4096}
+    for run in (tmp_path / "runs").iterdir():
+        told = json.loads((run / "receipt.json").read_text(encoding="utf-8"))
+        assert told["configuration"]["max_tokens"] == 4096
+
+
 def test_a_pack_runs_its_registered_partition_and_the_benchmark_by_default(tmp_path,
                                                                           monkeypatch):
     """Decision E: which incidents a pack runs is registered before any final run

@@ -25,6 +25,7 @@ evaluation reports and nothing else.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from collections import Counter, defaultdict
 from datetime import UTC, datetime
@@ -54,6 +55,20 @@ PARTITION = {k: v for k, v in json.loads((CATALOGUE / "partition.json").read_tex
     encoding="utf-8")).items() if isinstance(v, list)}
 
 
+def weights_digest(directory: Path) -> str:
+    """A local model named by its bytes: every file under `directory` but hidden ones (a
+    download cache, a folder's notes), digested the way a freeze digests the tree. It names
+    what was on disk when the pack began — not what a server loaded, which only the command
+    that started the server from this directory can say."""
+    files = {}
+    for path in sorted(directory.rglob("*")):
+        relative = path.relative_to(directory)
+        if path.is_file() and not any(part.startswith(".") for part in relative.parts):
+            with path.open("rb") as weights:
+                files[relative.as_posix()] = hashlib.file_digest(weights, "sha256").hexdigest()
+    return lock.digest(files)
+
+
 def cells(pack: dict) -> list[tuple[str, str, str, int]]:
     """(label, incident, arm, repeat) for every run the pack promises, in running order."""
     return [(f"{pack['pack']}-{incident}-{arm}-r{k}", incident, arm, k)
@@ -67,14 +82,13 @@ def run_cell(pack: dict, label: str, incident: str, arm: str, archive: Path) -> 
     if arm == "always-escalate":
         return runtime.main([*argv, "--provider", "none"])
     argv += ["--provider", pack["provider"], "--model", pack["model"],
-             "--max-turns", str(pack["max_turns"])]
+             "--max-turns", str(pack["max_turns"]), "--max-tokens", str(pack["max_tokens"])]
     if pack.get("endpoint"):
         argv += ["--endpoint", pack["endpoint"]]
     if pack.get("served_as"):
         argv += ["--served-as", pack["served_as"]]
     if pack["provider"] == "openai":
-        argv += ["--max-cost-usd", str(pack["max_cost_usd"]), "--max-tokens",
-                 str(pack["max_tokens"])]
+        argv += ["--max-cost-usd", str(pack["max_cost_usd"])]
     if pack.get("reasoning_effort"):
         argv += ["--reasoning-effort", pack["reasoning_effort"]]
     return runtime.main(argv)
@@ -173,8 +187,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-turns", type=int, default=20)
     parser.add_argument("--max-cost-usd", type=float, default=0.50)
     parser.add_argument("--max-tokens", type=int, default=1024,
-                        help="the completion bound per request on a paid provider: room for a "
-                             "decision with its patch, priced in full in every reserve")
+                        help="the completion bound per request: room for a decision with its "
+                             "patch, priced in full in every reserve on a paid provider")
+    parser.add_argument("--weights", metavar="DIR",
+                        help="a local model's directory: the digest of its files is a pack "
+                             "term, so a registered pack runs only on the frozen weights")
     parser.add_argument("--reasoning-effort", choices=REASONING_EFFORTS,
                         help="a reasoning model's effort, a pack term like every bound")
     parser.add_argument("--pack-cap-usd", type=float)
@@ -203,8 +220,10 @@ def main(argv: list[str] | None = None) -> int:
                 "max_turns": args.max_turns, "max_cost_usd": args.max_cost_usd,
                 "max_tokens": args.max_tokens,
                 "pack_cap_usd": args.pack_cap_usd, "judge_model": args.judge_model,
-                # a term only when set, so a pack begun before the term existed resumes
+                # terms only when set, so a pack begun before the term existed resumes
                 **({"reasoning_effort": args.reasoning_effort} if args.reasoning_effort
+                   else {}),
+                **({"weights_sha256": weights_digest(Path(args.weights))} if args.weights
                    else {})}
         if args.pack in lock.PACKS:
             # a registered final pack runs on the newest freeze, as it was frozen, or not at all

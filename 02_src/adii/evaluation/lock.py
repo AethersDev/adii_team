@@ -63,6 +63,16 @@ PACKS = {
                       "pack_cap_usd": 6.12},
     "final-held-out": {"model": "gpt-6-sol", "reasoning_effort": "low", "partition": "held_out",
                        "arms": ["full"], "pack_cap_usd": 3.06},
+    # an extension, not decision E (docs/qwen_local_extension.md): the same contract with a
+    # small local subject frozen by its weights; the benchmark only, the held-out six untouched;
+    # temperature 0, so the three repeats test determinism; no judge, so no model but the
+    # subject takes part and nothing is spent
+    "local-qwen3-4b": {
+        "provider": "local", "model": "Qwen3-4B-Instruct-2507-4bit",
+        "endpoint": "http://127.0.0.1:8090/v1", "served_as": "default_model",
+        "weights_sha256": "a483aa1606625203ae84261d9fcb87495caeddc8d8f66f58da33582244cf7c60",
+        "partition": "benchmark", "arms": ["full"], "repeats": 3, "judge_model": None,
+        "pack_cap_usd": None},
 }
 
 
