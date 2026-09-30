@@ -1,7 +1,7 @@
 {
   "schema": "adii.archive_manifest/v1",
-  "written_at": "2026-09-26T14:28:39+00:00",
-  "source_revision": "385114118cff81f3ea5016fcc8923444af458c46",
+  "written_at": "2026-09-30T14:18:10+00:00",
+  "source_revision": "477cdb5384f94e8901c60ce3d8b533c4ba18b12e",
   "entries": [
     {
       "path": "customer-region-misassigned-20260916T092358-161Z/receipt.json",
@@ -1858,6 +1858,870 @@
       "retention": "evidence"
     },
     {
+      "path": "local-qwen3-4b-revenue-drop-03df8b-full-r1/evaluation_report.json",
+      "bytes": 812,
+      "digest": "sha256:c4cec35bbb92187e98fd24e9b7771be191f9441cbd5b6fdf16590c2a13fdb7cd",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-03df8b-full-r1/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:577864b898ea00ded6c8ede4310b97c249bb3b3bd5b04ec9305986adfe08956d",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-03df8b-full-r1/record.json",
+      "bytes": 34036,
+      "digest": "sha256:03402340ca5118af76c9c8702affca7d1c420490d908828dbafd3aa5dee0b703",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-03df8b-full-r1/trace.jsonl",
+      "bytes": 23590,
+      "digest": "sha256:0e157272931a5eb2abc2df1fb3e56f8711249c74b23bf9a5d33da23867ea179c",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-03df8b-full-r2/evaluation_report.json",
+      "bytes": 812,
+      "digest": "sha256:a9b9d823d5c8af8501d101946d2033b001c38dd36b2a4f129c309ca5321d3763",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-03df8b-full-r2/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:7dde9fe3ba785d240422daa6f375b56b3d2b0d1f50909e8ef74ed55881a3396d",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-03df8b-full-r2/record.json",
+      "bytes": 34039,
+      "digest": "sha256:3aa750bd95c158b914e5a7836710a1e0fca7275e06a09f9ea7a27ce142ec2046",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-03df8b-full-r2/trace.jsonl",
+      "bytes": 23593,
+      "digest": "sha256:e347f64c03ebd1756e69b5b9e2abe575b7dd1101391c09cbbbb1708de0f34b78",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-03df8b-full-r3/evaluation_report.json",
+      "bytes": 812,
+      "digest": "sha256:861550e4b81263301b2e535e0c6c4dbd9abdb82188d57d28da1d4c5b89babbf6",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-03df8b-full-r3/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:9ae3bb39168b1d3bb288d0c047095f7fcb54e79c8a5b54b258f499e941a28300",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-03df8b-full-r3/record.json",
+      "bytes": 34039,
+      "digest": "sha256:6fc31dd4d375d5cf8076315fac9779184ec08f1a408fb7ab7b51316d84a6c986",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-03df8b-full-r3/trace.jsonl",
+      "bytes": 23593,
+      "digest": "sha256:e347f64c03ebd1756e69b5b9e2abe575b7dd1101391c09cbbbb1708de0f34b78",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-18b88d-full-r1/evaluation_report.json",
+      "bytes": 359,
+      "digest": "sha256:905ed98c03423b4148486a27775af8e3b4f4038979754f4ebf12c51c3d696775",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-18b88d-full-r1/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:29703ff0fdcb264b93aafb024aeec3e6e8a25bb2448b938a9e76b7e6257d392b",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-18b88d-full-r1/record.json",
+      "bytes": 55196,
+      "digest": "sha256:8359fa8c8499b39d1a18e3dbe1474b1e138f5c97f95a6893969b9a84ca345204",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-18b88d-full-r1/trace.jsonl",
+      "bytes": 41701,
+      "digest": "sha256:74a143486d9189aa5204e1e32e036677889881a7a69c6e0952fd89cabab95f98",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-18b88d-full-r2/evaluation_report.json",
+      "bytes": 359,
+      "digest": "sha256:df1e744480b7072a6fc27c70151ae55ced33f5bc6b4d57811a0126bbc6c6c6c9",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-18b88d-full-r2/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:50db2b875a5f5702fa0ff917ac23cf922980b547fbfe854f1172466438c6cb08",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-18b88d-full-r2/record.json",
+      "bytes": 55197,
+      "digest": "sha256:9a8fec9823fb7717f68c7346765edd386d4271a7c9d28c4a577024f561d5865a",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-18b88d-full-r2/trace.jsonl",
+      "bytes": 41702,
+      "digest": "sha256:3b26be9435a770bb8a34d58f5a32a5fd9f94f600858d2f399a9f5c1f810e50e2",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-18b88d-full-r3/evaluation_report.json",
+      "bytes": 359,
+      "digest": "sha256:c90f3e0c40d4bd9352684b775d50e5f825ead1d8faa7e9ff3a6c369b915c97d5",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-18b88d-full-r3/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:06b53b7e81a130a72ab17274adfc4d1f0c56069450d6d69a6ea849d3b8f95995",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-18b88d-full-r3/record.json",
+      "bytes": 55197,
+      "digest": "sha256:47eaeacbc66bf43f28ad121c4374e762653bef3c45b6e166a895e748fce00634",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-18b88d-full-r3/trace.jsonl",
+      "bytes": 41702,
+      "digest": "sha256:3b26be9435a770bb8a34d58f5a32a5fd9f94f600858d2f399a9f5c1f810e50e2",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-2c077d-full-r1/evaluation_report.json",
+      "bytes": 723,
+      "digest": "sha256:088271d6958b2d994453b93152368da3a142f4b686627866da99f2904083e6d6",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-2c077d-full-r1/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:3bedf16fcbb7351bc9e1b2ec759461fd40f450b5c56721ab7d4bdbf7c67bd91c",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-2c077d-full-r1/record.json",
+      "bytes": 25773,
+      "digest": "sha256:ce2a0cb8599ea970edf167fd6fdd2694ac2d7621276ea8804f6ea1f7d30921f1",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-2c077d-full-r1/trace.jsonl",
+      "bytes": 18621,
+      "digest": "sha256:76c8f2f9be1d915433c3293d9b9cf049fac9e2983b0538e2ee63e67a4336bcc3",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-2c077d-full-r2/evaluation_report.json",
+      "bytes": 723,
+      "digest": "sha256:8d038bdb40bddf2a850e7c9be0e6c1b9dd8d55582c8860cd64b85175f8092127",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-2c077d-full-r2/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:f8bc9fea2082a9ab9b1cc5b562ce799c1019d618753b1d5638a1c69881f5027c",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-2c077d-full-r2/record.json",
+      "bytes": 25774,
+      "digest": "sha256:46f5ebf0547157dc64edff184169cecc175c257e64259d93d3df63081cf5db46",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-2c077d-full-r2/trace.jsonl",
+      "bytes": 18622,
+      "digest": "sha256:6b08f98997df53403042638f42f4056a466266f6b9e3e946e9b31433d7230f7f",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-2c077d-full-r3/evaluation_report.json",
+      "bytes": 723,
+      "digest": "sha256:f3273cafaa4195c79258a90190354fe7deb302fcef047ad0701373674e132a78",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-2c077d-full-r3/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:c1ff6076669dfa80df7ceb8811b995b1bcd5de971ca45d5852cdfe8c6bbdb6b0",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-2c077d-full-r3/record.json",
+      "bytes": 25774,
+      "digest": "sha256:d100c7a4b085c14704b4e87d685894f22f8ffa0d611cdd1f3291708131a394bb",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-2c077d-full-r3/trace.jsonl",
+      "bytes": 18622,
+      "digest": "sha256:6b08f98997df53403042638f42f4056a466266f6b9e3e946e9b31433d7230f7f",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-4c1f15-full-r1/evaluation_report.json",
+      "bytes": 1003,
+      "digest": "sha256:3e82c08e210ec0b4a6e4a672469d113466a095b9c90b8150fad3cb8580d25959",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-4c1f15-full-r1/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:53367a131e1a4b96fef5a8c3e9856f6327c452e437335d37e478a17d791f647f",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-4c1f15-full-r1/record.json",
+      "bytes": 29023,
+      "digest": "sha256:12b15d448f2eb5faf03cdf11f4205e0682d7e9b8101ceeffaed25004a68495b2",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-4c1f15-full-r1/trace.jsonl",
+      "bytes": 20090,
+      "digest": "sha256:b282e52350910c3ee3a01764bd8d5ffa504272216cddb54e475f95d47515dbcb",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-4c1f15-full-r2/evaluation_report.json",
+      "bytes": 1003,
+      "digest": "sha256:0bf1653e4113b69df8eb5262f657908dfe81918e341b2819f80a721694b1ddad",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-4c1f15-full-r2/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:f55da468623b017f4275af8de3634cc5c8b1bc9256aeab73278fa6865f11ed03",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-4c1f15-full-r2/record.json",
+      "bytes": 29024,
+      "digest": "sha256:854fca7089d068336a6cacdbafd692c585f6458831f0807979f9beb5b7d04b7d",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-4c1f15-full-r2/trace.jsonl",
+      "bytes": 20091,
+      "digest": "sha256:2cbf332e03f00f98f4bb580a48a9e582ca755be74823f719fd2eb91f1eb792e0",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-4c1f15-full-r3/evaluation_report.json",
+      "bytes": 1003,
+      "digest": "sha256:71824be8dda50c14d69323c1d94eeaaf73d3611fd86cae54eb1c0f6375d694d4",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-4c1f15-full-r3/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:8dd1bdb2aad4650b6b2a9aa42a06c26273ad0f2ba23cd9eb1f5f879d3e8a3426",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-4c1f15-full-r3/record.json",
+      "bytes": 29024,
+      "digest": "sha256:12b53c9d12272f349abea6fe4505948ae915f3f20135dd67da4d8ec53a713ece",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-4c1f15-full-r3/trace.jsonl",
+      "bytes": 20091,
+      "digest": "sha256:2cbf332e03f00f98f4bb580a48a9e582ca755be74823f719fd2eb91f1eb792e0",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-594c0f-full-r1/evaluation_report.json",
+      "bytes": 903,
+      "digest": "sha256:834cf366743fdee8f23d9aa918f2dd12526190614802508015843579be0d0e93",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-594c0f-full-r1/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:86d82a79925ba6c7a14e3b1e1c5bda942ecd384e3a92684d933e82f1a9cfe412",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-594c0f-full-r1/record.json",
+      "bytes": 29715,
+      "digest": "sha256:fb8664df3a947107e13f157098e8fbc6f62d25f16e31b68a1729fec701e1b07f",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-594c0f-full-r1/trace.jsonl",
+      "bytes": 19760,
+      "digest": "sha256:f9a8eb3c0896e87bf150efe9aa66366dad7f1e71a7d520abf6937fb0ab6f6713",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-594c0f-full-r2/evaluation_report.json",
+      "bytes": 903,
+      "digest": "sha256:b05aab66179b327829dc469d7047b1e87b592fd1fc3771592193000be52a2bb2",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-594c0f-full-r2/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:8188e315b4acf795b51b14dfe5d1a3467a96ff917a3e9432da7afa7b91cfdce1",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-594c0f-full-r2/record.json",
+      "bytes": 29716,
+      "digest": "sha256:3d377847985b9ad88901a027fabe6ae84c2f7bd8480a1b32e61fefe7d9e28cb1",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-594c0f-full-r2/trace.jsonl",
+      "bytes": 19761,
+      "digest": "sha256:148d3681f78f09e8ee81d6c3fe3d7d99b4995ccb91d2b67257e3e8ed771c0d41",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-594c0f-full-r3/evaluation_report.json",
+      "bytes": 903,
+      "digest": "sha256:a5192998aa838041a4f57736509f9f8bd44fc357df6d6f81a686abeebbc4ad8f",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-594c0f-full-r3/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:b8069bbd5b21f8f08f66396f614911fe9c6f9a0901ba15528f16a103470eacec",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-594c0f-full-r3/record.json",
+      "bytes": 29716,
+      "digest": "sha256:34bb308eaab5870ba4d5132938efa63a52b93a0e048f956938daae785169c0ea",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-594c0f-full-r3/trace.jsonl",
+      "bytes": 19761,
+      "digest": "sha256:148d3681f78f09e8ee81d6c3fe3d7d99b4995ccb91d2b67257e3e8ed771c0d41",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-610a79-full-r1/evaluation_report.json",
+      "bytes": 903,
+      "digest": "sha256:d662a8b8574d14f62ebc353862af8f0ea4f182d05a2ceb8d21bf06a86e97ec12",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-610a79-full-r1/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:af510090b68ae1a4600117587423a3ae576c4589fa430a056b7c544c6d8d7b27",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-610a79-full-r1/record.json",
+      "bytes": 29837,
+      "digest": "sha256:8745b32fcb373db31554640174d0d3c93ecce4d29ff00c1477e9754231ba019f",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-610a79-full-r1/trace.jsonl",
+      "bytes": 19878,
+      "digest": "sha256:8a89a109e3a3bb62d208868c5538efd5cc38a554baa9017b355a119fe0c75202",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-610a79-full-r2/evaluation_report.json",
+      "bytes": 903,
+      "digest": "sha256:10339e59299797721473b93957018642ff28f21819762b2fa0d25ff722e80580",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-610a79-full-r2/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:b5e72f1f8e531a0bebf2dbeb1da4d5041f222bf16e9154c9911a795b99de91de",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-610a79-full-r2/record.json",
+      "bytes": 29838,
+      "digest": "sha256:868c8eed645eee4bd52c7d1af7b69957a2953341d1409bbf6214a34871dcbeb8",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-610a79-full-r2/trace.jsonl",
+      "bytes": 19879,
+      "digest": "sha256:4db6b8a52da32657cd61a522463039bd8874582878a90e0549ea923ab19019e9",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-610a79-full-r3/evaluation_report.json",
+      "bytes": 903,
+      "digest": "sha256:ea25d1c6bad77fe01d058564a08260e62e7b4f68c91c3720ef7ac18c2a513704",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-610a79-full-r3/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:b9a06ede629980d398f6b28edca7ff7834dd9838e163cde9c156358c828450ac",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-610a79-full-r3/record.json",
+      "bytes": 29838,
+      "digest": "sha256:a9cbd3c29e3976585ce84d4e7b688e4944e35c692cc582f6cc6ff1cd2c644c8b",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-610a79-full-r3/trace.jsonl",
+      "bytes": 19879,
+      "digest": "sha256:4db6b8a52da32657cd61a522463039bd8874582878a90e0549ea923ab19019e9",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-6fb41f-full-r1/evaluation_report.json",
+      "bytes": 723,
+      "digest": "sha256:52cbd06d25325aad2f23957e6c4cae54428f799521f9687ed18225eb5261b9cd",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-6fb41f-full-r1/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:9effbaae0e7004d8bf6896987843b7f00d09c75986592772dc5a9a5899767f8d",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-6fb41f-full-r1/record.json",
+      "bytes": 23012,
+      "digest": "sha256:084fa8cb56c2786d3c89a722d192337da90a83cf6bc74cfe73c703c34cb5766c",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-6fb41f-full-r1/trace.jsonl",
+      "bytes": 16232,
+      "digest": "sha256:c1fa3eef8b28d0e303899a472ecf3b621d8fdf3b9e18a842791303bc0d60d6bd",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-6fb41f-full-r2/evaluation_report.json",
+      "bytes": 723,
+      "digest": "sha256:e1d2bdcf9daa1b0b282d9372acb6b212149ad8eecf7417c4c7b082da622be45d",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-6fb41f-full-r2/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:62ea1a3616bd960f8d1d8c14eb3851af8d14e01a63e2d81f4ae86178e3060a24",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-6fb41f-full-r2/record.json",
+      "bytes": 23013,
+      "digest": "sha256:c188206a6dc421ce1802878961178ee211fcd2f5c6691a98c858eb16b096b555",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-6fb41f-full-r2/trace.jsonl",
+      "bytes": 16233,
+      "digest": "sha256:fe315dc504c4c183bc85113593891ff0cc8d40ab3e918a5077444e8aae7fc40c",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-6fb41f-full-r3/evaluation_report.json",
+      "bytes": 723,
+      "digest": "sha256:8a44146c0462cae8821d1d88eb1373b9c598f77eccf6c17ce24e2727c2721056",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-6fb41f-full-r3/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:1b5662806d855197fb26a107473ec2778745c01b707221d1f2b0d7b5e96afa75",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-6fb41f-full-r3/record.json",
+      "bytes": 23013,
+      "digest": "sha256:b2f853ed8379eda9fb35f7f6dfb691482693a9dedd44c97cb784207b9472c1e4",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-6fb41f-full-r3/trace.jsonl",
+      "bytes": 16233,
+      "digest": "sha256:fe315dc504c4c183bc85113593891ff0cc8d40ab3e918a5077444e8aae7fc40c",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-70d601-full-r1/evaluation_report.json",
+      "bytes": 1003,
+      "digest": "sha256:bba056ceba59e60f335be602d5c116de169d5bc630696f0e0afeadbfb8c8043e",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-70d601-full-r1/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:78a605d91942080e773172adb72e5cc1b5ffcf7cccd1d5fe4f63b3f6b92817ae",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-70d601-full-r1/record.json",
+      "bytes": 24832,
+      "digest": "sha256:57f8510c9cfd0788d3948a19c30ced41aea8f73953cbd3033422f42c3c8235b3",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-70d601-full-r1/trace.jsonl",
+      "bytes": 16481,
+      "digest": "sha256:e5af1d34e2b1eba8f6d0fc00219fd598e03762270a7e1b870a534560f534ceaf",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-70d601-full-r2/evaluation_report.json",
+      "bytes": 1003,
+      "digest": "sha256:5918b7ee134706b8aacd81a1fc8a9a0aa1d1e8ddbdb9a64991dbfa0c74dc8572",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-70d601-full-r2/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:782acaf4e54b943c6900e294d419cf0de95cae1b0d234b98d98c96398f1ff945",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-70d601-full-r2/record.json",
+      "bytes": 24833,
+      "digest": "sha256:b5baf9b93cd3581957746e999da36989ca32cfafcdb6767436b42adcc495ec75",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-70d601-full-r2/trace.jsonl",
+      "bytes": 16482,
+      "digest": "sha256:f7ce48d83bb27e45c243417b2be5580f717ced8629e5943e63a3ca6b5858c8a4",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-70d601-full-r3/evaluation_report.json",
+      "bytes": 1003,
+      "digest": "sha256:adc1ab3443a448938557f90e7959b06408579d7d4ab38d88812b2de1b7b5013e",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-70d601-full-r3/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:52519f6e7a784feb0321f09d19714ccf371f3f7f4b399c6f0d51d69f2741d70d",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-70d601-full-r3/record.json",
+      "bytes": 24833,
+      "digest": "sha256:2efe27497549e386e924a29e4175c34bb015bc09c9b626e81f92db1f51551928",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-70d601-full-r3/trace.jsonl",
+      "bytes": 16482,
+      "digest": "sha256:f7ce48d83bb27e45c243417b2be5580f717ced8629e5943e63a3ca6b5858c8a4",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-70e933-full-r1/evaluation_report.json",
+      "bytes": 1032,
+      "digest": "sha256:0f6355df57b52b414ae5ad0c18e83fd5adf98b08547327679b8ba82f438c6ff8",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-70e933-full-r1/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:14539f36498218ec5a9dbf4bb544053167220d70eadcafa4a50b7f71fb662a72",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-70e933-full-r1/record.json",
+      "bytes": 28556,
+      "digest": "sha256:f014b306f9dc81a32d8a62fee64938cf5e57020de97f2d017c79faac9ea77c6b",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-70e933-full-r1/trace.jsonl",
+      "bytes": 19013,
+      "digest": "sha256:d45484259967f1ca3472d50e02d583c76547e76be1e30b93c88c75b711b789ce",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-70e933-full-r2/evaluation_report.json",
+      "bytes": 1032,
+      "digest": "sha256:edfe03570dc6196331e5dff69da9d713f8e896ab3bd392fe4cfb052b85c097c7",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-70e933-full-r2/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:5b4ec20bf8e11030b93b5ccdbc868cf4dab128208b0c1938efc38990608fe299",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-70e933-full-r2/record.json",
+      "bytes": 28557,
+      "digest": "sha256:e4c1f2a54f001d6d391f34238d75b3b94f5acf3954cf5e2f2f422487c8f876ed",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-70e933-full-r2/trace.jsonl",
+      "bytes": 19014,
+      "digest": "sha256:754699f75f93a5035e1710f0e696d38e3f74a31162138cd74c88d2ff81e64487",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-70e933-full-r3/evaluation_report.json",
+      "bytes": 1032,
+      "digest": "sha256:b58c3c677cb51a7a82e6d5003e4114e54e4b2588402f29590c9aa8427f0bc732",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-70e933-full-r3/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:45d51e0e89674a8836370ab0bd14d867fdfb464aee5b85a5345ddfb8437bfc7c",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-70e933-full-r3/record.json",
+      "bytes": 28557,
+      "digest": "sha256:20091dbea31f3cd736b6ed07bb56806606d1452a8416d5116452de13cf074904",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-70e933-full-r3/trace.jsonl",
+      "bytes": 19014,
+      "digest": "sha256:754699f75f93a5035e1710f0e696d38e3f74a31162138cd74c88d2ff81e64487",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-8e68f4-full-r1/evaluation_report.json",
+      "bytes": 1032,
+      "digest": "sha256:66047d65c06746712f5a59bd3e99fa6a2a392dfca74cc5b4c4a2cf8eb26b9aec",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-8e68f4-full-r1/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:20ee9572757ba05a3e73a124b3d54a31b12b5223da6803aae2de5c3a4041ea49",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-8e68f4-full-r1/record.json",
+      "bytes": 35647,
+      "digest": "sha256:dce1679bcb8810f3e4306fe1b61e1fc5107ab0b544702b2f7d3c00b87146cc61",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-8e68f4-full-r1/trace.jsonl",
+      "bytes": 24806,
+      "digest": "sha256:d788b1dc75dfc4dbad4276dcd9141e3462932d34f771852e8a27d1b356dfa1cf",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-8e68f4-full-r2/evaluation_report.json",
+      "bytes": 1032,
+      "digest": "sha256:2fd0c8feb684a7af5ef9feaaf2a370e24331663d18627988e183bbdd970c2b5f",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-8e68f4-full-r2/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:c68ff8385e12be9ddc20ea12cdd28753cf5564921476e16d9e17db900b9462b8",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-8e68f4-full-r2/record.json",
+      "bytes": 35648,
+      "digest": "sha256:82950f3d78f63ee7ed3e9f476249830e336672ecd135d713ba7d7e553763af9e",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-8e68f4-full-r2/trace.jsonl",
+      "bytes": 24807,
+      "digest": "sha256:f407ac599c662b455672cc0f0bf1b56a40ac4cc5197904e6b8070c2c3c0cfa15",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-8e68f4-full-r3/evaluation_report.json",
+      "bytes": 1032,
+      "digest": "sha256:0029f9660f6cbd867889ab2cd5bb02cfa4b0be343c7d16e4d0a70c3fafc7de53",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-8e68f4-full-r3/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:4baf01bef283f15616156c8af8755b70b1b8b26dff73ee1e250b45210b1f93c0",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-8e68f4-full-r3/record.json",
+      "bytes": 35648,
+      "digest": "sha256:311487334992b300317ffd5c712154517f9f90d389ce05d37081d3fda24bad08",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-8e68f4-full-r3/trace.jsonl",
+      "bytes": 24807,
+      "digest": "sha256:f407ac599c662b455672cc0f0bf1b56a40ac4cc5197904e6b8070c2c3c0cfa15",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-982e8e-full-r1/evaluation_report.json",
+      "bytes": 874,
+      "digest": "sha256:11f20eca16f6effce4f3303d288219e9e68df14b32f43572e8be299ef316d2ba",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-982e8e-full-r1/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:c4b8b1ee373c90cbdd14da2a7990c45a1a61e7afa570014e77135e8f97cad321",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-982e8e-full-r1/record.json",
+      "bytes": 25651,
+      "digest": "sha256:a52ecfdb8006f61f0f315c22d091c6db305caf56d2504e1f5528dda7ec1b1cd1",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-982e8e-full-r1/trace.jsonl",
+      "bytes": 17078,
+      "digest": "sha256:2e68061bb306c7eef9d876f0dffcb3984231b82a2ec7db961e82bc9ca7feca73",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-982e8e-full-r2/evaluation_report.json",
+      "bytes": 874,
+      "digest": "sha256:ddfcafbbda87317a650ee715257e61c510ee964f975ca6447f65f1366aeff80d",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-982e8e-full-r2/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:98fcb5adff35bb1c1949e722690b06891f068e36a69002926c7a066722919a66",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-982e8e-full-r2/record.json",
+      "bytes": 25652,
+      "digest": "sha256:c80af260dda47e9697aab335df14142d644f1014939d89eb56921cfc0ac96cb4",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-982e8e-full-r2/trace.jsonl",
+      "bytes": 17079,
+      "digest": "sha256:ed9e73a14723a1bc42b269add9d7fa582e82faea2eb1b90e334d1fe91777f3cd",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-982e8e-full-r3/evaluation_report.json",
+      "bytes": 874,
+      "digest": "sha256:e68e3d80ac90cfe32e358d5cede22a0049c0a1fb480ba41db5e880fea88492e9",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-982e8e-full-r3/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:30c62353e5a7eb0fe485dd8ec0a9cd933ce66e66d7ed3da6f0cb5924684d12a9",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-982e8e-full-r3/record.json",
+      "bytes": 25652,
+      "digest": "sha256:5684288c51ba57af14bfd7ee3570ad1e63ac9865b7d7557e113d853135a0fced",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-982e8e-full-r3/trace.jsonl",
+      "bytes": 17079,
+      "digest": "sha256:ed9e73a14723a1bc42b269add9d7fa582e82faea2eb1b90e334d1fe91777f3cd",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-d22c8a-full-r1/evaluation_report.json",
+      "bytes": 915,
+      "digest": "sha256:bc1d763bff1c76140039ee09f9979032ba91c3cf0d91bf8ea3079bee9ed73669",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-d22c8a-full-r1/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:02501c3b64930ca43bc860b0ba21d02cf923720151e3fe255f02b797f6b749d1",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-d22c8a-full-r1/record.json",
+      "bytes": 42481,
+      "digest": "sha256:e61cd75ad0b3eb588f35c56d617e1b4e49dc88704ec8899fb3f519e22691e1aa",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-d22c8a-full-r1/trace.jsonl",
+      "bytes": 30449,
+      "digest": "sha256:c965b30b83624c97586c164c84173b9eeb2774982aef041232bfa3659f8038e7",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-d22c8a-full-r2/evaluation_report.json",
+      "bytes": 915,
+      "digest": "sha256:b22c9cc3a0f8a225765cc9e36edadd47efb8a50a07c374df551da64d7c8d72a5",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-d22c8a-full-r2/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:3df17bade4a5167ca06614f2179c773e1fd39b45d7154239bb683637018d4dd8",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-d22c8a-full-r2/record.json",
+      "bytes": 42482,
+      "digest": "sha256:bd266354dc0263ce3de61e8e1ca0519cb6806d766b8a046dc041fa8c2ce688dd",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-d22c8a-full-r2/trace.jsonl",
+      "bytes": 30450,
+      "digest": "sha256:346fa3cc4240e38d23624979141af1636605f63578ab8a2dbee3e7e300e23b3a",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-d22c8a-full-r3/evaluation_report.json",
+      "bytes": 915,
+      "digest": "sha256:99ee44435c9c92387c6ee0279bb71851d625c138d5a5553e86d36e42f720dfba",
+      "retention": "evaluation"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-d22c8a-full-r3/receipt.json",
+      "bytes": 1970,
+      "digest": "sha256:864f0d1c838b39686ab0fe8b7e9d01471217a47f2eed5b3d2514fc0a9788dfb5",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-d22c8a-full-r3/record.json",
+      "bytes": 42482,
+      "digest": "sha256:a6385c65ad354c1367f242c84dfbc70073d317d8031e916453c7d91365ef66e4",
+      "retention": "evidence"
+    },
+    {
+      "path": "local-qwen3-4b-revenue-drop-d22c8a-full-r3/trace.jsonl",
+      "bytes": 30450,
+      "digest": "sha256:346fa3cc4240e38d23624979141af1636605f63578ab8a2dbee3e7e300e23b3a",
+      "retention": "evidence"
+    },
+    {
       "path": "orders-missing-day-20260916T111954-473Z/receipt.json",
       "bytes": 848,
       "digest": "sha256:4c1c68053bf048d682c4ea2da9988a0cf080f9379b060476a3b50057c05d904b",
@@ -3376,6 +4240,114 @@
       "retention": "evidence"
     },
     {
+      "path": "revenue-drop-6c6b97-20260927T074505-870Z/receipt.json",
+      "bytes": 2878,
+      "digest": "sha256:d376f49f919ba736e963ee2fbd970d018137a4a1718031c2254d03479eefd7a4",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260927T074505-870Z/record.json",
+      "bytes": 47724,
+      "digest": "sha256:ef003253ac6a43c87f2ef42749be262f81e10b82d9dd22c366441551f050f44a",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260927T074505-870Z/trace.jsonl",
+      "bytes": 32720,
+      "digest": "sha256:e3157b9a1fdbe114feb39368434a905389f046f3231915d68d743b4c5b7306dd",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260927T120352-603Z/receipt.json",
+      "bytes": 2875,
+      "digest": "sha256:d9f9e9c3fd0795ad519bb34c4a7374add9ec6ee0655233fddb0ebbafa8955acd",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260927T120352-603Z/record.json",
+      "bytes": 69643,
+      "digest": "sha256:71500c3749d2406a9702a391f56af072c485c69345b721c3a216be4175904c2f",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260927T120352-603Z/trace.jsonl",
+      "bytes": 49286,
+      "digest": "sha256:fb6858ae283933cbc5a92fa0c97342de9e2992fd2af90137205c82874caaf58d",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260927T133129-151Z/receipt.json",
+      "bytes": 2875,
+      "digest": "sha256:712bd23fcb23d6442988b5862ccd901d69b951e37be446e0373aa45f17765f50",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260927T133129-151Z/record.json",
+      "bytes": 9840,
+      "digest": "sha256:f9199cbc4f5e4ee659e7d498506601868969e55aa7ef8a85bb8892dd54fce5ce",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260927T133129-151Z/trace.jsonl",
+      "bytes": 6654,
+      "digest": "sha256:68e668075553d321d0837a2047ec2abf5b0dba6efcd0fe2fa37ac0ea056c2e5b",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260927T200123-586Z/receipt.json",
+      "bytes": 2878,
+      "digest": "sha256:349efb2396f5d28862418f32eff0934f71ec8bca2e3bfccae45a645dc11c5505",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260927T200123-586Z/record.json",
+      "bytes": 9883,
+      "digest": "sha256:12f72cb70fab4ef2d1f241f228978981322f5e8a00eb4f9bc3ab4d09f5f65bc9",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260927T200123-586Z/trace.jsonl",
+      "bytes": 6656,
+      "digest": "sha256:4ff17bbe32fb57924e15a0d34cb237729a62dca7b95dcc4d22d610dbc3c7b4e7",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260927T205605-451Z/receipt.json",
+      "bytes": 2875,
+      "digest": "sha256:393524db49014481318d60d841be374b9dfed14a994fa747789c31ab0ca923f6",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260927T205605-451Z/record.json",
+      "bytes": 17857,
+      "digest": "sha256:353153c3a0674bcb589175ec1da825c4b4653dba0872027d3b8eb967c58af4a7",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260927T205605-451Z/trace.jsonl",
+      "bytes": 11797,
+      "digest": "sha256:865c2e2f143301cec2cf0351631ba4eb6079a3a632ccb6878b1403e7de98f728",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260927T214219-297Z/receipt.json",
+      "bytes": 2875,
+      "digest": "sha256:005e1ee52f18831c09832214b4f3532e30a453e1868af76171975337779c1bb9",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260927T214219-297Z/record.json",
+      "bytes": 58807,
+      "digest": "sha256:9f4b6393d005aa4829d95b1de4437600540b29525eaf88409a4909f7b755047f",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-6c6b97-20260927T214219-297Z/trace.jsonl",
+      "bytes": 41051,
+      "digest": "sha256:dfc358fe794534944faa37daddfea4ae03b30fb4b6f3e47a6c01cfc9ccea39cc",
+      "retention": "evidence"
+    },
+    {
       "path": "revenue-drop-716c81-20260924T062826-478Z/receipt.json",
       "bytes": 2878,
       "digest": "sha256:4989fc4b8e44e74fa200cd472890e2f9c4e6db4c48bb90feaaea1c2fbf6e9f3d",
@@ -3412,6 +4384,60 @@
       "retention": "evidence"
     },
     {
+      "path": "revenue-drop-716c81-20260927T074727-691Z/receipt.json",
+      "bytes": 2878,
+      "digest": "sha256:d27840b93d723328b86d1c42b8523ce87fc9c9f19a81134a5881bf0c6d4b4dd1",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-716c81-20260927T074727-691Z/record.json",
+      "bytes": 39715,
+      "digest": "sha256:929531027a35987313bdc4847fea195c7f011db01b2e094f0addfef33a23e979",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-716c81-20260927T074727-691Z/trace.jsonl",
+      "bytes": 27648,
+      "digest": "sha256:32e23ea83ed5142ca1e20bbc8c83d1ddcf42b5b94b5f38efd2b7f4eb41351afd",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-716c81-20260927T075120-124Z/receipt.json",
+      "bytes": 2875,
+      "digest": "sha256:bac8fb41bcd568ca27728154f3aaeb1510ce909d04a26d69834bf2387c5e3dd0",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-716c81-20260927T075120-124Z/record.json",
+      "bytes": 49373,
+      "digest": "sha256:a9b91569d0f461682370ddae312210bbe7048ff067912e1e14c6059c5f02fd2c",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-716c81-20260927T075120-124Z/trace.jsonl",
+      "bytes": 35290,
+      "digest": "sha256:c5e5a48324a59a991fbd6e7d5ad5365e028e290e45877151e21be9e88ef842c8",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-716c81-20260927T120701-265Z/receipt.json",
+      "bytes": 2875,
+      "digest": "sha256:6f06e05cd053019cc8519900c5ece9da33cf958368dee31db5a9227b73ea577e",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-716c81-20260927T120701-265Z/record.json",
+      "bytes": 49759,
+      "digest": "sha256:dece4187bb1b67ee60389d9f25e97db619150f74558a97302d4431a2f97693d8",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-716c81-20260927T120701-265Z/trace.jsonl",
+      "bytes": 35828,
+      "digest": "sha256:9f9b0e65d6662aebb63c350f4688446348ee0f80f401cb9a9d149d0ade531400",
+      "retention": "evidence"
+    },
+    {
       "path": "revenue-drop-929623-20260924T124330-161Z/receipt.json",
       "bytes": 2878,
       "digest": "sha256:5cae8db2e63d54ea572531267d825985f4b0837570a6a0cb3b72b62bb91ad0a2",
@@ -3427,6 +4453,96 @@
       "path": "revenue-drop-929623-20260924T124330-161Z/trace.jsonl",
       "bytes": 28148,
       "digest": "sha256:d028d02912ebd9320b55508253fdc627de386e4277d22ec75fb3424b6e0c43ba",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-929623-20260927T074819-184Z/receipt.json",
+      "bytes": 2878,
+      "digest": "sha256:a6bc247d2fcc21ffdba4699d13c238a3150c287d246d0e3aff2dfe50304a16ea",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-929623-20260927T074819-184Z/record.json",
+      "bytes": 41297,
+      "digest": "sha256:22ce4b674ef40809afb3a6013cec673a78e693f33cd07a5b760e192f9e33e3b5",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-929623-20260927T074819-184Z/trace.jsonl",
+      "bytes": 28559,
+      "digest": "sha256:8fbed81dd20c6ba917b02efbea329f483bc25cb77722359b5f56dfbfab6a530e",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-929623-20260927T074950-336Z/receipt.json",
+      "bytes": 2812,
+      "digest": "sha256:f3f0469de5cfde28cb4633d6d1aa752401fd25d41c272b666e74a0ab3381fb03",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-929623-20260927T074950-336Z/record.json",
+      "bytes": 45979,
+      "digest": "sha256:ecf5fc9a72096966f5898bd21079a06dfcf731803f1a0da0a69745ede373d8a5",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-929623-20260927T074950-336Z/trace.jsonl",
+      "bytes": 31532,
+      "digest": "sha256:c3671a2d536bfeb741bf21ef54c813c1d78c86daca82130c9179a7f89aa4ee6c",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-929623-20260927T075036-541Z/receipt.json",
+      "bytes": 2875,
+      "digest": "sha256:a3b24705550330944ca9f3fa064ab98bffd2c8e7d29cbdca65dbe09b90e12db5",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-929623-20260927T075036-541Z/record.json",
+      "bytes": 48565,
+      "digest": "sha256:3979f93cc19c961bdf71f4db8f871a0afaaeb1642a4ed1f4debdf33c49692267",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-929623-20260927T075036-541Z/trace.jsonl",
+      "bytes": 34526,
+      "digest": "sha256:7e0aeaf75c7fbb0fa1c9227ed2304b6c4dfe68705b92a46d66cd8a5c20b054e4",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-929623-20260927T120805-481Z/receipt.json",
+      "bytes": 2875,
+      "digest": "sha256:117fc3460fc040d9f05645a13aeb1d9f6aaab867c0e677c2f1adc29f6211caf7",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-929623-20260927T120805-481Z/record.json",
+      "bytes": 47596,
+      "digest": "sha256:d4eb8fb43e7a80686089e2194c55dd87f215aa09344b50b48ae2b0c6fd274f28",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-929623-20260927T120805-481Z/trace.jsonl",
+      "bytes": 33898,
+      "digest": "sha256:b99cccd3d931e0b5af0250182604b8a770355a2c731b4a9e1c1dab995ad3c7d7",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-929623-20260927T215628-577Z/receipt.json",
+      "bytes": 2812,
+      "digest": "sha256:8cf86712d500770d5052d6081abbed70e9238fcddac26004012294c4256a1946",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-929623-20260927T215628-577Z/record.json",
+      "bytes": 46994,
+      "digest": "sha256:f4071a51cb8f8014d4537d387796373b398f37433c48e1283ea838f436884e4b",
+      "retention": "evidence"
+    },
+    {
+      "path": "revenue-drop-929623-20260927T215628-577Z/trace.jsonl",
+      "bytes": 32410,
+      "digest": "sha256:ccd1492e784c7f076da598579dd1dc72657e332e0376d4401e21fad8da0f8621",
       "retention": "evidence"
     },
     {

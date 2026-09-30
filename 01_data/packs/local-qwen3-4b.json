@@ -1,0 +1,38 @@
+{
+  "schema": "adii.pack/v1",
+  "pack": "local-qwen3-4b",
+  "provider": "local",
+  "model": "Qwen3-4B-Instruct-2507-4bit",
+  "endpoint": "http://127.0.0.1:8090/v1",
+  "served_as": "default_model",
+  "arms": [
+    "full"
+  ],
+  "repeats": 3,
+  "incidents": [
+    "revenue-drop-03df8b",
+    "revenue-drop-18b88d",
+    "revenue-drop-2c077d",
+    "revenue-drop-4c1f15",
+    "revenue-drop-594c0f",
+    "revenue-drop-610a79",
+    "revenue-drop-6fb41f",
+    "revenue-drop-70d601",
+    "revenue-drop-70e933",
+    "revenue-drop-8e68f4",
+    "revenue-drop-982e8e",
+    "revenue-drop-d22c8a"
+  ],
+  "max_turns": 20,
+  "max_cost_usd": 0.5,
+  "max_tokens": 4096,
+  "pack_cap_usd": null,
+  "judge_model": null,
+  "weights_sha256": "a483aa1606625203ae84261d9fcb87495caeddc8d8f66f58da33582244cf7c60",
+  "freeze": {
+    "name": "freeze-2026-09-30",
+    "digest": "ad2b0695645054fb3bc0b6359d9f7984d1de62812045ba096a05967ee81e2961"
+  },
+  "created_at": "2026-09-30T06:32:30+00:00",
+  "source_revision": "477cdb5384f94e8901c60ce3d8b533c4ba18b12e"
+}
