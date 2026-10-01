@@ -60,10 +60,11 @@ def test_the_zip_is_the_tag_and_the_evidence_listed_by_digest_the_same_every_tim
 
 
 def test_the_zip_holds_what_the_brief_asks_for_and_not_the_teams_working_material():
-    """01_data, 02_src, 03_assets, requirements.txt, README.md — and pyproject.toml, which
-    requirements.txt installs from. The plans, research and process documents, the tooling
-    and its tests stay in the repository."""
-    ships = ["README.md", "requirements.txt", "pyproject.toml", "02_src/adii/tools/sql.py",
+    """01_data, 02_src, 03_assets, requirements.txt, README.md, the licenses — and
+    pyproject.toml, which requirements.txt installs from. The plans, research and process
+    documents, the tooling and its tests stay in the repository."""
+    ships = ["README.md", "requirements.txt", "pyproject.toml", "LICENSE",
+             "LICENSES/CC-BY-SA-4.0.txt", "02_src/adii/tools/sql.py",
              "02_src/adii/demo/web/app.js", "02_src/tests/architecture/test_boundaries.py",
              "01_data/incidents/revenue-drop-03df8b/world.sql",
              "01_data/walkthrough/record.json", "01_data/demo/csv/README.md",

@@ -118,3 +118,16 @@ input and output.
 | [architecture.md](02_src/docs/architecture.md) | the system in one diagram, its four boundaries, one run end to end |
 | `02_src/docs/evaluation_report.md` | the results, written from the run records |
 | `02_src/adii/*/README.md` | what each package is for |
+
+## License
+
+Copyright 2026 Malek Alhazmi, Joorie Alsakran, Ibrahem Altowalah and Nasser Alzaid.
+
+| | |
+|---|---|
+| Everything not listed below: the code, tests, scripts and docs | [AGPL-3.0](LICENSE) |
+| The data: `01_data/`; the answer and grounding keys in `02_src/adii/evaluation/catalogue/` and `02_src/adii/evaluation/fixtures/`; the run archives `ADII_final_packs.zip` and `ADII_local_qwen_pack.zip`; and `03_assets/`, apart from the logos | [CC BY-SA 4.0](LICENSES/CC-BY-SA-4.0.txt) |
+| The fonts in `02_src/adii/demo/web/fonts/` | the SIL Open Font License 1.1, [as their authors released them](02_src/adii/demo/web/fonts/OFL.txt) |
+| The ADII name and logos, in `03_assets/identity/assets/logo/` and `02_src/adii/demo/web/logo/` | not licensed: neither license above grants any right to them |
+
+To use the code on terms other than the AGPL, contact the authors.

@@ -39,7 +39,7 @@ ROOT = Path(__file__).resolve().parents[2]
 EPOCH = (1980, 1, 1, 0, 0, 0)          # the earliest time a ZIP entry can carry
 FOLDER = "ADII_Group05_Code_v1"       # the one folder inside, and the ZIP's own name
 SHIPPED = (
-    "README.md", "requirements.txt", "pyproject.toml",
+    "README.md", "requirements.txt", "pyproject.toml", "LICENSE", "LICENSES/",
     "01_data/README.md", "01_data/incidents/", "01_data/walkthrough/", "01_data/demo/csv/",
     "01_data/runs/README.md",
     "02_src/adii/", "02_src/tests/", "02_src/scripts/check_env.py",
