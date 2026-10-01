@@ -14,7 +14,8 @@ measurement before anything is frozen or run against it.
 
 The canonical world's story is held on the real packages too: the scale-to-the-total repair
 recovers the chart and is rejected; the staging restored is accepted; a repair of a world
-that was never broken changes nothing and is rejected. And the REPAIR validity rule
+that was never broken changes nothing and is rejected; and a patch that keeps every order
+and every daily total is admitted, whatever it does to the amounts. And the REPAIR validity rule
 (final_plan.md) holds on every REPAIR case not burned: the permitted transform is itself
 the cause, restoring it alone repairs the world, and the validator tells that from the
 cosmetic fake and from the no-op.
@@ -169,6 +170,23 @@ def test_a_repair_of_a_world_that_was_never_broken_here_changes_nothing(state):
     record = repair(state, {STG: STAGE_EVERY_ORDER})
     assert record.validation.state == "REJECT"
     assert "changes_the_world: fails" in record.validation.report
+
+
+AVERAGE_EACH_DAY = (
+    "SELECT o.order_id, o.order_date, o.distributor, (SELECT AVG(x.amount_usd) FROM raw_orders x "
+    "WHERE x.order_date = o.order_date) AS amount_usd\nFROM raw_orders o\n"
+    "JOIN load_log l ON l.batch_id = o.batch_id\nWHERE o.line_no <= l.rows_loaded;")
+
+
+@pytest.mark.parametrize("state", LIVE)
+@pytest.mark.parametrize("family", FAMILIES, ids=lambda f: f.name)
+def test_a_patch_that_keeps_every_order_and_every_daily_total_is_admitted(family, state):
+    """A known limit, held here so it cannot pass unnoticed: the checks compare order ids and
+    daily totals, so every amount replaced by its day's average is admitted, where no repair
+    is right and where one is."""
+    record = repair(state, {STG: AVERAGE_EACH_DAY}, family)
+    assert "changes_the_world: holds" in record.validation.report
+    assert record.admissible
 
 
 def test_the_bait_is_in_every_world_and_the_evidence_is_not():
