@@ -1,0 +1,49 @@
+name: A result in the paper disagrees with the evidence
+description: A reported result the published runs do not support, or a check that should have failed and did not.
+title: "[claim] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for trying to break it. Every result the paper reports is recomputed from the
+        published runs by `python 02_src/scripts/paper_claims.py`, and each claim has an
+        identifier such as `TABLE6_local-qwen3-4b`. A report we can rerun is one we can settle.
+  - type: input
+    id: claim
+    attributes:
+      label: Claim
+      description: The claim's identifier from paper_claims.py, or the section and sentence in the paper.
+      placeholder: TABLE4_revenue-drop-610a79, or §6, Table 4, first row
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The tag or commit you checked (`git rev-parse --short HEAD`).
+      placeholder: paper-v1
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: What you ran
+      description: The exact commands, from a fresh clone if you can.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: What you got
+      description: The output, and what the paper says instead.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: reading
+    attributes:
+      label: Why you think the paper is wrong
+      description: >-
+        Optional. If the paper and the evidence agree but you think both are wrong, say why:
+        for example, a check that should reject a patch and does not.
