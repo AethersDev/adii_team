@@ -811,7 +811,9 @@ def behaviour() -> list[Claim]:
                                   "root_cause_summary": "probe", "patch": {STG: AVERAGE_EACH_DAY}},
                                  {"accepted": record.validation.state == "ACCEPT"}, k, judge=None)
         scored.append(record.validation.state == "ACCEPT" and verdict ==
-                      {"verdict": "correct", "settled_by": "deterministic"})
+                      {"verdict": "correct", "settled_by": "deterministic"} and
+                      rebuilt(case, ((STG, AVERAGE_EACH_DAY),)) !=
+                      rebuilt(case, ((STG, staging(family, "business-changed")),)))
     n = sum(r.admissible for r in probe)
     spec = importlib.util.spec_from_file_location("admissibility_square", SQUARE)
     square = importlib.util.module_from_spec(spec)
@@ -837,6 +839,9 @@ def behaviour() -> list[Claim]:
         Claim("PROBE_SCORED", "behaviour",
               f"was accepted and scored right, with no judge called, on all {word(sum(scored))} "
               "repair cases, benchmark and held-out" if all(scored) else "not all"),
+        Claim("TABLE7_ACCEPTANCE", "behaviour",
+              "| validator acceptance, and a score that relies on it | the reference fix and the "
+              "averaging patch | whether the rows are correct |" if all(scored) else "no"),
         Claim("SQUARE_1", "behaviour",
               "The correct patch was {} and {}.".format(*cells["admissible"])),
         Claim("SQUARE_2", "behaviour", "A patch that restores daily revenue but still leaves "
@@ -860,8 +865,86 @@ def figure() -> list[Claim]:
                   "figure 2")]
 
 
+def identification() -> list[Claim]:
+    """§6's tier passage and §7.7: what the observations do not identify."""
+    qwen = pick("local-qwen3-4b")
+    explicit = [r for r in qwen if CASES[r.incident][0].explicit]
+    implicit = [r for r in qwen if not CASES[r.incident][0].explicit]
+    good = [r for r in qwen if right(r)]
+
+    def noticed(r):
+        names = [e["payload"].get("name") for e in r.record["trace"]
+                 if e["kind"] in ("tool_call", "decision_submitted")]
+        return "get_notice" in names[:-1]
+    sol = pick("final-sol") + pick("final-held-out")
+    tiers = {t: [r for r in sol if CASES[r.incident][0].explicit is t] for t in (True, False)}
+    full = [r for r in runs() if r.pack.startswith("final") and r.arm == "full"]
+    wrong = [r for r in full if r.decision and not right(r)]
+    refused = [r for r in qwen if r.record.get("validation") and not admitted(r)]
+    sol_repairs = [r for r in sol if r.decision == "REPAIR"]
+    qwen_repairs = [r for r in qwen if r.decision == "REPAIR"]
+    zero = not any(admitted(r) and not right(r) for r in sol + qwen)
+    by_company = {(COMPANY[CASES[r.incident][0].name], truth(r)): r for r in qwen if r.repeat == 1}
+
+    def steady(r):
+        same = [s for s in qwen if s.incident == r.incident]
+        return len({json.dumps(s.record.get("decision"), sort_keys=True) for s in same}) == 1
+    a_right, b_wrong = by_company[("A", "NO_REPAIR")], by_company[("B", "ESCALATE")]
+    alerts = Counter()
+    for c in COMPANY:
+        cases = [i for i in CASES if CASES[i][0].name == c]
+        alerts[len({json.loads((INCIDENTS / i / "incident.json").read_text(encoding="utf-8"))
+                     ["alert"] for i in cases})] += 1
+        alerts["keys"] += len({key(i)["correct_disposition"] for i in cases}) == 3
+    a_escalate = next(i for i in CASES if CASES[i][0].name == "mar" and
+                      key(i)["correct_disposition"] == "ESCALATE")
+    quote = re.search(r"Either [^.]*\.", key(a_escalate)["root_cause_explanation"])
+    escalate_cases = {p: [r for r in pick(p) if truth(r) == "ESCALATE"]
+                      for p in ("final-sol", "final-luna", "final-gpt-4-1")}
+    return [
+        Claim("QWEN_TIERS", "independent",
+              f"All {word(len(good))} of its right runs were on explicit companies, whose notices "
+              "say what happened; on implicit companies, where the evidence is only in the data, "
+              f"it was right on {sum(map(right, implicit))} of {len(implicit)} runs."
+              if sum(map(right, explicit)) == len(good) else "other"),
+        Claim("QWEN_NOTICE", "independent",
+              "In both right cases the model called the notice tool before deciding."
+              if len({r.incident for r in good}) == 2 and all(map(noticed, good)) else "other"),
+        Claim("SOL_TIERS", "independent",
+              f"gpt-6-sol, by contrast, was right on all {len(tiers[True])} explicit and all "
+              f"{len(tiers[False])} implicit cases it ran." if all(map(right, sol)) else "other"),
+        Claim("TABLE7_ALERT", "independent",
+              "| the alert | a company's REPAIR, NO_REPAIR and ESCALATE cases | the warranted "
+              "disposition |" if alerts[1] == alerts["keys"] == len(COMPANY) else "other"),
+        Claim("TABLE7_ADMISSIONS", "independent",
+              "| zero wrong decisions admitted | gpt-6-sol's repairs, all right, and Qwen's, none "
+              "right | the subject's decision competence |" if zero and
+              all(map(right, sol_repairs)) and not any(map(right, qwen_repairs)) else "other"),
+        Claim("TABLE7_REPEATS", "independent",
+              "| identical repeats | Qwen's right NO_REPAIR on company A's case and its wrong "
+              "REPAIR on company B's ESCALATE case | whether the decision is right |"
+              if steady(a_right) and steady(b_wrong) and right(a_right) and a_right.decision ==
+              "NO_REPAIR" and not right(b_wrong) and b_wrong.decision == "REPAIR" else "other"),
+        Claim("COMMISSION_ADMISSIONS", "independent",
+              "Qwen and gpt-6-sol both admitted no wrong decision." if zero else "other"),
+        Claim("GATE_RECORD", "independent", f"Qwen's {len(refused)} refusals are in it."),
+        Claim("OMISSION_WITNESSES", "independent",
+              f"the hosted models' {word(len(wrong))} wrong decisions not to act are its "
+              "witnesses" if not any(r.decision == "REPAIR" for r in wrong) else "other"),
+        Claim("ESCALATE_KEY", "recorded", quote[0] if quote else "no such sentence"),
+        Claim("ESCALATE_CHOSEN", "independent",
+              f"Qwen never chose ESCALATE in {len(qwen)} runs; on the "
+              f"{word(len(escalate_cases['final-sol']))} benchmark ESCALATE cases, gpt-6-sol was "
+              "right on {}, gpt-6-luna on {} and gpt-4.1 on {}.".format(
+                  *(sum(map(right, escalate_cases[p]))
+                    for p in ("final-sol", "final-luna", "final-gpt-4-1")))
+              if not any(r.decision == "ESCALATE" for r in qwen) else "other"),
+    ]
+
+
 def claims() -> list[Claim]:
-    return hosted() + methods() + local() + admission() + behaviour() + figure()
+    return (hosted() + methods() + local() + admission() + behaviour() + figure() +
+            identification())
 
 
 def agreement(rs: tuple[Run, ...]) -> list[str]:
