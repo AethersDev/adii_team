@@ -32,6 +32,7 @@ build/
 paper/paper.tex
 paper/paper.html
 paper/*.pdf
+!paper/permission-is-not-justification.pdf
 paper/*.zip
 dist/
 

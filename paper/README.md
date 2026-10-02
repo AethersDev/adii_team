@@ -12,6 +12,9 @@ python3 build_tex.py                       # paper.tex, the arXiv source; needs 
 pandoc paper.md -s --css paper.css --embed-resources -o paper.html   # then print it to PDF
 ```
 
+`permission-is-not-justification.pdf` is a copy for reading, built from `paper.md` with
+`build_tex.py`; if the two ever differ, `paper.md` is the paper.
+
 `figures/fig2-admission.html` is Figure 2's source, rendered at 672 × 367 at twice the pixel
 density. Figure 1 is kept as rendered.
 

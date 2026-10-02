@@ -1,5 +1,10 @@
 # ADII — Is it broken?
 
+**The paper:** *Permission Is Not Justification: Evaluating the Decision to Act in
+Data-Incident Agents* — [read the PDF](https://github.com/AethersDev/adii_team/blob/main/paper/permission-is-not-justification.pdf).
+Every result it reports is recomputed from the published runs by
+`python 02_src/scripts/paper_claims.py`.
+
 A number in your data looks wrong. ADII investigates it and answers one of three things:
 
 ```text

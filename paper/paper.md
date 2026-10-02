@@ -353,8 +353,6 @@ The code, incident packages, frozen answer and grounding keys, freeze files, and
 - **Run archive:** `01_data/runs/MANIFEST.json` attests the archived runs by digest, including the scripted square's and the local extension's.
 - **This paper:** `paper/paper.md` is its source. `python 02_src/scripts/paper_claims.py` verifies both archives against the manifest and recomputes every reported result from them; `02_src/tests/integration/test_the_paper_claims.py` runs it, and shows each check failing on a changed input.
 
-[Before submission: make the repository public.]
-
 ## References
 
 1. C. J. Clopper and E. S. Pearson. The use of confidence or fiducial limits illustrated in the case of the binomial. *Biometrika*, 26(4):404–413, 1934. [doi:10.1093/biomet/26.4.404](https://doi.org/10.1093/biomet/26.4.404)

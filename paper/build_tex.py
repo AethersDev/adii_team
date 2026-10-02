@@ -5,8 +5,7 @@
 
 The Markdown stays the one source. Here the title, byline and abstract become LaTeX
 metadata, "[n]" citations become \\cite, the reference list becomes a thebibliography,
-"Table n." and "Figure n." prefixes are left to LaTeX's own numbering, and the
-pre-publication note is dropped.
+"Table n." and "Figure n." prefixes are left to LaTeX's own numbering.
 """
 import json
 import re
@@ -41,7 +40,6 @@ def main() -> None:
     abstract = section(md, "## Abstract\n", "## 1. Introduction").strip()
     abstract = "\\noindent " + abstract.replace("\n\n", "\n\n\\smallskip\\noindent ")
     body = "## 1. Introduction" + section(md, "## 1. Introduction", "## References")
-    body = re.sub(r"\n\[Before submission:[^\]]*\]\n", "\n", body)
     refs = section(md, "## References\n", "## Appendix A.")
     appendix = "## Appendix A." + section(md, "## Appendix A.", None)
 
