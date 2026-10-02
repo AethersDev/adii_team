@@ -2,7 +2,7 @@
 
 **Malek Alhazmi**\*, **Joorie Alsakran**, **Ibrahem Altowalah**, **Nasser Alzaid**
 
-\*Corresponding author
+\*Corresponding author: <malikalhazmi7@gmail.com>
 
 ## Abstract
 
@@ -338,7 +338,7 @@ Future work should test whether the decision to act can itself be challenged bef
 
 ## Author contributions
 
-Roles follow the CRediT taxonomy. Malek Alhazmi: conceptualization, methodology, software, validation, investigation, formal analysis, visualization, project administration, writing (original draft; review and editing). Joorie Alsakran: methodology, software, validation, investigation, formal analysis. Ibrahem Altowalah: software, validation. Nasser Alzaid: software, validation.
+Roles follow the CRediT taxonomy. Malek Alhazmi: conceptualization, methodology, software, validation, investigation, formal analysis, visualization, project administration, writing (original draft; review and editing). Joorie Alsakran: methodology, software, validation, investigation, formal analysis, writing (review and editing). Ibrahem Altowalah: software, validation, writing (review and editing). Nasser Alzaid: software, validation, writing (review and editing).
 
 ## Use of AI tools
 

@@ -14,8 +14,9 @@ import subprocess
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-AUTHORS = ["Malek Alhazmi\\thanks{Corresponding author.}", "Joorie Alsakran",
-           "Ibrahem Altowalah", "Nasser Alzaid"]
+AUTHORS = ["Malek Alhazmi\\thanks{Corresponding author: "
+           "\\href{mailto:malikalhazmi7@gmail.com}{malikalhazmi7@gmail.com}.}",
+           "Joorie Alsakran", "Ibrahem Altowalah", "Nasser Alzaid"]
 
 
 def section(text: str, start: str, end: str | None) -> str:
