@@ -44,8 +44,7 @@ def test_the_reading_order_documents_exist():
     """README, system map, build plan and status are what a newcomer — or an AI asked to
     work here — is told to read. A dangling pointer in that list is worse than no list."""
     for name in ("system_map.md", "build_plan.md", "glossary.md",
-                 "current_status.md", "architecture.md", "task_template.md",
-                 "review_playbook.md"):
+                 "current_status.md", "architecture.md"):
         path = SRC / "docs" / name
         assert path.is_file(), f"02_src/docs/{name} is missing"
         assert len(path.read_text(encoding="utf-8").split()) > 100, (

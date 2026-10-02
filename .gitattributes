@@ -4,7 +4,3 @@
 # The submission ZIP ships by an allow-list (02_src/scripts/package_submission.py,
 # SHIPPED); these are the team's working files, left out of any export as well.
 .github/ export-ignore
-.claude/ export-ignore
-CLAUDE.md export-ignore
-AGENTS.md export-ignore
-TEAM.md export-ignore

@@ -12,9 +12,7 @@ document is for everything else, starting from D.
 **Clock.** The repository started on 5 September 2026 and M0 landed in week 1. Five weeks
 remain: **14 September – 18 October 2026**. Every unit below is dated against that.
 
-**How to use this.** Each unit is one PR its author can defend with the five questions in
-[review_playbook.md](review_playbook.md). Copy a unit into [task_template.md](task_template.md)
-before starting it. The "done when" column *is* the acceptance test; if it cannot be run, the
+**How to use this.** Each unit is one PR its author can defend in review. The "done when" column *is* the acceptance test; if it cannot be run, the
 unit is not specified yet.
 
 **The frontend is an operational surface, not a teaching page.** We are in building mode:

@@ -31,8 +31,6 @@ jobs:
       # buried among unit failures. These are the rules an agent breaks first.
       - name: Architecture boundaries
         run: python -m pytest 02_src/tests/architecture -q
-      - name: Agent briefing is in sync
-        run: python 02_src/scripts/sync_briefing.py && git diff --exit-code CLAUDE.md AGENTS.md
       - name: Status page is in sync
         run: python 02_src/scripts/sync_status.py && git diff --exit-code 02_src/docs/current_status.md
       - name: Tests

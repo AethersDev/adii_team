@@ -1,13 +1,17 @@
 # Contributing
 
-The review playbook lives with the rest of the technical documentation, so it ships
-inside the submission structure:
+Before proposing a change, run the checks the project holds itself to:
 
-**[02_src/docs/review_playbook.md](../02_src/docs/review_playbook.md)**
+```bash
+python -m ruff check 02_src
+python -m pytest
+python -m adii.evaluation.lock --check
+```
 
-Read it before your first PR. Read
-[02_src/docs/task_template.md](../02_src/docs/task_template.md) before starting a piece
-of work, and [AGENTS.md](../AGENTS.md) before pointing a coding agent at this repository.
+[02_src/docs/architecture.md](../02_src/docs/architecture.md) describes the system and its
+boundaries, which `02_src/tests/architecture/` enforces. The evaluated system is frozen: a
+change to a frozen file fails `test_the_freeze.py` until a new freeze is taken, and that is
+the authors' decision. The tagged states the paper cites (`freeze-*`, `paper-v1`) never change.
 
 ## Contributions from outside the team
 

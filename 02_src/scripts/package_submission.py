@@ -49,7 +49,6 @@ SHIPPED = (
     "03_assets/screenshots/",
 )
 LEFT_OUT = (   # under a shipped prefix, but the team's: tests of its process and tooling
-    "02_src/tests/architecture/test_briefing_is_current.py",
     "02_src/tests/architecture/test_status_is_current.py",
     "02_src/tests/architecture/test_documentation_links.py",
     "02_src/tests/architecture/test_guard_check.py",

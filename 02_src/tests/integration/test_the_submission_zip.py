@@ -72,17 +72,16 @@ def test_the_zip_holds_what_the_brief_asks_for_and_not_the_teams_working_materia
              "02_src/scripts/check_env.py", "02_src/scripts/admissibility_square.py",
              "02_src/scripts/evaluation_report.py",
              "03_assets/identity/assets/logo/adii-symbol.svg"]
-    stays = ["CLAUDE.md", "AGENTS.md", "TEAM.md", ".gitignore", ".gitattributes",
-             ".env.example", ".github/workflows/ci.yml", ".claude/skills/x/SKILL.md",
+    stays = [".gitignore", ".gitattributes", "CITATION.cff",
+             ".env.example", ".github/workflows/ci.yml", ".github/SECURITY.md",
              "02_src/docs/final_plan.md", "02_src/docs/inherited/CONFORMANCE.md",
-             "02_src/docs/contributing.md", "02_src/scripts/guard_check.py",
+             "02_src/scripts/guard_check.py",
              "02_src/scripts/package_submission.py", "02_src/scripts/sync_status.py",
              "02_src/tests/architecture/test_guard_check.py",
              "02_src/tests/integration/test_the_submission_zip.py",
              "01_data/packs/pilot-paid-v1.json", "01_data/runs/MANIFEST.json",
-             "01_data/demo/world/README.md", "03_assets/archive/front-door-v1/web/app.js",
-             "03_assets/identity/DESIGN_SYSTEM.md", "03_assets/diagrams/.gitkeep",
-             "studies/openrouter-benchmark/adii_benchmark_v2.py"]
+             "01_data/demo/world/README.md",
+             "03_assets/identity/DESIGN_SYSTEM.md", "03_assets/diagrams/.gitkeep"]
     assert [p for p in ships if not packager.shipped(p)] == []
     assert [p for p in stays if packager.shipped(p)] == []
 

@@ -17,7 +17,7 @@ python -m adii.demo 8000 --provider openai --model gpt-6-sol --models gpt-6-luna
 No install. No dependencies. Standard library only, and nothing fetched from anywhere but
 this server: the fonts (Newsreader, Public Sans, IBM Plex Mono, under the SIL OFL,
 `web/fonts/OFL.txt`) and the logo are served from `web/`, so the page runs offline on a
-stage. The previous page is archived whole in `03_assets/archive/front-door-v1/`.
+stage.
 
 ## What it shows
 
