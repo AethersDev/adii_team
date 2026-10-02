@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Figure 2 source</title>
+<!-- Render: Chrome --headless --screenshot=fig2-admission.png --window-size=672,367
+     --force-device-scale-factor=2 --hide-scrollbars file://<this file> -->
+<style>
+  :root { --ink: #1a1a1a; --muted: #666; --line: #cfcfcf; --blue: #2f74d0; --blue-bg: #e9f1fb; }
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 672px; height: 367px; background: #fff; color: var(--ink);
+         font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+         padding: 14px 20px; }
+  h1 { font-size: 14px; font-weight: 650; }
+  .sub { font-size: 10.5px; color: var(--muted); margin-top: 3px; }
+  .grid { display: grid; grid-template-columns: 118px 1fr 1fr; column-gap: 12px; row-gap: 12px;
+          margin-top: 14px; align-items: center; }
+  .head { font-size: 11px; font-weight: 650; text-align: center; }
+  .row { font-size: 11px; font-weight: 650; line-height: 1.35; }
+  .cell { height: 142px; border: 1px solid var(--line); border-radius: 7px; padding: 10px 12px;
+          font-size: 10px; line-height: 1.45; }
+  .cell b { display: block; font-size: 11px; font-weight: 650; margin-bottom: 7px; }
+  .cell .q { font-weight: 650; margin-top: 7px; }
+  .refused { border: 1.6px solid var(--blue); background: var(--blue-bg); }
+  .none { border-style: dashed; }
+  .muted { color: var(--muted); }
+  .bottom { height: 92px; }
+</style>
+</head>
+<body>
+  <h1>Real proposals landed in two cells; no archived run was denied and rejected</h1>
+  <p class="sub">Every proposal that reached both checks: the scripted square and the models' own</p>
+  <div class="grid">
+    <div></div>
+    <div class="head">Validator accepts</div>
+    <div class="head">Validator rejects</div>
+
+    <div class="row">Authorizer<br>permits</div>
+    <div class="cell"><b>Admitted</b>
+      scripted: the correct patch (1)<br>hosted models: 10 proposals<br>Qwen3-4B: none</div>
+    <div class="cell refused"><b>Refused by validity</b>
+      scripted: hides the symptom;<br>cannot be applied (2)
+      <div class="q">Qwen3-4B: 9 cases, 27 proposals</div>
+      6 cases empty; no repair was right<br>1 case empty, on a broken world<br>2 cases changed and broke the world</div>
+
+    <div class="row">Authorizer<br>denies</div>
+    <div class="cell bottom"><b>Refused by permission</b>
+      scripted: the fix plus the mart,<br>outside the permitted path (1)<br>
+      <span class="muted">no model proposal denied in any archive</span></div>
+    <div class="cell bottom none"><b>Refused by both</b>
+      <span class="muted">no archived run; a unit test only</span></div>
+  </div>
+</body>
+</html>

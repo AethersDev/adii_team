@@ -27,6 +27,12 @@ coverage.xml
 
 # Python build output
 build/
+
+# the paper's build outputs; paper/paper.md is the source
+paper/paper.tex
+paper/paper.html
+paper/*.pdf
+paper/*.zip
 dist/
 
 # Logs — but an incident's evidence is data, whatever its extension: a .log under

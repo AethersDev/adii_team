@@ -69,15 +69,21 @@ team generated and labelled ([canonical_world.py](02_src/adii/examples/canonical
 | set | cases | used for |
 |---|---|---|
 | benchmark | 12 — four companies, two per answer and per explicit/implicit tier | three investigators: gpt-6-sol, gpt-6-luna, gpt-4.1 |
-| held-out | 6 — two companies no model had run | the declared configuration, gpt-6-sol, once |
+| held-out | 6 — two further companies; none of the six ran before its final pack | the declared configuration, gpt-6-sol, once |
 | controls | the 12 benchmark cases | the same model shown only the alert, and a floor that always escalates |
 
 Three questions are answered apart: does the architecture hold across investigators; do
 the tools add information beyond the alert; and what the declared system does on cases
 nobody tuned on — six cases, a demonstration and not a statistic. The evaluated system is
 frozen by digest before the final runs (`python -m adii.evaluation.lock`); nothing in it
-changes because of a result. The results will be in `02_src/docs/evaluation_report.md`,
-written from the run records once the final packs have run.
+changes because of a result. The results are in `02_src/docs/evaluation_report.md`, written
+from the run records.
+
+The paper's source is `paper/paper.md`. Every result it reports is recomputed from the
+published run archives by `python 02_src/scripts/paper_claims.py`, which fails on any
+disagreement between the paper and its evidence. `ADII_final_packs.zip` was written on
+Windows and names its entries with backslashes; it is kept byte for byte because the paper
+cites it, and that script reads and verifies it on any system.
 
 ## What is in this folder
 
@@ -129,5 +135,6 @@ Copyright 2026 Malek Alhazmi, Joorie Alsakran, Ibrahem Altowalah and Nasser Alza
 | The data: `01_data/`; the answer and grounding keys in `02_src/adii/evaluation/catalogue/` and `02_src/adii/evaluation/fixtures/`; the run archives `ADII_final_packs.zip` and `ADII_local_qwen_pack.zip`; and `03_assets/`, apart from the logos | [CC BY-SA 4.0](LICENSES/CC-BY-SA-4.0.txt) |
 | The fonts in `02_src/adii/demo/web/fonts/` | the SIL Open Font License 1.1, [as their authors released them](02_src/adii/demo/web/fonts/OFL.txt) |
 | The ADII name and logos, in `03_assets/identity/assets/logo/` and `02_src/adii/demo/web/logo/` | not licensed: neither license above grants any right to them |
+| The manuscript in `paper/` | © the authors; not covered by the licenses above |
 
 To use the code on terms other than the AGPL, contact the authors.

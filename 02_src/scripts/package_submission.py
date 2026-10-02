@@ -55,6 +55,7 @@ LEFT_OUT = (   # under a shipped prefix, but the team's: tests of its process an
     "02_src/tests/architecture/test_the_docs_hold.py",
     "02_src/tests/architecture/test_the_frozen_trees_are_committed.py",
     "02_src/tests/integration/test_the_submission_zip.py",
+    "02_src/tests/integration/test_the_paper_claims.py",
     "02_src/tests/eval_authority/OVERVIEW.md",
 )
 
