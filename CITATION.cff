@@ -1,0 +1,41 @@
+cff-version: 1.2.0
+message: "If you use ADII, its incidents or its run archives, please cite the paper below."
+title: "ADII"
+abstract: >-
+  A data-incident investigator whose proposed fixes must pass an authorizer and an
+  independent validator, with the evaluation that scores its decisions against frozen keys.
+type: software
+authors:
+  - given-names: Malek
+    family-names: Alhazmi
+  - given-names: Joorie
+    family-names: Alsakran
+  - given-names: Ibrahem
+    family-names: Altowalah
+  - given-names: Nasser
+    family-names: Alzaid
+repository-code: "https://github.com/AethersDev/adii_team"
+license:
+  - AGPL-3.0-only
+  - CC-BY-SA-4.0
+version: paper-v1
+date-released: 2026-10-02
+keywords:
+  - LLM agents
+  - agent evaluation
+  - data incidents
+  - qualification
+preferred-citation:
+  type: article
+  status: preprint
+  title: "Permission Is Not Justification: Evaluating the Decision to Act in Data-Incident Agents"
+  authors:
+    - given-names: Malek
+      family-names: Alhazmi
+    - given-names: Joorie
+      family-names: Alsakran
+    - given-names: Ibrahem
+      family-names: Altowalah
+    - given-names: Nasser
+      family-names: Alzaid
+  year: 2026

@@ -125,7 +125,7 @@ Copyright 2026 Malek Alhazmi, Joorie Alsakran, Ibrahem Altowalah and Nasser Alza
 
 | | |
 |---|---|
-| Everything not listed below: the code, tests, scripts and docs | [AGPL-3.0](LICENSE) |
+| Everything not listed below: the code, tests, scripts and docs | [AGPL-3.0-only](LICENSE) |
 | The data: `01_data/`; the answer and grounding keys in `02_src/adii/evaluation/catalogue/` and `02_src/adii/evaluation/fixtures/`; the run archives `ADII_final_packs.zip` and `ADII_local_qwen_pack.zip`; and `03_assets/`, apart from the logos | [CC BY-SA 4.0](LICENSES/CC-BY-SA-4.0.txt) |
 | The fonts in `02_src/adii/demo/web/fonts/` | the SIL Open Font License 1.1, [as their authors released them](02_src/adii/demo/web/fonts/OFL.txt) |
 | The ADII name and logos, in `03_assets/identity/assets/logo/` and `02_src/adii/demo/web/logo/` | not licensed: neither license above grants any right to them |
