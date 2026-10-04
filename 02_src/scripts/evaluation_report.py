@@ -134,8 +134,9 @@ def write(reports: dict[str, dict], freezes: dict[str, dict]) -> tuple[str, dict
     lines += ["## Protocol", "",
               "Registered before any final run (decision E) and frozen by digest: twelve "
               "benchmark incidents (four companies, two per answer and per explicit/implicit "
-              "tier) and six held-out incidents from two companies no pack had run; one repeat; "
-              "each run bounded as below; each decision scored against the frozen answer key.",
+              "tier) and six held-out incidents from two further companies, none of the six run "
+              "before its final pack; one repeat; each run bounded as below; each decision scored "
+              "against the frozen answer key.",
               "", "| pack | model | effort | arms | incidents | per run | pack cap |",
               "|---|---|---|---|---|---|---|"]
     for name, t in terms.items():
@@ -222,9 +223,11 @@ def write(reports: dict[str, dict], freezes: dict[str, dict]) -> tuple[str, dict
     if reports and not wrong:        # the benchmark measures judgment; admission is tested apart
         lines.append(f"- The paid runs happened to contain no incorrect model-proposed repair "
                      f"({len(repairs)} proposals, all right), so rejecting a bad one is not "
-                     "inferred from them: the authorities are tested directly by the scripted "
-                     "admissibility square (`01_data/runs/square-<freeze>-*`), one known proposal "
-                     "on each side of both boundaries.")
+                     "inferred from them. The local extension's report "
+                     "(`01_data/packs/local-qwen3-4b.report.md`) shows a model's own wrong "
+                     "proposals reaching the validator and refused, and "
+                     "`02_src/scripts/admissibility_square.py` regenerates the scripted square, "
+                     "one known proposal on each side of both boundaries.")
     lines.append("")
 
     def put(key: str, pack: str, arm: str, false_key: str | None = None):
