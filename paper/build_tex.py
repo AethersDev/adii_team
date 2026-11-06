@@ -1,7 +1,7 @@
 """paper.md -> paper.tex, the arXiv source.
 
     python3 build_tex.py          # writes paper.tex
-    tectonic paper.tex            # optional check; arXiv compiles it with pdfLaTeX
+    tectonic paper.tex            # paper.pdf; pdfLaTeX is the intended target for arXiv
 
 The Markdown stays the one source. Here the title, byline and abstract become LaTeX
 metadata, "[n]" citations become \\cite, the reference list becomes a thebibliography,
@@ -25,7 +25,7 @@ def section(text: str, start: str, end: str | None) -> str:
 
 def to_latex(markdown: str) -> str:
     return subprocess.run(["pandoc", "-f", "markdown", "-t", "latex"], input=markdown,
-                          capture_output=True, text=True, check=True).stdout.strip()
+                          capture_output=True, encoding="utf-8", check=True).stdout.strip()
 
 
 def cite(markdown: str) -> str:
@@ -38,7 +38,8 @@ def main() -> None:
     md = (HERE / "paper.md").read_text(encoding="utf-8")
     title = md.splitlines()[0].removeprefix("# ").strip()
     abstract = section(md, "## Abstract\n", "## 1. Introduction").strip()
-    abstract = "\\noindent " + abstract.replace("\n\n", "\n\n\\smallskip\\noindent ")
+    # the final newline matters: without it pandoc ends the abstract's paragraphs with \\
+    abstract = "\\noindent " + abstract.replace("\n\n", "\n\n\\smallskip\\noindent ") + "\n"
     body = "## 1. Introduction" + section(md, "## 1. Introduction", "## References")
     refs = section(md, "## References\n", "## Appendix A.")
     appendix = "## Appendix A." + section(md, "## Appendix A.", None)
@@ -56,7 +57,7 @@ def main() -> None:
          "-V", "documentclass=article", "-V", "fontsize=11pt", "-V", "geometry:margin=1in",
          "-V", "colorlinks=true", "-V", "linkcolor=blue", "-V", "urlcolor=blue",
          "-V", "citecolor=blue", "-V", "header-includes=\\setlength{\\tabcolsep}{4pt}"],
-        input=source, capture_output=True, text=True, check=True, cwd=HERE).stdout
+        input=source, capture_output=True, encoding="utf-8", check=True, cwd=HERE).stdout
     tex = re.sub(r"\\caption\{(Table|Figure) \d+\. ", r"\\caption{", tex)
     tex = re.sub(r",alt=\{[^}]*\}", "", tex)       # graphicx in older TeX Live lacks `alt`
     tex = tex.replace("et al. \\cite", "et al.~\\cite")
