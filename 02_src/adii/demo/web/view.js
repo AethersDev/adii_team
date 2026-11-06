@@ -4,12 +4,15 @@
  * nothing else, and each function is evaluated in node by test_the_front_door_projects.py
  * exactly as the page runs it. The renderer (app.js) only draws what these return.
  *
- * Three rules hold the story (final plan, decisions F1–F3):
+ * These rules hold the story (final plan, decisions F1–F3):
  *   the alerted series (`alert_observed`) is the symptom — what triggered the run, never
- *     evidence, so it is never among what ADII knows;
+ *     evidence, so it is never among what the decision cites;
  *   the rebuilt series is the validator's reading of its own rebuild, and is labelled so;
- *   "How ADII knows" is the observations the decision cited, and only those — everything
- *     the run looked at is "Investigated".
+ *   "What the decision cites" is the observations the decision cited, and only those —
+ *     everything the run looked at is "Investigated";
+ *   a decision is the investigator's recommendation, never the page's own finding: the page
+ *     says what the record holds about it and does not judge whether it is right;
+ *   a compact view of an observation says what it leaves out, and the rest is one click away.
  */
 "use strict";
 
@@ -29,8 +32,10 @@ function admissible(record) {
   return Boolean(a && a.authorized && v && v.accepted);
 }
 
-/* The answer, as the record states it: the disposition, and for a repair whether the two
- * authorities let it stand. A run that ended without a decision says how it ended. */
+/* The decision, as the record states it: what the investigator recommended, what the record
+ * holds about its observations, and for a repair what the two authorities did with it. The
+ * words do not depend on whether the decision is right, which the page cannot know. A run
+ * that ended without a decision says how it ended. */
 function verdict(record) {
   const d = record.decision;
   if (!d) {
@@ -50,35 +55,45 @@ function verdict(record) {
         "not a finding about your data. Nothing was changed."],
     }[record.termination] || ["No answer.", "The run ended without an answer."];
     return { key: "none", label: "No answer", headline: ending[0], lead: ending[1],
-             detail: record.detail || "", summary: null };
+             detail: record.detail || "", summary: null, basis: null };
   }
-  const answer = ANSWERS[d.disposition];
-  const summary = d.root_cause_summary || null;
-  if (answer.key === "fix") {
-    if (admissible(record)) {
-      return { ...answer, headline: "Yes. Fix it.", summary, lead:
-        "A fix was proposed, it is within what ADII may change here, and an independent " +
-        "rebuild accepted it. The AI that proposed it didn't approve it." };
-    }
-    const a = record.authorization, v = record.validation;
-    const why = a && !a.authorized
-      ? "It touches something outside what ADII may change for this incident."
-      : validatorState(v) === "UNCHECKED" ? "No validator checked it."
-      : validatorState(v) === "NOT_CHECKABLE"
-        ? "There was no world to rebuild, so it could not be checked."
-      : validatorState(v) === "REJECT" ? "The independent rebuild rejected it."
-      : "The rebuild accepted it, but this record predates the authorization check, so it " +
-        "was never admitted.";
-    return { ...answer, headline: "A fix was proposed. It was not approved.", summary,
-             lead: why + " Nothing was changed." };
+  const said = { ...ANSWERS[d.disposition], summary: d.root_cause_summary || null,
+                 headline: "Investigator recommended " + d.disposition, basis: basis(record) };
+  if (said.key !== "fix") {
+    return { ...said, lead: "It proposed no change, so the authorizer and validator checked " +
+                            "nothing." };
   }
-  if (answer.key === "leave") {
-    return { ...answer, headline: "No. Leave it.", summary,
-             lead: "Nothing needs fixing, so no change was proposed." };
+  if (admissible(record)) {
+    return { ...said, lead:
+      "A fix was proposed, it is within what ADII may change here, and an independent " +
+      "rebuild accepted it. The AI that proposed it didn't approve it." };
   }
-  return { ...answer, headline: "Not yet. Escalate it.", summary,
-           lead: "The evidence here can't settle it, so someone with more access should " +
-                 "decide. No change was proposed." };
+  const a = record.authorization, v = record.validation;
+  const why = a && !a.authorized
+    ? "It touches something outside what ADII may change for this incident."
+    : validatorState(v) === "UNCHECKED" ? "No validator checked it."
+    : validatorState(v) === "NOT_CHECKABLE"
+      ? "There was no world to rebuild, so it could not be checked."
+    : validatorState(v) === "REJECT" ? "The independent rebuild rejected it."
+    : "The rebuild accepted it, but this record predates the authorization check, so it " +
+      "was never admitted.";
+  return { ...said, lead: why + " Nothing was changed." };
+}
+
+/* What the record holds about a decision's footing: counts, never a judgment of it. A
+ * citation says the observation exists; it does not say the observation warrants the
+ * decision, and an older record that has no citations is not one that cited nothing. */
+function basis(record) {
+  const got = calls(record).filter(({ result }) => result.status === "OK").length;
+  if (!got) return "This run collected no tool observations.";
+  const held = got + " tool observation" + (got === 1 ? "" : "s");
+  if (!record.decision.evidence_refs) {
+    return "This run collected " + held + ". Its record predates citations, so it doesn't " +
+           "say which ones the decision cites.";
+  }
+  const n = cited(record).length;
+  return n ? "The decision cites " + n + " of the " + held + " this run collected."
+           : "This run collected " + held + ", and the decision cites none of them.";
 }
 
 function slots(record) {
@@ -104,7 +119,8 @@ function signoff(record) {
     who: "Investigator", mark: "AI",
     status: !d ? "No answer" : proposed ? "Proposed a fix" : "No fix proposed",
     note: proposed ? "Proposed this change. Can't approve it." :
-          d ? "Decided no change should be made." : "Ended without a decision.",
+          d ? "Recommended " + d.disposition + ". Proposed no change."
+            : "Ended without a decision.",
     tone: "plain",
   }];
   lines.push(!a && proposed ? { who: "Authorizer", mark: "AU", status: "Not recorded",
@@ -195,8 +211,25 @@ function calls(record) {
   return events(record, "tool_result").map((r) => ({ call: asked[r.call_id] || {}, result: r }));
 }
 
-/* One observation, by a fixed template for its tool: a title, and either a table or text,
- * each taken from the recorded result and bounded. */
+/* The compact view of recorded rows or lines: what it shows, everything it came from, and
+ * what it says when it leaves anything out. Nothing is cut without saying so. */
+function compact(all, keep, noun, fromEnd) {
+  const shown = fromEnd ? all.slice(-keep) : all.slice(0, keep);
+  if (shown.length === all.length) return { shown, all, note: null, expand: null };
+  return { shown, all,
+           note: (fromEnd ? "The last " : "The first ") + keep + " of " + all.length + " " + noun +
+                 ". The other " + (all.length - keep) + " are not shown here.",
+           expand: "Show all " + all.length + " " + noun };
+}
+
+/* Lines with the numbers they have at the source, however little of it was read. */
+function numbered(lines, first) {
+  return lines.map((text, i) => ({ n: first + i, text }));
+}
+
+/* One observation, by a fixed template for its tool: a title, and a table, numbered lines or
+ * text, each taken from the recorded result. `received` says what the tool kept from the run,
+ * a different limit from what a compact view leaves out: no click on this page can show it. */
 function observation(call, result) {
   const c = result.content || {};
   const tool = result.name;
@@ -205,11 +238,15 @@ function observation(call, result) {
     get_notice: "Notice: " + (c.notice_id || ""),
     read_reconciliation: "Reconciliation: " + (c.reconciliation_id || ""),
   }[tool] || TOOL[tool] || tool;
-  const table = (columns, rows) => ({ columns, rows: rows.slice(0, 6),
-                                      more: Math.max(rows.length - 6, 0) });
+  const table = (columns, rows) => ({ columns, ...compact(rows, 6, "returned rows", false) });
   if (tool === "run_sql") {
-    return { tool, title, code: (call.arguments || {}).query || "",
-             table: table(c.columns || [], c.rows || []) };
+    const rows = c.rows || [];
+    const received = c.truncated
+      ? "The tool stopped at " + rows.length + " rows. The query had more, and the run never " +
+        "received them."
+      : null;
+    return { tool, title, received, code: (call.arguments || {}).query || "",
+             table: table(c.columns || [], rows) };
   }
   if (tool === "get_change_history") {
     const changes = c.changes || [];
@@ -217,28 +254,39 @@ function observation(call, result) {
                                        changes.map((x) => [x.date, x.file, x.ticket, x.change])) };
   }
   if (tool === "get_transform") {
-    return { tool, title, code: String(c.source || "").split("\n").slice(0, 14).join("\n") };
+    const source = String(c.source || "").replace(/\n$/, "").split("\n");
+    return { tool, title, lines: compact(numbered(source, 1), 14, "lines", false) };
   }
   if (tool === "get_notice") {
-    return { tool, title, text: String(c.content || "").replace(/^#[^\n]*\n+/, "").trim()
-                                                      .slice(0, 400) };
+    return { tool, title, text: String(c.content || "").replace(/^#[^\n]*\n+/, "").trim() };
   }
   if (tool === "read_reconciliation") {
-    return { tool, title, text: (c.lines || []).slice(0, 8).join("\n") };
+    // a log's outcome is at its end. What the run never read is not what the page left out.
+    const lines = c.lines || [], first = (c.offset || 0) + 1;
+    const total = c.total_lines === undefined ? lines.length : c.total_lines;
+    const received = lines.length === total ? null
+      : lines.length ? "The run read lines " + first + "–" + (first + lines.length - 1) +
+                       " of " + total + "."
+      : "The run read none of the log's " + total + " lines.";
+    return { tool, title, received,
+             lines: compact(numbered(lines, first), 8, "lines read", true) };
   }
   if (tool === "get_schema") {
     return { tool, title, text: (c.tables || []).map((t) => t.name).join(", ") };
   }
-  return { tool, title, text: JSON.stringify(c).slice(0, 400) };
+  return { tool, title, text: JSON.stringify(c) };
 }
 
-/* How ADII knows: the observations the decision cited, in the order it cited them. */
+/* What the decision cites: the observations it cited, in the order it cited them, each as a
+ * result of the tool layer and never as anything the investigator said. */
 function cited(record) {
   const refs = (record.decision && record.decision.evidence_refs) || [];
   const byId = {};
   calls(record).forEach(({ call, result }) => {
     const id = result.content && result.content.evidence_id;
-    if (result.status === "OK" && id) byId[id] = observation(call, result);
+    if (result.status === "OK" && id) {
+      byId[id] = { ...observation(call, result), origin: "Returned by the tool layer" };
+    }
   });
   return refs.filter((ref) => byId[ref]).map((ref) => ({ ref, ...byId[ref] }));
 }

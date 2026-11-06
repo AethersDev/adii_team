@@ -153,9 +153,17 @@ const poll = setInterval(() => {
 EXPECTED = {
     "": ("What looks wrong in your data?", "Attach CSV files", "Sample 1", "Sample 2", "Sample 3"),
     "new": ("What looks wrong in your data?", "Attach CSV files", "Sample 1"),
-    "r/fix": ("Yes. Fix it.", "How ADII knows", "Proposed fix", "Independent rebuild",
-              "Sign-off", "Record", "Investigated for", "Show details"),
-    "r/leave": ("No. Leave it.", "How ADII knows", "No change proposed", "Sign-off"),
+    "r/fix": ("Investigator recommended REPAIR", "What the decision cites", "Proposed fix",
+              "Independent rebuild", "Sign-off", "Record", "Investigated for", "Show details"),
+    "r/leave": ("Investigator recommended NO_REPAIR", "What the decision cites",
+                "No change proposed", "Sign-off"),
+    # the receipt that decides this case is the log's last line: on the page, as the tool's
+    "r/escalate": ("Investigator recommended ESCALATE", "In the investigator’s words",
+                   "Returned by the tool layer", "vendor receipt: not received",
+                   "are not shown here.", "Show all"),
+    # the two limits, as words on the page: what the tool withheld and what the page folded
+    "r/withheld": ("The tool stopped at 50 rows.", "and the run never received them.",
+                   "Show all 50 returned rows"),
     "r/ended": ("The run couldn't finish.", "Nothing was changed.", "The record says"),
 }
 
@@ -171,7 +179,10 @@ def test_every_screen_fits_the_viewport_at_desktop_and_phone_width(tmp_path, mon
     binary = chrome()
     archive = tmp_path / "archive"
     for label, record in (("fix", recorded("transform-defect")),
-                          ("leave", recorded("business-changed"))):
+                          ("leave", recorded("business-changed")),
+                          ("escalate", recorded("cannot-decide")),
+                          ("withheld", recorded("cannot-decide", calls=[
+                              ("run_sql", {"query": "SELECT * FROM raw_orders"})]))):
         (archive / label).mkdir(parents=True)
         (archive / label / "record.json").write_text(json.dumps(record), encoding="utf-8")
     ended = {**recorded("cannot-decide"), "decision": None, "termination":

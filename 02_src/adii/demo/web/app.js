@@ -380,8 +380,8 @@ function home() {
       el("div", { class: "home__mark" }, mark("idle", 56)),
       el("h1", { class: "home__prompt", text: "What looks wrong in your data?" })),
     composer(), suggestions(),
-    el("p", { class: "home__note", text: "ADII decides whether to fix it, leave it alone, or " +
-      "escalate it. The AI that proposes a fix can’t approve it." })));
+    el("p", { class: "home__note", text: "ADII’s investigator recommends whether to fix it, " +
+      "leave it alone, or escalate it. The AI that proposes a fix can’t approve it." })));
   if (state.runs.some((r) => r.running)) {
     const gen = state.gen;
     state.timer = setTimeout(() => refresh().then(() => gen === state.gen && render()), 2000);
@@ -448,28 +448,41 @@ function symptom(series) {
       "is the symptom, not evidence."));
 }
 
+/* A compact view and, when it leaves anything out, the sentence that says so and the rest. */
+function compactView(block, draw) {
+  return el("div", { class: "obs__block" },
+    el("div", { class: "obs__shown" }, draw(block.shown)),
+    block.note ? el("p", { class: "obs__more", text: block.note }) : null,
+    block.note ? el("details", { class: "obs__all" }, el("summary", { text: block.expand }),
+                    draw(block.all)) : null);
+}
+
 function observationCard(o) {
+  const lines = (some) => el("ol", { class: "obs__lines mono" }, some.map((l) => el("li", null,
+    el("span", { class: "obs__n", text: String(l.n) }),
+    el("span", { class: "obs__line", text: l.text }))));
+  const rows = (some) => el("table", { class: "obs__table" },
+    el("thead", null, el("tr", null, o.table.columns.map((c) => el("th", { text: String(c) })))),
+    el("tbody", null, some.map((r) => el("tr", null,
+      r.map((v) => el("td", { class: "mono", text: String(v) }))))));
   return el("li", { class: "obs" + (o.table && o.table.columns.length > 3 ? " obs--wide" : "") },
     el("span", { class: "obs__title", text: o.title }),
+    el("span", { class: "obs__origin", text: o.origin + " · " + o.ref }),
     o.code ? el("pre", { class: "obs__code mono", text: o.code }) : null,
     o.text ? el("p", { class: "obs__text", text: o.text }) : null,
-    o.table ? el("table", { class: "obs__table" },
-      el("thead", null, el("tr", null, o.table.columns.map((c) => el("th", { text: String(c) })))),
-      el("tbody", null, o.table.rows.map((r) => el("tr", null,
-        r.map((v) => el("td", { class: "mono", text: String(v) })))))) : null,
-    o.table && o.table.more ? el("span", { class: "obs__more",
-                                           text: o.table.more + " more rows" }) : null);
+    o.received ? el("p", { class: "obs__received", text: o.received }) : null,
+    o.lines ? compactView(o.lines, lines) : null,
+    o.table ? compactView(o.table, rows) : null);
 }
 
 function knows(record, v) {
   const cites = V.cited(record);
-  const heading = v.key === "escalate" ? "What ADII found" : "How ADII knows";
   return el("section", { class: "knows", "aria-labelledby": "knows-h" },
-    el("h2", { id: "knows-h", class: "serif", text: heading }),
-    el("p", { class: "muted", text: "The observations the decision cites, as the tool layer " +
-                                    "returned them." }),
+    el("h2", { id: "knows-h", class: "serif", text: "What the decision cites" }),
+    el("p", { class: "muted", text: "Each observation as the tool layer returned it. A citation " +
+      "shows the observation exists, not that it justifies the recommendation." }),
     cites.length ? el("ul", { class: "obs-list" }, cites.map(observationCard))
-                 : el("p", { text: "The decision cites no observations." }));
+                 : el("p", { text: v.basis }));
 }
 
 function fix(record) {
@@ -524,9 +537,9 @@ function steps(looked, summary) {
 function slots(record) {
   const all = V.slots(record);
   return el("section", { class: "aside__block", "aria-labelledby": "ans-h" },
-    el("h2", { id: "ans-h", class: "aside__h", text: "Answer" }),
+    el("h2", { id: "ans-h", class: "aside__h", text: "Recommendation" }),
     el("div", { class: "slots", role: "img", "aria-label": record && record.decision
-      ? "Answer: " + all.find((s) => s.landed).label + "." : "No answer yet." },
+      ? "Recommendation: " + all.find((s) => s.landed).label + "." : "No answer yet." },
       all.map((s) => el("span", { class: "slot" + (s.landed ? " is-landed" : "") + (record ? "" : " is-waiting") },
         el("span", { class: "slot__glyph glyph--" + s.key }),
         el("span", { class: "slot__label", text: s.label })))));
@@ -616,7 +629,7 @@ function clock(ms) {
 function thread(label, asked, reply) {
   page(crumbs(asked), el("main", { class: "thread" },
     el("div", { class: "ask" }, el("p", { class: "ask__text", text: asked })),
-    el("section", { class: "reply", "aria-label": "ADII’s answer" }, reply)), label);
+    el("section", { class: "reply", "aria-label": "ADII’s reply" }, reply)), label);
 }
 
 function answer(record, label, fingerprint, receipt) {
@@ -630,6 +643,7 @@ function answer(record, label, fingerprint, receipt) {
       el("div", { class: "verdict__band", "aria-hidden": "true" }),
       el("h2", { id: "verdict-h", class: "serif verdict__headline", text: v.headline }),
       el("p", { class: "verdict__lead", text: v.lead }),
+      v.basis ? el("p", { class: "verdict__basis", text: v.basis }) : null,
       v.summary ? el("div", { class: "verdict__words" },
         el("span", { class: "verdict__who", text: "In the investigator’s words" }),
         el("p", { text: v.summary })) : null,

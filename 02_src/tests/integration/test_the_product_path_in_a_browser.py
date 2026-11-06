@@ -142,7 +142,8 @@ def test_a_stranger_picks_a_sample_and_watches_a_fix_it_answer_stand(tmp_path, m
     assert flow["label"].startswith(SAMPLE + "-")
     assert "running" in flow["seen"].split(","), flow            # watched, not only the end
     assert record["validation"]["accepted"] and record["authorization"]["authorized"]
-    for said in ("Yes. Fix it.", "DATA-97 leaves live distributors out of staging.",
+    for said in ("Investigator recommended REPAIR",
+                 "DATA-97 leaves live distributors out of staging.",
                  "Proposed fix", "Independent rebuild", "Allowed", "Accepted",
                  "Written before the first model request"):
         assert said in text, said
@@ -158,6 +159,8 @@ def test_a_stranger_brings_their_own_data_and_gets_an_answer(tmp_path, monkeypat
     flow, text, record = drive(tmp_path, monkeypatch, BRING_A_CSV)
     assert flow["label"].startswith("upload-")
     assert record["context"]["alert"] == "Revenue fell 45% after yesterday's deploy."
-    for said in ("No. Leave it.", "Revenue fell 45% after yesterday's deploy.",
-                 "Two days of revenue, one lower", "No change proposed"):
+    for said in ("Investigator recommended NO_REPAIR",
+                 "Revenue fell 45% after yesterday's deploy.",
+                 "Two days of revenue, one lower", "No change proposed",
+                 "This run collected 1 tool observation, and the decision cites none of them."):
         assert said in text, said

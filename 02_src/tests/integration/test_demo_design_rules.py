@@ -85,6 +85,5 @@ def test_what_the_page_says_about_a_run_is_projected_in_one_place():
     nothing; app.js draws what it returns. A verdict phrase written in app.js is one the
     projection tests never saw."""
     assert "fetch(" not in code("view.js")
-    for phrase in ("Yes. Fix it.", "No. Leave it.", "Not yet. Escalate it.",
-                   "Stopped at the spending cap."):
+    for phrase in ("Investigator recommended ", "Stopped at the spending cap."):
         assert phrase in code("view.js") and phrase not in code("app.js"), phrase

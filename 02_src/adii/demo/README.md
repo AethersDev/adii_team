@@ -45,18 +45,24 @@ sits on the right, and ADII's reply grows beneath it.
 1. **While it works** — one line, *Investigating · 12s · turn 3 of 20*, the seconds counted
    from the moment in the run's label, so a reload keeps the clock. The line opens to the
    steps as they happen, folded like a model's thinking.
-2. **The answer** — *Yes. Fix it.*, *No. Leave it.*, *Not yet. Escalate it.*, or how a run
-   ended without one — with the investigator's summary, labelled as its words, and above it
-   *Investigated for 46s · 15 steps*, which opens to every step the run took. A REPAIR is
-   *Fix it* only when the authorizer allowed it and the validator accepted it; otherwise
-   the page says which authority refused it.
-3. **Show details** — everything behind the answer, one click away and closed by default:
-   the symptom as a chart, from `alert_observed` (what triggered the run, labelled so, never
-   evidence); **How ADII knows**, the observations the decision cited and only those; for a
-   fix, the **Proposed fix** and the **Independent rebuild** — the validator's reading of its
-   own rebuild (`ValidationResult.rebuilt_series`) with each check it ran; then the three
-   answer slots, **Sign-off** (who proposed, who permitted, who checked) and the **Record**
-   (id, sha256, receipt, model, spend).
+2. **The recommendation** — *Investigator recommended REPAIR*, *NO_REPAIR* or *ESCALATE*, or
+   how a run ended without one. The page never states a decision as its own finding: ESCALATE
+   does not mean the evidence is insufficient, and NO_REPAIR does not mean nothing needs
+   fixing. Beneath it come the investigator's summary, labelled as its words; how many
+   observations the run collected and how many the decision cites, or that it collected none;
+   and for a REPAIR, what the authorizer and validator did with it. Above it,
+   *Investigated for 46s · 15 steps* opens to every step the run took.
+3. **Show details** — everything behind the recommendation, one click away and closed by
+   default: the symptom as a chart, from `alert_observed` (what triggered the run, labelled
+   so, never evidence); **What the decision cites**, the observations it cited and only those,
+   each labelled as returned by the tool layer. A long observation has a compact view that
+   says what it leaves out and opens to the rest, with a log's last lines shown and every line
+   numbered as at its source. What the run never received is a different limit and is said
+   apart from that: a log it read only part of, or a query the tool stopped short. For a fix, the
+   **Proposed fix** and the **Independent rebuild** — the validator's reading of its own
+   rebuild (`ValidationResult.rebuilt_series`) with each check it ran; then the three
+   recommendation slots, **Sign-off** (who proposed, who permitted, who checked) and the
+   **Record** (id, sha256, receipt, model, spend).
 
 ## Where each word comes from
 
@@ -76,7 +82,7 @@ evidence, and every way a run ends without an answer.
   model-written field renders as text in headless Chrome, and every screen fits 1440 and
   390 pixels without horizontal overflow.
 - `test_the_product_path_in_a_browser.py`: a sample incident, picked and investigated in
-  the browser against a stand-in model, reaches *Yes. Fix it.* through the real authorizer
+  the browser against a stand-in model, reaches an admitted fix through the real authorizer
   and validator; a visitor's own CSV reaches its answer; and the record the page drew is the
   archive's, by its digest.
 

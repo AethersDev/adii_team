@@ -215,6 +215,7 @@ h1, h2, p { margin: 0; }
 .verdict--none .verdict__band { background: transparent; border-bottom: 2px dashed var(--none); }
 .thread h2.verdict__headline { font-size: 38px; line-height: 1.05; letter-spacing: -.02em; }
 .verdict__lead { font-size: 17px; color: var(--ink-2); }
+.verdict__basis { font-size: 15px; font-weight: 600; color: var(--ink-2); }
 .verdict__words { display: flex; flex-direction: column; gap: 4px; padding-top: 12px;
   border-top: 1px solid var(--line-soft); }
 .verdict__who { font-size: 13px; font-weight: 700; color: var(--muted); }
@@ -233,6 +234,18 @@ h1, h2, p { margin: 0; }
 .obs__table th { text-align: left; color: var(--muted); font-weight: 600; }
 .obs__table td, .obs__table th { padding: 3px 6px 3px 0; border-bottom: 1px solid var(--line-faint); }
 .obs__more { font-size: 12px; color: var(--muted); }
+.obs__received { font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.obs__origin { font-size: 11px; color: var(--muted); overflow-wrap: anywhere; }
+.obs__block { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.obs__block:has(> .obs__all[open]) > .obs__shown,
+.obs__block:has(> .obs__all[open]) > .obs__more { display: none; }
+.obs__all > summary { font-size: 12px; font-weight: 600; cursor: pointer; }
+.obs__all[open] > summary { margin-bottom: 8px; }
+.obs__lines { margin: 0; padding: 10px 12px; list-style: none; border-radius: 8px;
+  background: var(--bg); font-size: 12px; }
+.obs__lines li { display: grid; grid-template-columns: 3ch minmax(0, 1fr); gap: 8px; }
+.obs__n { color: var(--faint); text-align: right; user-select: none; }
+.obs__line { white-space: pre-wrap; word-break: break-word; }
 .diff { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--white); }
 .diff__head { display: flex; justify-content: space-between; align-items: center; height: 48px;
   padding: 0 18px; border-bottom: 1px solid var(--line-soft); background: #F6F8F3; }
