@@ -467,7 +467,7 @@ function observationCard(o) {
       r.map((v) => el("td", { class: "mono", text: String(v) }))))));
   return el("li", { class: "obs" + (o.table && o.table.columns.length > 3 ? " obs--wide" : "") },
     el("span", { class: "obs__title", text: o.title }),
-    el("span", { class: "obs__origin", text: o.origin + " · " + o.ref }),
+    el("span", { class: "obs__origin", text: o.ref ? o.origin + " · " + o.ref : o.origin }),
     o.code ? el("pre", { class: "obs__code mono", text: o.code }) : null,
     o.text ? el("p", { class: "obs__text", text: o.text }) : null,
     o.received ? el("p", { class: "obs__received", text: o.received }) : null,
@@ -521,15 +521,20 @@ function rebuild(record, series) {
 }
 
 /* The investigation, turn by turn, folded away like a model's thinking: open for whoever
- * wants it, and it stays as they left it while a live run redraws. */
+ * wants it, and it stays as they left it while a live run redraws. A step with an
+ * observation opens to it, beneath whether the decision cited it. */
 function steps(looked, summary) {
+  const head = (i) => [el("span", { class: "looked__title", text: i.title }),
+    i.what ? el("span", { class: "mono looked__what", text: i.what }) : null,
+    i.status !== "OK" ? el("span", { class: "looked__status", text: i.status }) : null];
   return el("details", { class: "looked", open: state.stepsOpen,
                          ontoggle: (e) => { state.stepsOpen = e.target.open; } },
     el("summary", { class: "looked__head" }, summary),
-    looked.length ? el("ol", null, looked.map((i) => el("li", null,
-      el("span", { class: "looked__title", text: i.title }),
-      i.what ? el("span", { class: "mono looked__what", text: i.what }) : null,
-      i.status !== "OK" ? el("span", { class: "looked__status", text: i.status }) : null)))
+    looked.length ? el("ol", null, looked.map((i) => el("li", null, i.observation
+      ? el("details", { class: "looked__step" }, el("summary", null, head(i)),
+           i.citation ? el("p", { class: "looked__cite", text: i.citation }) : null,
+           el("ul", { class: "obs-list" }, observationCard(i.observation)))
+      : head(i))))
       : el("p", { class: "muted", text: "Starting: the receipt is written before the first " +
                                         "request to the model." }));
 }
@@ -671,7 +676,8 @@ function running(label, trace) {
   const turns = events.filter((e) => e.kind === "model_requested").length;
   const most = state.launch.max_turns;
   const since = startedAt(label);
-  const looked = V.investigated(pseudo);
+  // redrawn every second, so a step opened here would close again: they open once it ends
+  const looked = V.investigated(pseudo).map((i) => ({ ...i, observation: null }));
   thread(label, asked(label) || "Your investigation", [
     steps(looked, [mark("working", 20), el("span", { class: "reply__status", role: "status",
       text: "Investigating" + (since ? " · " + clock(Date.now() - since) : "") +

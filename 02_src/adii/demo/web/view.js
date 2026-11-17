@@ -9,7 +9,8 @@
  *     evidence, so it is never among what the decision cites;
  *   the rebuilt series is the validator's reading of its own rebuild, and is labelled so;
  *   "What the decision cites" is the observations the decision cited, and only those —
- *     everything the run looked at is "Investigated";
+ *     everything the run looked at is "Investigated", where each step the tool layer answered
+ *     opens to what it returned and says whether the decision cited it;
  *   a decision is the investigator's recommendation, never the page's own finding: the page
  *     says what the record holds about it and does not judge whether it is right;
  *   a compact view of an observation says what it leaves out, and the rest is one click away.
@@ -277,28 +278,43 @@ function observation(call, result) {
   return { tool, title, text: JSON.stringify(c) };
 }
 
-/* What the decision cites: the observations it cited, in the order it cited them, each as a
- * result of the tool layer and never as anything the investigator said. */
+/* A successful result as the tool layer returned it, never as anything the investigator said. */
+function returned(call, result) {
+  return { ...observation(call, result), origin: "Returned by the tool layer",
+           ref: (result.content || {}).evidence_id || null };
+}
+
+/* What the decision cites: the observations it cited, in the order it cited them. */
 function cited(record) {
   const refs = (record.decision && record.decision.evidence_refs) || [];
   const byId = {};
   calls(record).forEach(({ call, result }) => {
     const id = result.content && result.content.evidence_id;
-    if (result.status === "OK" && id) {
-      byId[id] = { ...observation(call, result), origin: "Returned by the tool layer" };
-    }
+    if (result.status === "OK" && id) byId[id] = returned(call, result);
   });
-  return refs.filter((ref) => byId[ref]).map((ref) => ({ ref, ...byId[ref] }));
+  return refs.filter((ref) => byId[ref]).map((ref) => byId[ref]);
 }
 
-/* Investigated: everything the run looked at, cited or not, refused or not. */
+/* Whether the decision cited one observation, as the record says. A record written before
+ * citations says nothing either way, and a run that ended without a decision cited nothing. */
+function citation(record, result) {
+  const d = record.decision, id = (result.content || {}).evidence_id;
+  if (!d) return null;
+  if (!d.evidence_refs || !id) return "Citation information unavailable.";
+  return d.evidence_refs.includes(id) ? "Cited by the decision." : "Observed but not cited.";
+}
+
+/* Investigated: everything the run looked at, cited or not, refused or not. A step the tool
+ * layer answered opens to what it returned; a refused one returned nothing to open. */
 function investigated(record) {
   return calls(record).map(({ call, result }) => {
     const args = call.arguments || {};
     const what = args.query || args.transform_id || args.notice_id || args.history_id ||
                  args.reconciliation_id || args.table || "";
+    const ok = result.status === "OK";
     return { tool: result.name, title: TOOL[result.name] || result.name, what: String(what),
-             status: result.status };
+             status: result.status, observation: ok ? returned(call, result) : null,
+             citation: ok ? citation(record, result) : null };
   });
 }
 

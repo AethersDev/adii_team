@@ -51,7 +51,10 @@ sits on the right, and ADII's reply grows beneath it.
    fixing. Beneath it come the investigator's summary, labelled as its words; how many
    observations the run collected and how many the decision cites, or that it collected none;
    and for a REPAIR, what the authorizer and validator did with it. Above it,
-   *Investigated for 46s · 15 steps* opens to every step the run took.
+   *Investigated for 46s · 15 steps* opens to every step the run took. Once the run has
+   ended, a step the tool layer answered opens to what it returned, under *Cited by the
+   decision.*, *Observed but not cited.*, or, for a record written before citations,
+   *Citation information unavailable.* A refused step returned nothing to open.
 3. **Show details** — everything behind the recommendation, one click away and closed by
    default: the symptom as a chart, from `alert_observed` (what triggered the run, labelled
    so, never evidence); **What the decision cites**, the observations it cited and only those,

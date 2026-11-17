@@ -165,6 +165,9 @@ EXPECTED = {
     "r/withheld": ("The tool stopped at 50 rows.", "and the run never received them.",
                    "Show all 50 returned rows"),
     "r/ended": ("The run couldn't finish.", "Nothing was changed.", "The record says"),
+    # a step the decision did not cite opens to what the tool returned, and says so
+    "r/uncited": ("Investigator recommended ESCALATE", "Observed but not cited.",
+                  "Cited by the decision.", "No changes to distributor agreements this month."),
 }
 
 
@@ -175,12 +178,13 @@ def test_every_screen_fits_the_viewport_at_desktop_and_phone_width(tmp_path, mon
     """Mobile is an acceptance condition: no horizontal document overflow, and what each
     screen must say present at both widths. Measured in the browser at the exact width,
     through a same-origin harness, not asserted from CSS."""
-    from .test_the_front_door_projects import recorded
+    from .test_the_front_door_projects import recorded, uncited_bulletin
     binary = chrome()
     archive = tmp_path / "archive"
     for label, record in (("fix", recorded("transform-defect")),
                           ("leave", recorded("business-changed")),
                           ("escalate", recorded("cannot-decide")),
+                          ("uncited", uncited_bulletin(recorded("cannot-decide"))[0]),
                           ("withheld", recorded("cannot-decide", calls=[
                               ("run_sql", {"query": "SELECT * FROM raw_orders"})]))):
         (archive / label).mkdir(parents=True)

@@ -274,7 +274,7 @@ h1, h2, p { margin: 0; }
 .looked__head::after { content: "›"; font-size: 18px; color: var(--muted); transition: transform .15s; }
 .looked[open] .looked__head::after { transform: rotate(90deg); }
 .looked__head:hover { background: var(--chip); }
-.looked ol { margin: 8px 0 0 13px; padding: 4px 0 4px 22px; border-left: 2px solid var(--line);
+.looked > ol { margin: 8px 0 0 13px; padding: 4px 0 4px 22px; border-left: 2px solid var(--line);
   display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
 .reply__status { color: var(--accent); }
 .more { display: flex; flex-direction: column; }
@@ -291,6 +291,9 @@ h1, h2, p { margin: 0; }
 .looked__title { font-weight: 600; margin-right: 8px; }
 .looked__what { display: block; color: var(--ink-2); white-space: pre-wrap; word-break: break-word; }
 .looked__status { color: var(--bad); font-size: 13px; font-weight: 700; }
+.looked__step > summary { cursor: pointer; }
+.looked__cite { margin: 6px 0; font-size: 13px; font-weight: 700; }
+.looked__step .obs-list { grid-template-columns: minmax(0, 1fr); }
 .problem { padding: 16px 20px; border: 1px solid var(--bad); border-radius: 12px;
   background: var(--bad-soft); }
 

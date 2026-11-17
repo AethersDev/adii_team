@@ -218,8 +218,8 @@ GUARDS = (
     # decisions F1–F3: the page says what the record says — cited is cited, a fix stands only
     # with both authorities, and the drawing never costs the verdict it illustrates
     Guard("D.how_adii_knows_is_what_was_cited", "D", "demo/web/view.js",
-          "  return refs.filter((ref) => byId[ref]).map((ref) => ({ ref, ...byId[ref] }));\n",
-          "  return Object.keys(byId).map((ref) => ({ ref, ...byId[ref] }));\n"),
+          "  return refs.filter((ref) => byId[ref]).map((ref) => byId[ref]);\n",
+          "  return Object.values(byId);\n"),
     Guard("D.a_fix_stands_only_with_both_authorities", "D", "demo/web/view.js",
           "  return Boolean(a && a.authorized && v && v.accepted);\n",
           "  return Boolean(v && v.accepted);\n"),
@@ -251,9 +251,20 @@ GUARDS = (
           "    const received = c.truncated\n",
           "    const received = false\n"),
     Guard("D.a_citation_is_the_tool_layers", "D", "demo/web/view.js",
-          '      byId[id] = { ...observation(call, result), '
-          'origin: "Returned by the tool layer" };\n',
-          '      byId[id] = { ...observation(call, result), origin: "" };\n'),
+          '  return { ...observation(call, result), origin: "Returned by the tool layer",\n',
+          '  return { ...observation(call, result), origin: "",\n'),
+    # opening what the run observed: each step the tool layer answered says whether the
+    # decision cited it, an older record says it cannot tell, and a refusal opens to nothing
+    Guard("D.an_uncited_observation_is_said", "D", "demo/web/view.js",
+          '  return d.evidence_refs.includes(id) ? "Cited by the decision." : '
+          '"Observed but not cited.";\n',
+          '  return "Cited by the decision.";\n'),
+    Guard("D.an_older_record_cannot_say_what_was_cited", "D", "demo/web/view.js",
+          '  if (!d.evidence_refs || !id) return "Citation information unavailable.";\n',
+          '  if (!d.evidence_refs || !id) return "Observed but not cited.";\n'),
+    Guard("D.a_refused_step_opens_to_nothing", "D", "demo/web/view.js",
+          '    const ok = result.status === "OK";\n',
+          '    const ok = true;\n'),
     Guard("C.the_series_never_costs_a_verdict", "C", "validation/validator.py",
           "            return ()           # and the verdict — already decided by the checks "
           "— stands\n",

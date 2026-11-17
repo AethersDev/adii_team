@@ -5,8 +5,9 @@ writes for the demo company's incidents: the fix that stands, a fix the rebuild 
 fix outside what may be changed, the drop that is real, the evidence that cannot decide,
 and a run that ended without an answer. The rules of decisions F1–F3 are held here: the
 symptom is never evidence, the rebuild is the validator's, and "What the decision cites" is
-the cited observations only. So are two more: a decision is the investigator's recommendation
-and never the page's finding, and an observation is never cut without saying so.
+the cited observations only. So are three more: a decision is the investigator's recommendation
+and never the page's finding, an observation is never cut without saying so, and a step
+opens to what the run observed, saying whether the decision cited it.
 """
 from __future__ import annotations
 
@@ -317,6 +318,53 @@ def test_what_the_decision_cites_is_what_it_cited_and_investigated_is_everything
     record["decision"]["evidence_refs"] = record["decision"]["evidence_refs"][:1]
     assert len(view("cited", record)) == 1
     assert len(view("investigated", record)) == len(view("investigated", runs["leave"]))
+
+
+def uncited_bulletin(record: dict) -> tuple[dict, dict]:
+    """A copy of the record whose decision leaves out the commercial bulletin it read, as the
+    B-0818 recording's did, and the bulletin's result."""
+    record = json.loads(json.dumps(record))
+    notice = next(r for r in results(record) if r["name"] == "get_notice"
+                  and r["content"]["notice_id"] == "commercial-bulletin")
+    record["decision"]["evidence_refs"].remove(notice["content"]["evidence_id"])
+    return record, notice
+
+
+def test_a_step_opens_to_what_it_returned_and_says_the_decision_did_not_cite_it(runs):
+    """The B-0818 recording read the commercial bulletin and did not cite it: the page listed
+    the step and nothing opened it. The step now opens to the bulletin as the tool layer
+    returned it and says so, and what the decision cites does not change."""
+    record, notice = uncited_bulletin(runs["escalate"])
+    steps = view("investigated", record)
+    [step] = [s for s in steps if s["what"] == "commercial-bulletin"]
+    assert step["citation"] == "Observed but not cited."
+    assert step["observation"]["text"] == "No changes to distributor agreements this month."
+    assert step["observation"]["origin"] == "Returned by the tool layer"
+    assert step["observation"]["ref"] == notice["content"]["evidence_id"]
+    assert [c["ref"] for c in view("cited", record)] == record["decision"]["evidence_refs"]
+    cards = {c["ref"]: c for c in view("cited", record)}
+    others = [s for s in steps if s["status"] == "OK" and s["what"] != "commercial-bulletin"]
+    assert others and all(s["citation"] == "Cited by the decision." and
+                          s["observation"] == cards[s["observation"]["ref"]] for s in others)
+
+
+def test_a_step_says_when_the_record_cannot_tell_and_a_refusal_opens_to_nothing(runs):
+    older = json.loads(json.dumps(runs["leave"]))
+    del older["decision"]["evidence_refs"]      # a record written before citations existed
+    unminted = json.loads(json.dumps(runs["leave"]))
+    for result in results(unminted):
+        del result["content"]["evidence_id"]
+    for record in (older, unminted):
+        seen = [s for s in view("investigated", record) if s["status"] == "OK"]
+        assert seen and all(s["observation"] and
+                            s["citation"] == "Citation information unavailable." for s in seen)
+    ended = {**runs["leave"], "decision": None, "termination": "model_failure"}
+    assert all(s["observation"] and s["citation"] is None
+               for s in view("investigated", ended))
+    refused = json.loads(json.dumps(runs["leave"]))
+    results(refused)[0]["status"] = "REJECTED"
+    first = view("investigated", refused)[0]
+    assert (first["status"], first["observation"], first["citation"]) == ("REJECTED", None, None)
 
 
 def test_after_validation_is_the_validators_series_and_a_recovered_chart_can_still_fail(runs):
