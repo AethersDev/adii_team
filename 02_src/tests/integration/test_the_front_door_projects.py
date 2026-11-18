@@ -367,6 +367,40 @@ def test_a_step_says_when_the_record_cannot_tell_and_a_refusal_opens_to_nothing(
     assert (first["status"], first["observation"], first["citation"]) == ("REJECTED", None, None)
 
 
+SCHEMA_CALLS = [("get_schema", {}), ("get_schema", {"table": "load_log"})]
+DECLARED = {"source": "vendor feed", "schema_version": 2,
+            "fields": {"batch_id": {"meaning": "the vendor's batch"}}}
+
+
+def with_declared(record: dict) -> dict:
+    """A copy whose named-table schema result carries a declared schema, as the tool returns
+    for a table the incident declares one for."""
+    record = json.loads(json.dumps(record))
+    next(r for r in results(record) if r["name"] == "get_schema" and "table" in r["content"]
+         )["content"]["declared_schema"] = DECLARED
+    return record
+
+
+def test_a_schema_step_shows_what_the_tool_returned_in_either_form():
+    """The review of 18 Nov: get_schema(table) returns one table, its columns and its
+    definition, and the card read only the other form, so 47 archived results opened to an
+    empty card. Both forms here come from the real tool layer; a declared schema, which no
+    archived result carries, is shown whole when the tool returns one."""
+    record = recorded("cannot-decide", calls=SCHEMA_CALLS)
+    every, one = (r["content"] for r in results(record) if r["name"] == "get_schema")
+    listed, named = (s["observation"] for s in view("investigated", record)
+                     if s["tool"] == "get_schema")
+    assert listed["title"] == "The tables and their columns"
+    assert listed["table"]["all"] == [[t["name"], ", ".join(t["columns"])]
+                                      for t in every["tables"]]
+    assert named["title"] == "The table load_log"
+    assert named["code"] == one["ddl"] and named["code"].startswith("CREATE TABLE load_log (")
+    assert named["text"] == "Columns: " + ", ".join(one["columns"])
+    assert named["declared"] is None
+    named = [s for s in view("investigated", with_declared(record)) if s["tool"] == "get_schema"]
+    assert named[1]["observation"]["declared"] == json.dumps(DECLARED, indent=2)
+
+
 def test_after_validation_is_the_validators_series_and_a_recovered_chart_can_still_fail(runs):
     """F2: the rebuild is drawn from `rebuilt_series`; the fake recovers the chart and its
     checks still say it failed."""

@@ -132,7 +132,9 @@ HARNESS = """<!doctype html><meta charset="utf-8"><title>harness</title><body>
 // Embeds the page at an exact CSS width, which headless Chrome's own window cannot go
 // below 500. Same origin, so the inner document is readable: once the inner page has
 // measured itself, its measurement and its text are copied out here, where --dump-dom
-// can see them. Test scaffolding; never shipped.
+// can see them. With open=1, every step is opened first, the page measured again, and its
+// text copied as rendered (innerText), so only what a reader can see is copied out. Test
+// scaffolding; never shipped.
 const q = new URLSearchParams(location.search);
 const frame = document.createElement("iframe");
 frame.width = q.get("w"); frame.height = "12000"; frame.style.border = "0";
@@ -143,9 +145,14 @@ const poll = setInterval(() => {
   const inner = frame.contentDocument && frame.contentDocument.documentElement;
   if (!inner || !inner.dataset.measured || !frame.contentDocument.querySelector("main")) return;
   clearInterval(poll);
+  const body = frame.contentDocument.body;
+  if (q.get("open")) {
+    for (const d of body.querySelectorAll("details.looked, details.looked__step")) d.open = true;
+    inner.dataset.measured = inner.scrollWidth + "," + inner.clientWidth;
+  }
   document.documentElement.dataset.measured = inner.dataset.measured;
   const out = document.createElement("pre"); out.id = "text";
-  out.textContent = frame.contentDocument.body.textContent;
+  out.textContent = q.get("open") ? body.innerText : body.textContent;
   document.body.append(out);
 }, 50);
 </script>"""
@@ -168,7 +175,13 @@ EXPECTED = {
     # a step the decision did not cite opens to what the tool returned, and says so
     "r/uncited": ("Investigator recommended ESCALATE", "Observed but not cited.",
                   "Cited by the decision.", "No changes to distributor agreements this month."),
+    # every step opened, and read as shown: a named table's step shows what the tool returned
+    "r/schema": ("The tables and their columns", "delivery_manifest", "The table load_log",
+                 "CREATE TABLE load_log (batch_id TEXT PRIMARY KEY",
+                 "Columns: batch_id, run_date, rows_received", "Declared schema",
+                 '"source": "vendor feed"'),
 }
+OPENED = {"r/schema"}
 
 
 @pytest.mark.parametrize("width", [1440, 390])
@@ -178,13 +191,20 @@ def test_every_screen_fits_the_viewport_at_desktop_and_phone_width(tmp_path, mon
     """Mobile is an acceptance condition: no horizontal document overflow, and what each
     screen must say present at both widths. Measured in the browser at the exact width,
     through a same-origin harness, not asserted from CSS."""
-    from .test_the_front_door_projects import recorded, uncited_bulletin
+    from .test_the_front_door_projects import (
+        SCHEMA_CALLS,
+        recorded,
+        uncited_bulletin,
+        with_declared,
+    )
     binary = chrome()
     archive = tmp_path / "archive"
     for label, record in (("fix", recorded("transform-defect")),
                           ("leave", recorded("business-changed")),
                           ("escalate", recorded("cannot-decide")),
                           ("uncited", uncited_bulletin(recorded("cannot-decide"))[0]),
+                          ("schema", with_declared(recorded("cannot-decide",
+                                                            calls=SCHEMA_CALLS))),
                           ("withheld", recorded("cannot-decide", calls=[
                               ("run_sql", {"query": "SELECT * FROM raw_orders"})]))):
         (archive / label).mkdir(parents=True)
@@ -197,7 +217,8 @@ def test_every_screen_fits_the_viewport_at_desktop_and_phone_width(tmp_path, mon
     shutil.copytree(server.WEB, web)
     (web / "harness.html").write_text(HARNESS, encoding="utf-8")
     httpd = serve(archive, web, monkeypatch)
-    url = f"http://127.0.0.1:{httpd.server_port}/harness.html?w={width}&route={route}"
+    url = (f"http://127.0.0.1:{httpd.server_port}/harness.html?w={width}&route={route}"
+           + ("&open=1" if route in OPENED else ""))
     try:
         dom = browse(binary, tmp_path, url, f"--window-size={max(width + 40, 500)},900",
                      "--virtual-time-budget=15000")
@@ -216,6 +237,8 @@ def test_every_screen_fits_the_viewport_at_desktop_and_phone_width(tmp_path, mon
     text = dom[dom.index('<pre id="text">'):]
     for said in EXPECTED[route]:
         assert said in text, f"{said!r} missing from {route or 'the list'} at {width}px"
+    if route in OPENED:         # read as rendered: what stays folded is not in the text
+        assert "What the decision cites" not in text, "the text was not read as rendered"
     # the history is a sidebar, open on a desk and closed on a phone until asked for
     assert (("New investigation" in text) == (width > 900)), "the sidebar's default is wrong"
     if route in ("", "new"):    # a room sees no earlier answer before the live one,

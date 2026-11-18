@@ -470,6 +470,8 @@ function observationCard(o) {
     el("span", { class: "obs__origin", text: o.ref ? o.origin + " · " + o.ref : o.origin }),
     o.code ? el("pre", { class: "obs__code mono", text: o.code }) : null,
     o.text ? el("p", { class: "obs__text", text: o.text }) : null,
+    o.declared ? [el("span", { class: "obs__more", text: "Declared schema" }),
+                  el("pre", { class: "obs__code mono", text: o.declared })] : null,
     o.received ? el("p", { class: "obs__received", text: o.received }) : null,
     o.lines ? compactView(o.lines, lines) : null,
     o.table ? compactView(o.table, rows) : null);

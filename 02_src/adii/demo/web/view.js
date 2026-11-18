@@ -273,7 +273,15 @@ function observation(call, result) {
              lines: compact(numbered(lines, first), 8, "lines read", true) };
   }
   if (tool === "get_schema") {
-    return { tool, title, text: (c.tables || []).map((t) => t.name).join(", ") };
+    // asked for no table, every table with its columns; asked for one, that table, its
+    // definition, and the schema the incident declares for it when there is one
+    if (c.tables) {
+      return { tool, title, table: { columns: ["table", "columns"], ...compact(
+        c.tables.map((t) => [t.name, (t.columns || []).join(", ")]), 6, "tables", false) } };
+    }
+    return { tool, title: "The table " + (c.table || ""), code: c.ddl || "",
+             text: "Columns: " + (c.columns || []).join(", "),
+             declared: c.declared_schema ? JSON.stringify(c.declared_schema, null, 2) : null };
   }
   return { tool, title, text: JSON.stringify(c) };
 }
