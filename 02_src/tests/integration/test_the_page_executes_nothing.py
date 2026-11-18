@@ -176,7 +176,8 @@ EXPECTED = {
     "r/uncited": ("Investigator recommended ESCALATE", "Observed but not cited.",
                   "Cited by the decision.", "No changes to distributor agreements this month."),
     # every step opened, and read as shown: a named table's step shows what the tool returned
-    "r/schema": ("The tables and their columns", "delivery_manifest", "The table load_log",
+    "r/schema": ("The tables and their columns", "delivery_manifest",
+                 "A table and its definition", "The table load_log",
                  "CREATE TABLE load_log (batch_id TEXT PRIMARY KEY",
                  "Columns: batch_id, run_date, rows_received", "Declared schema",
                  '"source": "vendor feed"'),

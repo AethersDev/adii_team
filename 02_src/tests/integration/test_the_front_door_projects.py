@@ -388,8 +388,10 @@ def test_a_schema_step_shows_what_the_tool_returned_in_either_form():
     archived result carries, is shown whole when the tool returns one."""
     record = recorded("cannot-decide", calls=SCHEMA_CALLS)
     every, one = (r["content"] for r in results(record) if r["name"] == "get_schema")
-    listed, named = (s["observation"] for s in view("investigated", record)
-                     if s["tool"] == "get_schema")
+    steps = [s for s in view("investigated", record) if s["tool"] == "get_schema"]
+    assert [(s["title"], s["what"]) for s in steps] == [
+        ("The tables and their columns", ""), ("A table and its definition", "load_log")]
+    listed, named = (s["observation"] for s in steps)
     assert listed["title"] == "The tables and their columns"
     assert listed["table"]["all"] == [[t["name"], ", ".join(t["columns"])]
                                       for t in every["tables"]]

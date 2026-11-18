@@ -320,7 +320,10 @@ function investigated(record) {
     const what = args.query || args.transform_id || args.notice_id || args.history_id ||
                  args.reconciliation_id || args.table || "";
     const ok = result.status === "OK";
-    return { tool: result.name, title: TOOL[result.name] || result.name, what: String(what),
+    // a schema call asks for every table or for one, and its step says which
+    const title = result.name === "get_schema" && args.table ? "A table and its definition"
+      : TOOL[result.name] || result.name;
+    return { tool: result.name, title, what: String(what),
              status: result.status, observation: ok ? returned(call, result) : null,
              citation: ok ? citation(record, result) : null };
   });
